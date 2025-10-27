@@ -79,7 +79,30 @@ Root/
 
 ## Development Guidelines
 
+### Project Structure
+
 For detailed instructions and guidelines, refer to the [`README.md`](./backend/README.md) file in the `backend` directory and the [`README.md`](./frontend/README.md) file in the `frontend` directory. These files provide specific information about their respective parts of the application.
+
+### Git Flow Branching Model
+
+This project follows the **Git Flow workflow**, a structured branching model to manage development, releases, and hotfixes efficiently.
+
+#### Main branches
+
+- **main** → production-ready code; every commit here represents a release.
+- **development** → integration branch for new features; serves as the base for upcoming releases.
+
+#### Supporting branches
+
+- **Feature branches** → for developing new features. Branch off from `develop` and merge back when complete.  
+  **Branch naming convention:** start with `feature/` (e.g., `feature/login-form`).
+
+- **Release branches** → for preparing a new version. Branch off from `develop`, allow final tweaks/bug fixes, and merge into both `master` and `develop`.  
+  **Branch naming convention:** start with `release/` (e.g., `release/1.0.0`).
+
+- **Hotfix branches** → for urgent fixes in production. Branch off from `main` and merge into both `main` and `development`. **Branch naming convention:** start with `hotfix/` (e.g., `hotfix/fix-login-bug`).
+
+To maintain traceability and clarity, always use **descriptive names** for branches and **link to the related issue**.
 
 ## Frameworks and Tools
 
