@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend README
 
-## Getting Started
+Our frontend is built using [Next.js](https://nextjs.org/), a React framework that enables the development of React applications with ease.
 
-First, run the development server:
+We also use [TypeScript](https://www.typescriptlang.org/) to add static typing to our JavaScript code, improving type safety and developer experience.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Setup
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. **Navigate to the frontend directory:**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```bash
+   cd frontend
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Copy `.env.example` to create a `.env` file, ensuring the environment variables are set:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **(In case it's your first time running the frontend\*)
+   Install the required dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+   \*_After the first time, you can skip this step unless dependencies have been updated/added or if you get an error about missing packages._
+
+4. **Start the development server:**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Access the application in your browser:**
+
+   Open [http://localhost:3000](http://localhost:3000).
+
+## Styles and premade components
+
+This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+
+As for reusable components, you can use [Shadcn UI](https://ui.shadcn.com/docs/components), which is a set of prebuilt and prestyled components that you can import and pass properties to.
 
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [TypeScript Documentation](https://www.typescriptlang.org/docs) - understand TypeScript features, syntax, and best practices.
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - explore the utility-first CSS framework used for styling.
+- [Shadcn UI Documentation](https://ui.shadcn.com/docs) - learn how to use and customize Shadcn UI components.
