@@ -44,10 +44,10 @@ This project follows the **Git Flow workflow**, a structured branching model to 
 
 ### Supporting branches
 
-- **Feature branches** → for developing new features. Branch off from `develop` and merge back when complete.  
-  **Branch naming convention:** start with `feature/` (e.g., `feature/login-form`).
+- **Feature/Task branches** → for developing new features/tasks. Branch off from `development` and merge back when complete.  
+  **Branch naming convention:** start with `feature/` or `task/` (e.g., `feature/login-form`).
 
-- **Release branches** → for preparing a new version. Branch off from `develop`, allow final tweaks/bug fixes, and merge into both `master` and `develop`.  
+- **Release branches** → for preparing a new version. Branch off from `development`, allow final tweaks/bug fixes, and merge into both `main` and `development`.  
   **Branch naming convention:** start with `release/` (e.g., `release/1.0.0`).
 
 - **Hotfix branches** → for urgent fixes in production. Branch off from `main` and merge into both `main` and `development`. **Branch naming convention:** start with `hotfix/` (e.g., `hotfix/fix-login-bug`).
