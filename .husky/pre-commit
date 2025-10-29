@@ -1,3 +1,14 @@
 #!/bin/sh
+echo "Running frontend checks..."
 cd frontend
-npx lint-staged
+npx lint-staged --verbose
+echo "Frontend checks complete!"
+
+cd ..
+
+echo "Running backend checks..."
+cd backend
+pre-commit run
+echo "Backend checks complete!"
+
+cd ..
