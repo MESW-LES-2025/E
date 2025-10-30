@@ -1,7 +1,9 @@
 from django.test import TestCase
+
 from .models import Event
 
 # Create your tests here.
+
 
 class EventModelTest(TestCase):
     def test_event_creation(self):

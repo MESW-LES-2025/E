@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import eslintPluginJest from "eslint-plugin-jest";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -14,6 +15,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
   ]),
   {
+    plugins: { jest: eslintPluginJest },
+    languageOptions: {
+      globals: eslintPluginJest.environments.globals.globals,
+    },
     rules: {
       "constructor-super": "error",
       "for-direction": "error",

@@ -1,0 +1,52 @@
+name: Backend Workflow
+
+on:
+    push:
+        branches:
+            - main
+            - development
+        paths:
+            - "backend/**"
+    pull_request:
+        paths:
+            - "backend/**"
+
+jobs:
+    backend-workflow:
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: backend
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v6
+              with:
+                  python-version: "3.12"
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+
+            - name: Run migrations (django)
+              run: python manage.py migrate --noinput
+
+            - name: Format code (black)
+              run: black --check .
+
+            - name: Sort imports (isort)
+              run: isort --check-only .
+
+            - name: Lint code (flake8)
+              run: flake8 .
+
+            - name: Type check (mypy)
+              run: mypy .
+
+            - name: Run tests (pytest)
+              run: pytest .
