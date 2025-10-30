@@ -9,7 +9,7 @@ on:
             - "frontend/**"
 
 jobs:
-    frontend-ci:
+    frontend-workflow:
         runs-on: ubuntu-latest
 
         defaults:

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./globals.css";
+import React from "react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

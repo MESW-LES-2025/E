@@ -28,7 +28,7 @@ export default function Home() {
     const fetchEvents = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/`,
         );
         if (!response.ok) {
           throw new Error("Failed to fetch events");
