@@ -8,6 +8,7 @@ The application consists of a Django backend and a Next.js frontend, providing a
 
 ```
 Root/
+├── .github/       # GitHub Actions workflows
 ├── .husky/        # Pre-commit hooks
 ├── backend/       # Django backend
 │   └── README.md       # Backend-specific documentation
@@ -22,8 +23,8 @@ Root/
 
 To set up the development environment quickly, run the provided setup script appropriate for your operating system:
 
-- For Windows (PowerShell): `.\setup.ps1`
-- For Unix-based systems (Bash): `./setup.sh`
+- For Windows (PowerShell): [`\setup.ps1`](./setup.ps1)
+- For Unix-based systems (Bash): [`./setup.sh`](./setup.sh)
 
 This script should **only be run the first time** you set up the project.
 
@@ -31,7 +32,7 @@ This script should **only be run the first time** you set up the project.
 
 ## Project Structure
 
-For detailed instructions and guidelines, refer to the [`README.md`](./backend/README.md) file in the `backend` directory and the [`README.md`](./frontend/README.md) file in the `frontend` directory. These files provide specific information about their respective parts of the application.
+For detailed instructions and guidelines, refer to the [`README.md`](./backend/README.md) file in the [`backend`](./backend) directory and the [`README.md`](./frontend/README.md) file in the [`frontend`](./frontend) directory. These files provide specific information about their respective parts of the application.
 
 ## Git Flow Branching Model
 
@@ -54,7 +55,7 @@ This project follows the **Git Flow workflow**, a structured branching model to 
 
 To maintain traceability and clarity, always use **descriptive names** for branches and **link to the related issue**.
 
-### Pre-commit Hooks
+## Pre-commit Hooks (CI)
 
 Pre-commit hooks are used in this project to ensure code quality and consistency before changes are committed to the repository.
 
@@ -73,7 +74,26 @@ This project uses the following hooks:
 
 Once installed during [`Quick Setup`](#quick-setup), the hooks will automatically run before each commit for each staged file. If any issues are detected, the commit will be blocked until they are resolved.
 
-[Learn more about git hooks here.](https://git-scm.com/book/ms/v2/Customizing-Git-Git-Hooks)
+The hooks are configured in the [`.husky/`](./.husky) directory and in the configuration files for [`lint-staged`](./frontend/package.json) and [`pre-commit`](./backend/.pre-commit-config.yaml), for both frontend and backend, respectively.
+
+Learn more about [git hooks.](https://git-scm.com/book/ms/v2/Customizing-Git-Git-Hooks)
+
+## GitHub Actions and Workflows (CI)
+
+This project utilizes GitHub Actions to automate various tasks, including running tests and ensuring code quality through Continuous Integration (CI).
+
+The CI workflows are defined in the [`.github/workflows/`](./.github/workflows) directory and are triggered on specific events, such as updates to the `main` and `development` branches or when pull requests are created or updated.
+
+The workflows are configured in the following locations:
+
+```
+.github/
+└── workflows/
+    ├── backend-workflow.yml
+    └── frontend-workflow.yml
+```
+
+Learn more about [GitHub Actions](https://docs.github.com/en/actions).
 
 # Frameworks and Tools
 
