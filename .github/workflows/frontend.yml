@@ -69,10 +69,10 @@ jobs:
               run: |
                   if [ "${GITHUB_REF##*/}" = "main" ]; then
                       echo "Building production environment..."
-                      NODE_ENV=production npm run build && npx next export --outdir out/prod
+                      NODE_ENV=production npm run build && npx next export -o out/prod
                   else
                       echo "Building staging environment..."
-                      NODE_ENV=staging npm run build && npx next export --outdir out/staging
+                      NODE_ENV=staging npm run build && npx next export -o out/staging
                   fi
 
             - name: Deploy to GitHub Pages
