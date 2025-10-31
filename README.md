@@ -2,12 +2,10 @@
 
 This project is designed to facilitate the Erasmus experience in Porto, providing a platform for students to connect and participate in events.
 
-The application consists of a Django backend and a Next.js frontend, providing a user friendly web application.
-
 # Repository Structure
 
 ```
-Root/
+E
 ├── .github/       # GitHub Actions workflows
 ├── .husky/        # Pre-commit hooks
 ├── backend/       # Django backend
@@ -19,6 +17,15 @@ Root/
 └── setup.ps1      # Setup script for Windows PowerShell
 ```
 
+```
+deployment/
+└── README.md      # Deployment-specific documentation
+├── staging/       # Build output for the staging environment
+└── production/    # Build output for the production environment
+```
+
+> **Note**: [`deployment`](https://github.com/MESW-LES-2025/E/tree/deployment) branch is a separate branch used for managing application builds and deployment.
+
 # Quick Setup
 
 To set up the development environment quickly, run the provided setup script appropriate for your operating system:
@@ -28,34 +35,30 @@ To set up the development environment quickly, run the provided setup script app
 
 This script should **only be run the first time** you set up the project.
 
-# Development Guidelines
-
-## Project Structure
-
-For detailed instructions and guidelines, refer to the [`README.md`](./backend/README.md) file in the [`backend`](./backend) directory and the [`README.md`](./frontend/README.md) file in the [`frontend`](./frontend) directory. These files provide specific information about their respective parts of the application.
-
-## Git Flow Branching Model
+# Git Flow Branching Model
 
 This project follows the **Git Flow workflow**, a structured branching model to manage development, releases, and hotfixes efficiently.
 
-### Main branches
+**Main branches**
 
 - **main** → production-ready code; every commit here represents a release.
 - **development** → integration branch for new features; serves as the base for upcoming releases.
 
-### Supporting branches
+**Supporting branches**
 
-- **Feature/Task branches** → for developing new features/tasks. Branch off from `development` and merge back when complete.  
-  **Branch naming convention:** start with `feature/` or `task/` (e.g., `feature/login-form`).
+- **Feature/Task branches** → for developing new features/tasks. Branch off from `development` and merge back when complete.
 
-- **Release branches** → for preparing a new version. Branch off from `development`, allow final tweaks/bug fixes, and merge into both `main` and `development`.  
-  **Branch naming convention:** start with `release/` (e.g., `release/1.0.0`).
+- **Release branches** → for preparing a new version. Branch off from `development`, allow final tweaks/bug fixes, and merge into both `main` and `development`.
 
-- **Hotfix branches** → for urgent fixes in production. Branch off from `main` and merge into both `main` and `development`. **Branch naming convention:** start with `hotfix/` (e.g., `hotfix/fix-login-bug`).
+- **Hotfix branches** → for urgent fixes in production. Branch off from `main` and merge into both `main` and `development`.
+
+Below is a visual representation of the Git Flow branching model:
+
+![Git Flow Diagram](./assets/git-flow-diagram.png)
 
 To maintain traceability and clarity, always use **descriptive names** for branches and **link to the related issue**.
 
-## Pre-commit Hooks (CI)
+# Pre-commit Hooks
 
 Pre-commit hooks are used in this project to ensure code quality and consistency before changes are committed to the repository.
 
@@ -74,17 +77,31 @@ This project uses the following hooks:
 
 Once installed during [`Quick Setup`](#quick-setup), the hooks will automatically run before each commit for each staged file. If any issues are detected, the commit will be blocked until they are resolved.
 
-The hooks are configured in the [`.husky/`](./.husky) directory and in the configuration files for [`lint-staged`](./frontend/package.json) and [`pre-commit`](./backend/.pre-commit-config.yaml), for both frontend and backend, respectively.
-
 Learn more about [git hooks.](https://git-scm.com/book/ms/v2/Customizing-Git-Git-Hooks)
 
-## GitHub Actions and Workflows (CI)
+# Continuous Integration (CI)
 
-This project utilizes GitHub Actions to automate various tasks, including running tests and ensuring code quality through Continuous Integration (CI).
+This project uses [GitHub Actions](https://docs.github.com/en/actions) for Continuous Integration (CI). The workflows are defined in the [`.github/workflows/`](./.github/workflows) directory and are triggered by updates to the `main` or `development` branches, or by creating or updating pull requests.
 
-The CI workflows are defined in the [`.github/workflows/`](./.github/workflows) directory and are triggered on specific events, such as updates to the `main` and `development` branches or when pull requests are created or updated.
+## Backend Workflow
 
-The workflows are configured in the following locations:
+The backend workflow ensures code quality and functionality for the Django backend. It performs the following tasks:
+
+- Checks code formatting (`black`);
+- Checks import sorting (`isort`);
+- Checks linting compliance (`flake8`);
+- Checks type checking (`mypy`);
+- Executes tests (`pytest`), ensuring a minimum level of code coverage.
+
+## Frontend Workflow
+
+The frontend workflow validates and deploys the Next.js application. It includes:
+
+- Checks code formatting (`prettier`);
+- Checks linting compliance (`eslint`);
+- Executes testing (`jest`), ensuring a minimum level of code coverage;
+
+For more details, refer to the workflow files in the [`.github/workflows/`](./.github/workflows) directory.
 
 ```
 .github/
@@ -93,7 +110,31 @@ The workflows are configured in the following locations:
     └── frontend-workflow.yml
 ```
 
-Learn more about [GitHub Actions](https://docs.github.com/en/actions).
+# Continuous Deployment (CD)
+
+This project uses [GitHub Pages](https://pages.github.com/) to serve the application directly from the [`deployment`](https://github.com/MESW-LES-2025/E/tree/deployment) branch. The deployment process is automated and is triggered by commits to the `main` or `development` branches.
+
+The application can be accessed at:
+
+- Staging: [https://mesw-les-2025.github.io/E/staging/](https://mesw-les-2025.github.io/E/staging/)
+- Production: [https://mesw-les-2025.github.io/E/production/](https://mesw-les-2025.github.io/E/production/)
+
+## Environment Usage
+
+We should use different environments for staging and production to ensure that testing and development do not interfere with the live application.
+
+- **Staging Environment**:
+
+  - Used for testing new features and changes before they are released to production.
+  - Reflects the state of the `development` branch.
+  - Allows developers and testers to validate functionality in an environment similar to production.
+
+- **Production Environment**:
+  - The live environment accessible to end-users.
+  - Reflects the state of the `main` branch.
+  - Only stable and tested features (or hotfixes) should be deployed here.
+
+For more details, refer to README file available at the [`deployment`](https://github.com/MESW-LES-2025/E/tree/deployment) branch.
 
 # Frameworks and Tools
 
