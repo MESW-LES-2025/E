@@ -47,6 +47,9 @@ jobs:
         runs-on: ubuntu-latest
         needs: frontend-ci
 
+        permissions:
+            contents: write
+
         defaults:
             run:
                 working-directory: frontend
@@ -69,15 +72,16 @@ jobs:
               run: |
                   if [ "${GITHUB_REF##*/}" = "main" ]; then
                       echo "Building production environment..."
-                      NODE_ENV=production npm run build && npx next export -o out/prod
+                      NODE_ENV=production npm run build
                   else
                       echo "Building staging environment..."
-                      NODE_ENV=staging npm run build && npx next export -o out/staging
+                      NODE_ENV=staging npm run build
                   fi
 
             - name: Deploy to GitHub Pages
               uses: peaceiris/actions-gh-pages@v4
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: ./out
+                  publish_branch: deployment
+                  publish_dir: frontend/out
                   keep_files: true
