@@ -30,7 +30,7 @@ deployment/
 
 To set up the development environment quickly, run the provided setup script appropriate for your operating system:
 
-- For Windows (PowerShell): [`\setup.ps1`](./setup.ps1)
+- For Windows (PowerShell): [`.\setup.ps1`](./setup.ps1)
 - For Unix-based systems (Bash): [`./setup.sh`](./setup.sh)
 
 This script should **only be run the first time** you set up the project.
