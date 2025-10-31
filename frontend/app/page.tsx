@@ -51,6 +51,7 @@ export default function Home() {
     <div>
       <h1>Hello, World!</h1>
       <p>Welcome to the home page!</p>
+      <p>Testing frontend deployment</p>
       <br />
       API fetch example:
       <br />
