@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import EventListCreateView, EventRetrieveUpdateDestroyView
+from .views import EventListCreateView, EventRetrieveUpdateDestroyView, UpcomingEventsListView
 
 urlpatterns = [
     path("events/", EventListCreateView.as_view(), name="event-list"),
@@ -9,4 +9,5 @@ urlpatterns = [
         EventRetrieveUpdateDestroyView.as_view(),
         name="event-detail",
     ),
+    path('events/upcoming/', UpcomingEventsListView.as_view(), name='upcoming-events'),
 ]
