@@ -1,14 +1,22 @@
-#!/bin/sh
+#!/bin/bash
+set -e
+
 echo "Running frontend checks..."
 cd frontend
-npx lint-staged --verbose
-echo "Frontend checks complete!"
 
+node node_modules/lint-staged/bin/lint-staged.js --verbose
+
+echo "Frontend checks complete!"
 cd ..
 
 echo "Running backend checks..."
 cd backend
-pre-commit run
-echo "Backend checks complete!"
 
+if [ -f "./venv/Scripts/pre-commit" ]; then
+  ./venv/Scripts/pre-commit run
+else
+  ./venv/bin/pre-commit run
+fi
+
+echo "Backend checks complete!"
 cd ..
