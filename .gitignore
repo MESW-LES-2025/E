@@ -1,6 +1,9 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 **/.DS_Store
 =======
+=======
+>>>>>>> Stashed changes
 # Python / Django
 __pycache__/
 *.py[cod]
@@ -19,4 +22,7 @@ dist/
 .DS_Store
 Thumbs.db
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
