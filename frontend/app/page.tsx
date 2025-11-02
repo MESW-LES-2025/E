@@ -1,22 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import TestComponent from "../components/TestComponent";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type Event = {
+  id: number;
   name: string;
   date: string;
+  location?: string;
 };
 
 export default function Home() {
@@ -28,11 +20,10 @@ export default function Home() {
     const fetchEvents = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/`,
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/upcoming/`
         );
-        if (!response.ok) {
-          throw new Error("Failed to fetch events");
-        }
+        if (!response.ok) throw new Error("Failed to fetch events");
+
         const data: { results: Event[] } = await response.json();
         setEvents(data.results);
       } catch (err: unknown) {
@@ -41,62 +32,36 @@ export default function Home() {
         setLoading(false);
       }
     };
-
     fetchEvents();
   }, []);
 
-  console.log("console.log events:", events);
-  console.log("events length:", events.length);
+  if (loading) return <p>Loading events...</p>;
+  if (error) return <p>Error: {error}</p>;
+
   return (
     <div>
-      <h1>Hello, World!</h1>
-      <p>Welcome to the home page!</p>
-      <p>Testing frontend deployment!! from the staging environment</p>
-      <br />
-      API fetch example:
-      <br />
-      <TestComponent />
-      <br />
-      Shadcn UI examples:
-      <br />
-      <Button>Click Me</Button>
-      <Calendar
-        mode="single"
-        className="rounded-md border shadow-sm"
-        captionLayout="dropdown"
-      />
-      <Select>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select a fruit" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Fruits</SelectLabel>
-            <SelectItem value="apple">Apple</SelectItem>
-            <SelectItem value="banana">Banana</SelectItem>
-            <SelectItem value="blueberry">Blueberry</SelectItem>
-            <SelectItem value="grapes">Grapes</SelectItem>
-            <SelectItem value="pineapple">Pineapple</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-      <br />
-      <h2>Events:</h2>
-      {loading ? (
-        <p>Loading events...</p>
-      ) : error ? (
-        <p>Error: {error}</p>
-      ) : events.length > 0 ? (
-        <ul>
-          {events.map((event) => (
-            <li key={event.name}>
-              {event.name} — {new Date(event.date).toLocaleString()}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No events available</p>
-      )}
+      <h2 className="text-3xl font-bold mb-6">Upcoming Events</h2>
+
+      {events.length === 0 && <p>No events available</p>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {events.map((event) => (
+          <Card key={event.id} className="shadow hover:shadow-lg transition">
+            <CardContent>
+              <h3 className="text-xl font-semibold">{event.name}</h3>
+              <p className="text-sm text-gray-600">
+                {new Date(event.date).toLocaleString()}
+              </p>
+              {event.location && (
+                <p className="text-sm text-gray-700 mt-1">📍 {event.location}</p>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline">View Details</Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

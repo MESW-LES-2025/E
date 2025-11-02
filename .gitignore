@@ -1,1 +1,22 @@
+<<<<<<< Updated upstream
 **/.DS_Store
+=======
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+venv/
+.env
+
+# Node / React
+node_modules/
+build/
+dist/
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+>>>>>>> Stashed changes
