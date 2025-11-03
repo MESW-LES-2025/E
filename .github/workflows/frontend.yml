@@ -77,7 +77,7 @@ jobs:
                   else
                       echo "Building staging environment..."
                       cp .env.staging .env.local
-                      NODE_ENV=production npm run build
+                      NODE_ENV=staging npm run build
                   fi
 
             - name: Deploy to GitHub Pages
