@@ -12,7 +12,7 @@ class EventListCreateView(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         response.data = {
-            "static_string": "This is exotic static string",
+            "static_string": "This is monkey static string",
             "events": response.data,
         }
         return Response(response.data)
