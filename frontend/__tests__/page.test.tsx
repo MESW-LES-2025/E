@@ -7,7 +7,6 @@ describe("Home Page", () => {
     jest.clearAllMocks();
   });
 
-
   it("shows 'No upcoming events' when no events exist", async () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
