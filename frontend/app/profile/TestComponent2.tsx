@@ -14,7 +14,7 @@ const TestComponent2: React.FC = () => {
       }}
     >
       <h1>This is also a reusable Component</h1>
-      <p>my reusable component in staging!!</p>
+      <p>my reusable component in staging?</p>
     </div>
   );
 };
