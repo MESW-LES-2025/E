@@ -27,6 +27,8 @@ This separation ensures that testing and development do not interfere with the l
 
 ## Deployment Workflow
 
-The deployment process is automated using GitHub Actions, as defined in the [`frontend.yml`](../.github/workflows/frontend.yml) workflow file. The process is triggered by commits to the `main` or `development` branches.
+The frontend deployment process is automated using GitHub Actions, as defined in the [`frontend.yml`](../.github/workflows/frontend.yml) workflow file. The process is triggered by commits to the `main` or `development` branches.
+
+As for backend deployment, we automate [PythonAnywhere](https://www.pythonanywhere.com/) reloads using GitHub Actions jobs for `staging` and `production` deployments. Those use GitHub Secrets environment variables to configure the PythonAnywhere API url and token for authentication.
 
 For more details, refer to this repository's [README](https://github.com/MESW-LES-2025/E) section on Continuous Deployment (CD).
