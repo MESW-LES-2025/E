@@ -20,7 +20,7 @@ export default function Home() {
     const fetchEvents = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/upcoming/`
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/upcoming/`,
         );
         if (!response.ok) throw new Error("Failed to fetch events");
 
@@ -53,7 +53,9 @@ export default function Home() {
                 {new Date(event.date).toLocaleString()}
               </p>
               {event.location && (
-                <p className="text-sm text-gray-700 mt-1">📍 {event.location}</p>
+                <p className="text-sm text-gray-700 mt-1">
+                  📍 {event.location}
+                </p>
               )}
             </CardContent>
             <CardFooter>
