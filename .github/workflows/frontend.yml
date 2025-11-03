@@ -72,9 +72,11 @@ jobs:
               run: |
                   if [ "${GITHUB_REF##*/}" = "main" ]; then
                       echo "Building production environment..."
+                      cp .env.production .env.local
                       NODE_ENV=production npm run build
                   else
                       echo "Building staging environment..."
+                      cp .env.staging .env.local
                       NODE_ENV=staging npm run build
                   fi
 
