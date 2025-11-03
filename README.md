@@ -134,7 +134,9 @@ We should use different environments for staging and production to ensure that t
   - Reflects the state of the `main` branch.
   - Only stable and tested features (or hotfixes) should be deployed here.
 
-For more details, refer to README file available at the [`deployment`](https://github.com/MESW-LES-2025/E/tree/deployment) branch.
+For more details regarding frontend deployment, refer to README file available at the [`deployment`](https://github.com/MESW-LES-2025/E/tree/deployment) branch.
+
+As for backend deployment, we automate [PythonAnywhere](https://www.pythonanywhere.com/) reloads using GitHub Actions jobs for `staging` and `production` deployments. Those use GitHub Secrets environment variables to configure the PythonAnywhere API url and token for authentication.
 
 # Frameworks and Tools
 
