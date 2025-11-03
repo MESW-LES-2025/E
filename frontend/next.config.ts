@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// If required to build locally, run with: "NODE_ENV=staging npm run build"
+// If required to build locally, run with: "NODE_ENV=development npm run build"
 const env = process.env.NODE_ENV;
 
 const nextConfig: NextConfig = {
