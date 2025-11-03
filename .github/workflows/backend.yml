@@ -56,7 +56,7 @@ jobs:
         runs-on: ubuntu-latest
         needs: backend-ci
 
-        environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+        environment: ${{ github.ref == 'refs/heads/main' && 'backend-production' || 'backend-staging' }}
 
         steps:
             - name: Checkout repository
