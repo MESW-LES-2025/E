@@ -138,6 +138,32 @@ For more details regarding frontend deployment, refer to README file available a
 
 As for backend deployment, we automate [PythonAnywhere](https://www.pythonanywhere.com/) reloads using GitHub Actions jobs for `staging` and `production` deployments. Those use GitHub Secrets environment variables to configure the PythonAnywhere API url and token for authentication.
 
+# Troubleshooting
+
+If you encounter issues after pulling updates, such as missing libraries, you may need to update dependencies:
+
+**Frontend**:
+
+```bash
+cd frontend
+npm install
+```
+
+**Backend**:
+
+```bash
+cd backend
+
+# On Windows
+.\venv\Scripts\activate
+# On macOS/Linux
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+This ensures that all required dependencies are installed and up-to-date.
+
 # Frameworks and Tools
 
 - Django - A high-level Python web framework. [See Django docs](https://docs.djangoproject.com/en/5.2).
