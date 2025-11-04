@@ -68,6 +68,7 @@ In the `backend` directory, you can run the following commands:
 - `python manage.py runserver`: Starts the Django development server.
 - `python manage.py migrate`: Applies database migrations.
 - `python manage.py makemigrations`: Creates new migration files based on the changes made to models.
+- `python manage.py createsuperuser`: Creates a new superuser account for accessing the Django admin interface or testing.
 - `black .`: Formats the code using Black.
 - `isort .`: Sorts imports using isort.
 - `flake8 .`: Checks for code quality issues using Flake8.
