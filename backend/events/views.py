@@ -1,3 +1,4 @@
+from django.utils import timezone  # type: ignore
 from rest_framework import generics
 
 from .models import Event
@@ -12,3 +13,11 @@ class EventListCreateView(generics.ListCreateAPIView):
 class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+
+class UpcomingEventsListView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        now = timezone.now()
+        return Event.objects.filter(date__gte=now).order_by("date")
