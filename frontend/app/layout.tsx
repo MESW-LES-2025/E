@@ -14,6 +14,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/">
               <Button variant="ghost">Home</Button>
             </Link>
+            <Link href="/create-event">
+              <Button variant="ghost">Create Event</Button>
+            </Link>
             <Link href="/profile">
               <Button variant="ghost">Profile</Button>
             </Link>
