@@ -14,7 +14,7 @@ import {
 export default function CreateEvent() {
     const router = useRouter();
     const [formData, setFormData] = useState({
-        title: '',
+        name: '',
         datetime: '',
         location: '',
         description: ''
@@ -50,9 +50,7 @@ export default function CreateEvent() {
         }
     
       try {
-          // API call to create event would go here
-
-          // After successful creation:
+          await createEvent(formData);
           router.push('/event'); // Redirect to events page
       } catch (error) {
           setSubmitError('Failed to create event');
@@ -64,19 +62,19 @@ export default function CreateEvent() {
             <h1 className="text-2xl font-bold mb-6">Create New Event</h1>
             <form onSubmit={handleSubmit}>
                 <Field className="mb-4">
-                    <FieldLabel>Title</FieldLabel>
+                    <FieldLabel>Name</FieldLabel>
                     <FieldContent>
                         <Input
                             type="text"
-                            value={formData.title}
+                            value={formData.name}
                             onChange={(e) => {
-                                setFormData({...formData, title: e.target.value});
-                                setErrors({...errors, title: ''});
+                                setFormData({...formData, name: e.target.value});
+                                setErrors({...errors, name: ''});
                                 setSubmitError('');
                             }}
                         />
                     </FieldContent>
-                    {errors.title && <FieldError>{errors.title}</FieldError>}
+                    {errors.name && <FieldError>{errors.name}</FieldError>}
                 </Field>
 
                 <Field className="mb-4">
@@ -137,3 +135,49 @@ export default function CreateEvent() {
         </div>
     );
 }
+
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+    const authTokens = localStorage.getItem('auth_tokens');
+    let token = null;
+    
+    if (authTokens) {
+        try {
+            const tokens = JSON.parse(authTokens);
+            token = tokens.access;
+        } catch (error) {
+            console.error('Error parsing auth tokens:', error);
+        }
+    }
+    
+    const headers: any = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(url, {
+        ...options,
+        headers,
+    });
+}
+
+export const createEvent = async (eventData: {
+    name: string;
+    datetime: string;
+    location: string;
+    description: string;
+}) => {
+    const response = await fetchWithAuth('http://localhost:8000/api/events/create/', {
+        method: 'POST',
+        body: JSON.stringify(eventData),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to create event');
+    }
+
+    return response.json();
+};
