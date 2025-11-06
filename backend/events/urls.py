@@ -1,10 +1,10 @@
 from django.urls import path
 
 from .views import (
+    CreateEventView,
     EventListCreateView,
     EventRetrieveUpdateDestroyView,
     UpcomingEventsListView,
-    CreateEventView,
 )
 
 urlpatterns = [
@@ -15,5 +15,5 @@ urlpatterns = [
         name="event-detail",
     ),
     path("events/upcoming/", UpcomingEventsListView.as_view(), name="upcoming-events"),
-    path('events/create/', CreateEventView.as_view(), name='create_event'),
+    path("events/create/", CreateEventView.as_view(), name="create_event"),
 ]
