@@ -65,7 +65,7 @@ const eslintConfig = defineConfig([
       "no-shadow-restricted-names": "error",
       "no-sparse-arrays": "error",
       "no-this-before-super": "error",
-      "no-undef": "error",
+      "no-undef": "off", // https://github.com/typescript-eslint/typescript-eslint/blob/1cf9243/docs/getting-started/linting/FAQ.md#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
       "no-unexpected-multiline": "error",
       "no-unreachable": "error",
       "no-unsafe-finally": "error",

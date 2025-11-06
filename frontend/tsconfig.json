@@ -30,7 +30,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "out\\dev/types/**/*.ts",
-    "out\\dev/types/**/*.ts"
+    "out\\dev/types/**/*.ts",
+    "out/types/**/*.ts",
+    "out/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
