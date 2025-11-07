@@ -178,7 +178,7 @@ export const createEvent = async (eventData: {
   description: string;
 }) => {
   const response = await fetchWithAuth(
-    "http://localhost:8000/api/events/create/",
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/create/`,
     {
       method: "POST",
       body: JSON.stringify(eventData),
