@@ -1,5 +1,13 @@
 import React from "react";
 
+interface Event {
+  id: number;
+  name: string;
+  date: string;
+  location: string;
+  description: string;
+}
+
 export async function generateStaticParams() {
   const base =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
@@ -8,7 +16,7 @@ export async function generateStaticParams() {
     if (!res.ok) return [];
     const data = await res.json();
     const events = Array.isArray(data) ? data : (data.results ?? []);
-    return events.map((ev: any) => ({ id: String(ev.id) }));
+    return events.map((ev: Event) => ({ id: String(ev.id) }));
   } catch {
     return [];
   }

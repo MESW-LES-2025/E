@@ -9,16 +9,22 @@ type Props = {
   onClose: () => void;
 };
 
+interface Event {
+  id: number;
+  name: string;
+  date: string;
+  location: string;
+  description: string;
+}
+
 export default function EventModal({ id, onClose }: Props) {
-  const [event, setEvent] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
     const base =
       process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
@@ -79,13 +85,13 @@ export default function EventModal({ id, onClose }: Props) {
             <div>
               <p>
                 <strong>Name:</strong>{" "}
-                <span className="font-normal">{event.name ?? event.title}</span>
+                <span className="font-normal">{event.name}</span>
               </p>
               {event.date && (
                 <p className="mt-2">
                   <strong>Date:</strong>{" "}
                   <span className="font-normal">
-                    {new Date(event.date ?? event.datetime).toLocaleString()}
+                    {new Date(event.date).toLocaleString()}
                   </span>
                 </p>
               )}
@@ -107,7 +113,7 @@ export default function EventModal({ id, onClose }: Props) {
           )}
         </div>
 
-        <div className="mt-6 flex justify-end gap-4">
+        <div className="mt-6 flex justify-start gap-4">
           <Link href="">
             <Button>Edit</Button>
           </Link>
@@ -117,7 +123,7 @@ export default function EventModal({ id, onClose }: Props) {
           </Link>
         </div>
 
-        <div className="mt-6 flex justify-end gap-4">
+        <div className="mt-6 flex justify-start gap-4">
           <Link href="">
             <Button>Participate</Button>
           </Link>
@@ -127,7 +133,7 @@ export default function EventModal({ id, onClose }: Props) {
           </Link>
         </div>
 
-        <div className="mt-6 flex justify-end gap-4">
+        <div className="mt-6 flex justify-start gap-4">
           <Link href="/profile/login">
             <Button>Login</Button>
           </Link>
