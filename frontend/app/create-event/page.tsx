@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,7 +16,6 @@ const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function CreateEvent() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -71,6 +69,7 @@ export default function CreateEvent() {
       setSubmitError("");
     } catch (error) {
       setSubmitError("Failed to create event");
+      console.error("Error creating event:", error);
       setSuccessMessage("");
     }
   };
