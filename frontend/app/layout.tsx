@@ -13,6 +13,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <nav className="flex gap-4">
             <Link href="/">
               <Button variant="ghost">Home</Button>
+            </Link>{" "}
+            <Link href="/calendar">
+              <Button variant="ghost">Calendar</Button>
             </Link>
             <Link href="/create-event">
               <Button variant="ghost">Create Event</Button>
