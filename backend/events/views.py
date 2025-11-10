@@ -7,16 +7,6 @@ from .models import Event
 from .serializers import EventSerializer
 
 
-class EventListCreateView(generics.ListCreateAPIView):
-    queryset = Event.objects.all()
-    serializer_class = EventSerializer
-
-
-class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Event.objects.all()
-    serializer_class = EventSerializer
-
-
 class UpcomingEventsListView(generics.ListAPIView):
     serializer_class = EventSerializer
 
@@ -37,3 +27,24 @@ class CreateEventView(generics.CreateAPIView):
             self.perform_create(serializer)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserRegisteredEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return self.request.user.registered_events.all()
+
+
+class UserInterestedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return self.request.user.interested_events.all()
+
+
+class UserOrganizedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return Event.objects.filter(organizer=self.request.user)
