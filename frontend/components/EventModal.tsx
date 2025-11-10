@@ -20,7 +20,8 @@ export default function EventModal({ id, onClose }: Props) {
     setLoading(true);
     setError(null);
 
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+    const base =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
     fetch(`${base}/events/${id}/`)
       .then((res) => {
         if (!res.ok) throw new Error(`Status ${res.status}`);
@@ -30,7 +31,8 @@ export default function EventModal({ id, onClose }: Props) {
         if (!cancelled) setEvent(data);
       })
       .catch((err) => {
-        if (!cancelled) setError((err && err.message) || "Failed to load event");
+        if (!cancelled)
+          setError((err && err.message) || "Failed to load event");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -75,17 +77,30 @@ export default function EventModal({ id, onClose }: Props) {
           {error && <p className="text-red-600">Error: {error}</p>}
           {!loading && !error && event && (
             <div>
-              <p><strong>Name:</strong> <span className="font-normal">{event.name ?? event.title}</span></p>
+              <p>
+                <strong>Name:</strong>{" "}
+                <span className="font-normal">{event.name ?? event.title}</span>
+              </p>
               {event.date && (
-                <p className="mt-2"><strong>Date:</strong> <span className="font-normal">{new Date(event.date ?? event.datetime).toLocaleString()}</span></p>
+                <p className="mt-2">
+                  <strong>Date:</strong>{" "}
+                  <span className="font-normal">
+                    {new Date(event.date ?? event.datetime).toLocaleString()}
+                  </span>
+                </p>
               )}
               {event.location && (
-                <p className="mt-2"><strong>Location:</strong> <span className="font-normal">{event.location}</span></p>
+                <p className="mt-2">
+                  <strong>Location:</strong>{" "}
+                  <span className="font-normal">{event.location}</span>
+                </p>
               )}
               {event.description && (
                 <div className="mt-2">
                   <strong>Description:</strong>
-                  <div className="mt-1 whitespace-pre-wrap font-normal">{event.description}</div>
+                  <div className="mt-1 whitespace-pre-wrap font-normal">
+                    {event.description}
+                  </div>
                 </div>
               )}
             </div>
@@ -119,10 +134,7 @@ export default function EventModal({ id, onClose }: Props) {
         </div>
 
         <div className="mt-6 text-right">
-          <Button
-            className="px-3 py-1 rounded border"
-            onClick={onClose}
-          >
+          <Button className="px-3 py-1 rounded border" onClick={onClose}>
             Close
           </Button>
         </div>

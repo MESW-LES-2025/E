@@ -149,7 +149,7 @@ export default function CreateEvent() {
         </Field>
 
         <Button type="submit">Create Event</Button>
-        
+
         {/* Messages container */}
         <div className="mt-4">
           {submitError && <FieldError>{submitError}</FieldError>}

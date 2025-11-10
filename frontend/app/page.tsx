@@ -24,7 +24,8 @@ export default function Home() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+        const base =
+          process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
         const response = await fetch(`${base}/events/upcoming/`);
         if (!response.ok) throw new Error("Failed to fetch events");
         const data: { results: Event[] } = await response.json();
@@ -56,7 +57,9 @@ export default function Home() {
                 {new Date(event.date).toLocaleString()}
               </p>
               {event.location && (
-                <p className="text-sm text-gray-700 mt-1">📍 {event.location}</p>
+                <p className="text-sm text-gray-700 mt-1">
+                  📍 {event.location}
+                </p>
               )}
             </CardContent>
             <CardFooter>
