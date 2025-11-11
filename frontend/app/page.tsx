@@ -1,18 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-
-type Event = {
-  id: number;
-  name: string;
-  date: string;
-  location?: string;
-};
+import EventCard from "@/components/EventCard";
+import { ErasmusEvent } from "@/lib/types";
 
 export default function Home() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<ErasmusEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +17,8 @@ export default function Home() {
         );
         if (!response.ok) throw new Error("Failed to fetch events");
 
-        const data: { results: Event[] } = await response.json();
-        setEvents(data.results);
+        const data: ErasmusEvent[] = await response.json();
+        setEvents(data);
       } catch (err: unknown) {
         setError((err as Error).message || "Unknown error");
       } finally {
@@ -46,22 +39,13 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {events.map((event) => (
-          <Card key={event.id} className="shadow hover:shadow-lg transition">
-            <CardContent>
-              <h3 className="text-xl font-semibold">{event.name}</h3>
-              <p className="text-sm text-gray-600">
-                {new Date(event.date).toLocaleString()}
-              </p>
-              {event.location && (
-                <p className="text-sm text-gray-700 mt-1">
-                  📍 {event.location}
-                </p>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline">View Details</Button>
-            </CardFooter>
-          </Card>
+          <EventCard
+            key={event.id}
+            id={event.id}
+            name={event.name}
+            date={event.date}
+            location={event.location}
+          />
         ))}
       </div>
     </div>

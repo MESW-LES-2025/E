@@ -6,11 +6,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export async function fetchWithHeaders(url: string): Promise<Response> {
-  return fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${await getAuthToken()}`,
-    },
+export async function fetchWrapped(
+  endpoint: string,
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
+  body?: unknown,
+  headers: HeadersInit = {},
+): Promise<Response> {
+  const token = await getAuthToken();
+
+  const requestHeaders: HeadersInit = {
+    Accept: "application/json",
+    ...(body ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...headers,
+  };
+
+  return fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/${endpoint}`, {
+    method,
+    headers: requestHeaders,
+    ...(body ? { body: JSON.stringify(body) } : {}),
   });
 }

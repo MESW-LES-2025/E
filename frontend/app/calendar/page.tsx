@@ -1,101 +1,199 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { fetchWithHeaders } from "@/lib/utils";
+import { fetchWrapped } from "@/lib/utils";
+import { ErasmusEvent } from "@/lib/types";
+import EventCard from "@/components/EventCard";
+import { isAuthenticated } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+
+const EVENTS_ENDPOINT_BASE = "events";
 
 enum EndpointType {
-  ALL = "all",
-  REGISTERED = "registered",
-  INTERESTED = "interested",
-  ORGANIZED = "organized",
+  ALL = "",
+  REGISTERED = "Registered",
+  INTERESTED = "Interested",
+  ORGANIZED = "Organized",
 }
 
+const ENDPOINT: Record<EndpointType, string> = {
+  [EndpointType.ALL]: EVENTS_ENDPOINT_BASE,
+  [EndpointType.REGISTERED]: `${EVENTS_ENDPOINT_BASE}/registered/`,
+  [EndpointType.INTERESTED]: `${EVENTS_ENDPOINT_BASE}/interested/`,
+  [EndpointType.ORGANIZED]: `${EVENTS_ENDPOINT_BASE}/organized/`,
+};
+
+const CALENDAR_STYLES: Record<EndpointType, string> = {
+  [EndpointType.ALL]: "bg-green-400 text-primary-foreground rounded-lg",
+  [EndpointType.REGISTERED]: "bg-lime-400 text-white rounded-lg",
+  [EndpointType.INTERESTED]: "bg-emerald-400 text-white rounded-lg",
+  [EndpointType.ORGANIZED]: "bg-teal-400 text-white rounded-lg",
+};
+
 export default function EventsCalendar() {
-  const [events, setEvents] = useState([]);
+  const date = new Date();
+  const router = useRouter();
+  const [events, setEvents] = useState<ErasmusEvent[]>([]);
   const [filter, setFilter] = useState<EndpointType>(EndpointType.ALL);
-  const [loading, setLoading] = useState(false);
-
-  const endpointBase = process.env.NEXT_PUBLIC_API_BASE_URL + "/events";
-
-  const endpoints = useMemo(
-    () => ({
-      [EndpointType.ALL]: `${endpointBase}/upcoming`,
-      [EndpointType.REGISTERED]: `${endpointBase}/registered/`,
-      [EndpointType.INTERESTED]: `${endpointBase}/interested/`,
-      [EndpointType.ORGANIZED]: `${endpointBase}/organized/`,
-    }),
-    [endpointBase],
-  );
+  const [loading, setLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState<Date>(date);
+  const [selectedDay, setSelectedDay] = useState<Date>(date);
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
+    if (!isAuthenticated()) {
+      router.push("/profile/login");
+    }
+  }, [router]);
 
-      const endpoint = endpoints[filter];
+  const fetchEvents = useCallback(async (filter: EndpointType) => {
+    setLoading(true);
 
-      try {
-        const response = await fetchWithHeaders(endpoint);
-        if (!response.ok) {
-          throw new Error("Failed to fetch events");
-        }
+    const endpoint = ENDPOINT[filter];
 
-        const data = await response.json();
-        const events = data.results;
-        setEvents(events);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    try {
+      const response = await fetchWrapped(endpoint);
+      if (!response.ok) {
+        throw new Error("Failed to fetch events");
       }
-    };
 
-    fetchEvents();
-  }, [filter, endpoints]);
+      const data: ErasmusEvent[] = await response.json();
+      setEvents(data);
+    } catch (err) {
+      console.error(err);
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      fetchEvents(filter);
+    }
+  }, [filter, fetchEvents]);
+
+  const eventDates: Date[] = useMemo(
+    () => events.map((event) => new Date(event.date)),
+    [events],
+  );
+
+  const eventsForSelectedDay = useMemo(() => {
+    if (!selectedDay) return [];
+    return events.filter((event) => {
+      const eventDate = new Date(event.date);
+      return (
+        eventDate.getFullYear() === selectedDay.getFullYear() &&
+        eventDate.getMonth() === selectedDay.getMonth() &&
+        eventDate.getDate() === selectedDay.getDate()
+      );
+    });
+  }, [selectedDay, events]);
+
+  const calendarClasses = useMemo(
+    () => ({
+      event: CALENDAR_STYLES[filter],
+      today: "bg-blue-300 text-white rounded-lg",
+      selected: "bg-primary text-primary-foreground rounded-lg",
+    }),
+    [filter],
+  );
+
+  const filterButtons = [
+    {
+      type: EndpointType.ALL,
+      label: "All Events",
+      onClick: () => setFilter(EndpointType.ALL),
+    },
+    {
+      type: EndpointType.REGISTERED,
+      label: "Registered",
+      onClick: () => setFilter(EndpointType.REGISTERED),
+    },
+    {
+      type: EndpointType.INTERESTED,
+      label: "Interested",
+      onClick: () => setFilter(EndpointType.INTERESTED),
+    },
+    {
+      type: EndpointType.ORGANIZED,
+      label: "Organized",
+      onClick: () => setFilter(EndpointType.ORGANIZED),
+    },
+  ];
 
   return (
     <div className="flex flex-col lg:flex-row justify-center">
       <div className="flex-1 p-4 flex flex-col">
         <div className="flex space-x-2 mb-4 justify-center">
-          <Button
-            variant={filter === EndpointType.ALL ? "default" : "outline"}
-            onClick={() => setFilter(EndpointType.ALL)}
-          >
-            All Events
-          </Button>
-          <Button
-            variant={filter === EndpointType.REGISTERED ? "default" : "outline"}
-            onClick={() => setFilter(EndpointType.REGISTERED)}
-          >
-            Registered
-          </Button>
-          <Button
-            variant={filter === EndpointType.INTERESTED ? "default" : "outline"}
-            onClick={() => setFilter(EndpointType.INTERESTED)}
-          >
-            Interested
-          </Button>
-          <Button
-            variant={filter === EndpointType.ORGANIZED ? "default" : "outline"}
-            onClick={() => setFilter(EndpointType.ORGANIZED)}
-          >
-            Organized
-          </Button>
+          {filterButtons.map(({ type, label, onClick }) => (
+            <Button
+              key={type}
+              variant={filter === type ? "default" : "outline"}
+              onClick={onClick}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
 
         <div className="flex justify-center">
           <Calendar
             mode="single"
-            className="rounded-lg border [--cell-size:--spacing(14)] md:[--cell-size:--spacing(14)]"
-            buttonVariant="ghost"
+            className="rounded-lg border [--cell-size:--spacing(12)]"
+            modifiers={{
+              event: eventDates,
+            }}
+            modifiersClassNames={{
+              event: calendarClasses.event,
+              today: "bg-blue-300 text-white rounded-lg",
+              selected: "bg-primary text-primary-foreground rounded-lg",
+            }}
+            fixedWeeks
+            onDayClick={(day) => setSelectedDay(day)}
+            onMonthChange={(month) => {
+              setCurrentMonth(month);
+            }}
+            disabled={(date) =>
+              loading ||
+              date.getMonth() !== currentMonth.getMonth() ||
+              date.getFullYear() !== currentMonth.getFullYear()
+            }
           />
         </div>
       </div>
 
-      <div className="flex-1 p-4"></div>
-      {events.length && !loading}
-      {/* disable errors */}
+      <div className="flex-1 p-4">
+        {loading ? (
+          <p className="text-center text-gray-500">Loading events...</p>
+        ) : eventsForSelectedDay.length === 0 ? (
+          <p className="text-center text-gray-500">
+            {selectedDay
+              ? `No ${filter.toLowerCase()} events are planned for ${selectedDay.toLocaleDateString()}`
+              : "No date selected"}
+          </p>
+        ) : (
+          <>
+            <p className="text-center text-gray-500 sticky mb-6.5 top-0 bg-gray-50">
+              {filter === EndpointType.ALL
+                ? `All events planned for ${selectedDay?.toLocaleDateString()}:`
+                : `${filter} events planned for ${selectedDay?.toLocaleDateString()}:`}
+            </p>
+            <div className="flex flex-wrap justify-center gap-4 max-h-[calc(100vh-13.5rem)] overflow-y-auto">
+              {eventsForSelectedDay.map((event) => (
+                <EventCard
+                  key={event.id}
+                  id={event.id}
+                  name={event.name}
+                  date={event.date}
+                  location={event.location}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

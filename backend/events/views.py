@@ -7,6 +7,13 @@ from .models import Event
 from .serializers import EventSerializer
 
 
+class AllEventsListView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return Event.objects.all()
+
+
 class UpcomingEventsListView(generics.ListAPIView):
     serializer_class = EventSerializer
 
