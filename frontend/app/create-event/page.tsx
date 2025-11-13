@@ -21,6 +21,7 @@ export default function CreateEvent() {
     date: "",
     location: "",
     description: "",
+    capacity: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string>("");
@@ -63,6 +64,7 @@ export default function CreateEvent() {
         date: "",
         location: "",
         description: "",
+        capacity: "",
       });
       // Clear any previous errors
       setErrors({});
@@ -128,6 +130,24 @@ export default function CreateEvent() {
             />
           </FieldContent>
           {errors.location && <FieldError>{errors.location}</FieldError>}
+        </Field>
+
+        <Field>
+          <FieldLabel>Maximum Capacity</FieldLabel>
+          <FieldContent>
+            <Input
+              className="mb-4"
+              type="number"
+              value={formData.capacity}
+              onChange={(e) => {
+                setFormData({ ...formData, capacity: e.target.value });
+                setErrors({ ...errors, capacity: "" });
+                setSubmitError("");
+                setSuccessMessage("");
+              }}
+            />
+          </FieldContent>
+          {errors.capacity && <FieldError>{errors.capacity}</FieldError>}
         </Field>
 
         <Field className="mb-4">
@@ -198,6 +218,7 @@ export const createEvent = async (eventData: {
   date: string;
   location: string;
   description: string;
+  capacity: string | number;
 }) => {
   const response = await fetchWithAuth(
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/create/`,
