@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import EventModal from "@/components/EventModal";
 
 type Event = {
   id: number;
@@ -16,16 +17,19 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/upcoming/`,
-        );
+        const base =
+          process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+        const response = await fetch(`${base}/events/upcoming/`);
         if (!response.ok) throw new Error("Failed to fetch events");
-
         const data: { results: Event[] } = await response.json();
-        setEvents(data.results);
+        setEvents(data.results ?? []);
       } catch (err: unknown) {
         setError((err as Error).message || "Unknown error");
       } finally {
@@ -59,11 +63,29 @@ export default function Home() {
               )}
             </CardContent>
             <CardFooter>
-              <Button variant="outline">View Details</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedEventId(String(event.id));
+                  setModalOpen(true);
+                }}
+              >
+                View Details
+              </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+
+      {modalOpen && (
+        <EventModal
+          id={selectedEventId}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedEventId(null);
+          }}
+        />
+      )}
     </div>
   );
 }
