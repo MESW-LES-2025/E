@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import EventsCalendar from "./page";
+import EventsCalendar from "../../app/calendar/page";
 import * as auth from "@/lib/auth";
 import * as utils from "@/lib/utils";
 import { ErasmusEvent } from "@/lib/types";
@@ -74,7 +74,9 @@ describe("EventsCalendar", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/No all events are planned for/i),
+        screen.getByText(
+          `No events are planned for ${new Date().toLocaleDateString()}`,
+        ),
       ).toBeInTheDocument();
     });
   });

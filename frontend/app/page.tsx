@@ -18,7 +18,7 @@ export default function Home() {
         if (!response.ok) throw new Error("Failed to fetch events");
 
         const data: ErasmusEvent[] = await response.json();
-        setEvents(data);
+        setEvents(data || []);
       } catch (err: unknown) {
         setError((err as Error).message || "Unknown error");
       } finally {
