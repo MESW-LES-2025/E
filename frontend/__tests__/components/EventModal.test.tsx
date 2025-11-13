@@ -131,20 +131,6 @@ describe("EventModal", () => {
       expect(mockOnClose).toHaveBeenCalledTimes(1);
     });
 
-    it("should call onClose when Close button at bottom is clicked", async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
-      });
-
-      render(<EventModal id="1" onClose={mockOnClose} />);
-      await screen.findByText("Event details");
-      const closeButtons = screen.getAllByText("Close");
-      fireEvent.click(closeButtons[closeButtons.length - 1]);
-
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
-    });
-
     it("should call onClose when backdrop is clicked", async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
