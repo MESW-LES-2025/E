@@ -30,13 +30,14 @@ describe("EventModal", () => {
       expect(container.firstChild).toBeNull();
     });
 
-    it("should render modal when id is provided", () => {
+    it("should render modal when id is provided", async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockEvent,
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText("Event details");
       expect(screen.getByText("Event details")).toBeInTheDocument();
     });
 
@@ -122,8 +123,8 @@ describe("EventModal", () => {
         json: async () => mockEvent,
       });
 
-      render(<EventModal id="1" onClose={mockOnClose} />);
-
+    render(<EventModal id="1" onClose={mockOnClose} />);
+    await screen.findByText("Event details");
       const closeButton = screen.getByLabelText("Close modal");
       fireEvent.click(closeButton);
 
@@ -136,8 +137,8 @@ describe("EventModal", () => {
         json: async () => mockEvent,
       });
 
-      render(<EventModal id="1" onClose={mockOnClose} />);
-
+    render(<EventModal id="1" onClose={mockOnClose} />);
+    await screen.findByText("Event details");
       const closeButtons = screen.getAllByText("Close");
       fireEvent.click(closeButtons[closeButtons.length - 1]);
 
@@ -151,7 +152,7 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-
+      await screen.findByText("Event details");
       const backdrop = screen.getByRole("dialog");
       fireEvent.click(backdrop);
 
@@ -186,7 +187,7 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-
+      await screen.findByText("Event details");
       fireEvent.keyDown(window, { key: "Escape" });
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -199,7 +200,7 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-
+      await screen.findByText("Event details");
       fireEvent.keyDown(window, { key: "Enter" });
       fireEvent.keyDown(window, { key: "a" });
 
@@ -258,7 +259,7 @@ describe("EventModal", () => {
       });
 
       const { unmount } = render(<EventModal id="1" onClose={mockOnClose} />);
-
+      await screen.findByText("Event details");
       unmount();
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith(
