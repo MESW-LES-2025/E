@@ -123,8 +123,8 @@ describe("EventModal", () => {
         json: async () => mockEvent,
       });
 
-    render(<EventModal id="1" onClose={mockOnClose} />);
-    await screen.findByText("Event details");
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText("Event details");
       const closeButton = screen.getByLabelText("Close modal");
       fireEvent.click(closeButton);
 
@@ -137,8 +137,8 @@ describe("EventModal", () => {
         json: async () => mockEvent,
       });
 
-    render(<EventModal id="1" onClose={mockOnClose} />);
-    await screen.findByText("Event details");
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText("Event details");
       const closeButtons = screen.getAllByText("Close");
       fireEvent.click(closeButtons[closeButtons.length - 1]);
 
