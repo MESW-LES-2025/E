@@ -32,12 +32,19 @@ export default function CreateEvent() {
     let hasErrors = false;
 
     Object.entries(formData).forEach(([key, value]) => {
-      if (!value.trim()) {
+      if (key === "capacity") return; //ignores empty validation
+      if (typeof value === "string" && !value.trim()) {
         newErrors[key] =
           `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
         hasErrors = true;
       }
     });
+
+    //validates if capacity is a positive number
+    if (formData.capacity && Number(formData.capacity) < 0) {
+      newErrors.capacity = "Capacity cannot be negative";
+      hasErrors = true;
+    }
 
     setErrors(newErrors);
     if (hasErrors) {
@@ -56,7 +63,12 @@ export default function CreateEvent() {
     }
 
     try {
-      await createEvent(formData);
+      const dataToSend = {
+        ...formData,
+        capacity: formData.capacity === "" ? 0 : Number(formData.capacity),
+      };
+
+      await createEvent(dataToSend);
       setSuccessMessage("Event created successfully!");
       // Reset form
       setFormData({
@@ -138,6 +150,7 @@ export default function CreateEvent() {
             <Input
               className="mb-4"
               type="number"
+              placeholder="Unlimited if blank"
               value={formData.capacity}
               onChange={(e) => {
                 setFormData({ ...formData, capacity: e.target.value });

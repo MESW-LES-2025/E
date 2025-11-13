@@ -8,7 +8,7 @@ class Event(models.Model):
     date = models.DateTimeField()
     location = models.CharField(max_length=300, blank=True, null=True)
     description = models.CharField(max_length=300, blank=True, null=True)
-    capacity = models.IntegerField()
+    capacity = models.IntegerField(blank=True, null=True)
     participants = models.IntegerField()
 
     participants = models.ManyToManyField(
