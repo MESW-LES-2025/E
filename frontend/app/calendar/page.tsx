@@ -18,18 +18,26 @@ enum EndpointType {
   ORGANIZED = "Organized",
 }
 
-const ENDPOINT: Record<EndpointType, string> = {
-  [EndpointType.ALL]: EVENTS_ENDPOINT_BASE,
-  [EndpointType.REGISTERED]: `${EVENTS_ENDPOINT_BASE}/registered/`,
-  [EndpointType.INTERESTED]: `${EVENTS_ENDPOINT_BASE}/interested/`,
-  [EndpointType.ORGANIZED]: `${EVENTS_ENDPOINT_BASE}/organized/`,
-};
-
-const CALENDAR_STYLES: Record<EndpointType, string> = {
-  [EndpointType.ALL]: "bg-green-400 text-primary-foreground rounded-lg",
-  [EndpointType.REGISTERED]: "bg-lime-400 text-white rounded-lg",
-  [EndpointType.INTERESTED]: "bg-emerald-400 text-white rounded-lg",
-  [EndpointType.ORGANIZED]: "bg-teal-400 text-white rounded-lg",
+const ENDPOINT_CONFIG: Record<
+  EndpointType,
+  { endpoint: string; style: string }
+> = {
+  [EndpointType.ALL]: {
+    endpoint: EVENTS_ENDPOINT_BASE,
+    style: "bg-green-400 text-primary-foreground rounded-lg",
+  },
+  [EndpointType.REGISTERED]: {
+    endpoint: `${EVENTS_ENDPOINT_BASE}/registered/`,
+    style: "bg-lime-400 text-white rounded-lg",
+  },
+  [EndpointType.INTERESTED]: {
+    endpoint: `${EVENTS_ENDPOINT_BASE}/interested/`,
+    style: "bg-emerald-400 text-white rounded-lg",
+  },
+  [EndpointType.ORGANIZED]: {
+    endpoint: `${EVENTS_ENDPOINT_BASE}/organized/`,
+    style: "bg-teal-400 text-white rounded-lg",
+  },
 };
 
 export default function EventsCalendar() {
@@ -50,7 +58,7 @@ export default function EventsCalendar() {
   const fetchEvents = useCallback(async (filter: EndpointType) => {
     setLoading(true);
 
-    const endpoint = ENDPOINT[filter];
+    const endpoint = ENDPOINT_CONFIG[filter].endpoint;
 
     try {
       const response = await fetchWrapped(endpoint);
@@ -80,20 +88,15 @@ export default function EventsCalendar() {
   );
 
   const eventsForSelectedDay = useMemo(() => {
-    if (!selectedDay) return [];
     return events.filter((event) => {
       const eventDate = new Date(event.date);
-      return (
-        eventDate.getFullYear() === selectedDay.getFullYear() &&
-        eventDate.getMonth() === selectedDay.getMonth() &&
-        eventDate.getDate() === selectedDay.getDate()
-      );
+      return selectedDay?.toDateString() === eventDate.toDateString();
     });
   }, [selectedDay, events]);
 
   const calendarClasses = useMemo(
     () => ({
-      event: CALENDAR_STYLES[filter],
+      event: ENDPOINT_CONFIG[filter].style,
       today: "bg-blue-300 text-white rounded-lg",
       selected: "bg-primary text-primary-foreground rounded-lg",
     }),
