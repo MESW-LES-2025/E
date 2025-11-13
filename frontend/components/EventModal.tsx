@@ -138,12 +138,6 @@ export default function EventModal({ id, onClose }: Props) {
             <Button>Login</Button>
           </Link>
         </div>
-
-        <div className="mt-6 text-right">
-          <Button className="px-3 py-1 rounded border" onClick={onClose}>
-            Close
-          </Button>
-        </div>
       </div>
     </div>
   );
