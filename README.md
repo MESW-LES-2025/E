@@ -81,7 +81,7 @@ Learn more about [git hooks.](https://git-scm.com/book/ms/v2/Customizing-Git-Git
 
 # Continuous Integration (CI)
 
-This project uses [GitHub Actions](https://docs.github.com/en/actions) for Continuous Integration (CI). The workflows are defined in the [`.github/workflows/`](./.github/workflows) directory and are triggered by updates to the `main` or `development` branches, or by creating or updating pull requests.
+This project uses [GitHub Actions](https://docs.github.com/en/actions) for Continuous Integration (CI). The workflows are defined in the [`.github/workflows/`](./.github/workflows) directory and are triggered by updates to the `main` or `development` branches, or by creating or updating pull requests (e.g. by commits on a pull request). The executions of those pipelines can be found on the Actions page, specifically on [Frontend Workflow](https://github.com/MESW-LES-2025/E/actions/workflows/frontend.yml) and [Backend Workflow](https://github.com/MESW-LES-2025/E/actions/workflows/backend.yml).
 
 ## Backend Workflow
 
@@ -91,7 +91,7 @@ The backend workflow ensures code quality and functionality for the Django backe
 - Checks import sorting (`isort`);
 - Checks linting compliance (`flake8`);
 - Checks type checking (`mypy`);
-- Executes tests (`pytest`), ensuring a minimum level of code coverage.
+- Executes unit tests (`pytest`), ensuring a minimum level of code coverage.
 
 ## Frontend Workflow
 
@@ -99,9 +99,9 @@ The frontend workflow validates and deploys the Next.js application. It includes
 
 - Checks code formatting (`prettier`);
 - Checks linting compliance (`eslint`);
-- Executes testing (`jest`), ensuring a minimum level of code coverage;
+- Executes unit tests (`jest`), ensuring a minimum level of code coverage;
 
-For more details, refer to the workflow files in the [`.github/workflows/`](./.github/workflows) directory.
+For more details on the pipeline definitions, refer to the workflow files in the [`.github/workflows/`](./.github/workflows) directory.
 
 ```
 .github/
@@ -118,6 +118,15 @@ The application can be accessed at:
 
 - Staging: [https://mesw-les-2025.github.io/E/staging/](https://mesw-les-2025.github.io/E/staging/)
 - Production: [https://mesw-les-2025.github.io/E/production/](https://mesw-les-2025.github.io/E/production/)
+
+For more details on deploys to Staging or Production, refer to the following pipeline runs:
+
+- Staging
+  - [Frontend](https://github.com/MESW-LES-2025/E/actions/workflows/frontend.yml?query=branch%3Adevelopment)
+  - [Backend](https://github.com/MESW-LES-2025/E/actions/workflows/backend.yml?query=branch%3Adevelopment)
+- Production
+  - [Frontend](https://github.com/MESW-LES-2025/E/actions/workflows/frontend.yml?query=branch%3Amain)
+  - [Backend](https://github.com/MESW-LES-2025/E/actions/workflows/backend.yml?query=branch%3Amain)
 
 ## Environment Usage
 
