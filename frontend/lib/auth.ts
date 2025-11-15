@@ -30,3 +30,40 @@ export async function login(username: string, password: string): Promise<void> {
     );
   }
 }
+
+export type RegisterRole = "ATTENDEE" | "ORGANIZER";
+
+export interface RegisterPayload {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  password: string;
+  role: RegisterRole;
+}
+
+type RegisterErrorResponse = {
+  detail?: string;
+  [field: string]: string[] | string | undefined;
+};
+
+export async function register(payload: RegisterPayload): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/users/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: RegisterErrorResponse = {};
+  try {
+    data = (await res.json()) as RegisterErrorResponse;
+  } catch {
+    data = {};
+  }
+
+  if (!res.ok) {
+    throw data;
+  }
+}
