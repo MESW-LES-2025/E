@@ -50,7 +50,7 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 class UserSerializer(BaseUserSerializer):
     role = serializers.CharField(source="profile.role", read_only=True)
 
-    class Meta:
+    class Meta(BaseUserSerializer.Meta):
         model = User
         fields = ("id", "username", "email", "first_name", "last_name", "role")
 
