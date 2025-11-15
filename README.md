@@ -110,8 +110,6 @@ For more details on the pipeline definitions, refer to the workflow files in the
     └── frontend-workflow.yml
 ```
 
-For more details on the pipeline definitions,
-
 # Continuous Deployment (CD)
 
 This project uses [GitHub Pages](https://pages.github.com/) to serve the application directly from the [`deployment`](https://github.com/MESW-LES-2025/E/tree/deployment) branch. The deployment process is automated and is triggered by commits to the `main` or `development` branches.
