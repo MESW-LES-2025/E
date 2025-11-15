@@ -15,12 +15,16 @@ interface Event {
   date: string;
   location: string;
   description: string;
+  // ...
+  participating?: boolean;
 }
 
 export default function EventModal({ id, onClose }: Props) {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // ...
+  const [participating, setPariticpating] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -53,6 +57,21 @@ export default function EventModal({ id, onClose }: Props) {
       window.removeEventListener("keydown", onKey);
     };
   }, [id, onClose]);
+
+  const onToogleParticipate = async () => {
+    try {
+      // Exemplo de chamada (ajuste para o seu endpoint quando disponível):
+      // const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+      // const token = localStorage.getItem("access"); // ou de onde você guardar
+      // await fetch(`${base}/events/${id}/${participating ? "unparticipate" : "participate"}/`, {
+      //   method: "POST",
+      //   headers: token ? { Authorization: `JWT ${token}` } : {},
+      // });
+      setPariticpating((v) => !v);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (!id) return null;
 
@@ -125,7 +144,13 @@ export default function EventModal({ id, onClose }: Props) {
 
         <div className="mt-6 flex justify-start gap-4">
           <Link href="">
-            <Button>Participate</Button>
+            <Button
+              onClick={onToogleParticipate}
+              variant={participating ? "destructive" : "default"}
+              aria-pressed={participating}
+            >
+              {participating ? "Cancel participation" : "Participate "}
+            </Button>
           </Link>
 
           <Link href="">
