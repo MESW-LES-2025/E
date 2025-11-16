@@ -10,6 +10,8 @@ describe("EventModal", () => {
     date: "2024-12-25T10:00:00Z",
     location: "Test Location",
     description: "Test Description",
+    organizer: "Test Organizer",
+    status: "Active",
   };
 
   beforeEach(() => {
@@ -66,6 +68,7 @@ describe("EventModal", () => {
 
       expect(screen.getByText("Test Location")).toBeInTheDocument();
       expect(screen.getByText("Test Description")).toBeInTheDocument();
+      expect(screen.getByText("Test Organizer")).toBeInTheDocument();
       expect(global.fetch).toHaveBeenCalledWith(
         "http://localhost:8000/api/events/1/",
       );
@@ -215,6 +218,8 @@ describe("EventModal", () => {
         location: "",
         description: "",
       };
+      delete (eventWithoutOptionals as Partial<typeof mockEvent>).organizer;
+      delete (eventWithoutOptionals as Partial<typeof mockEvent>).status;
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -230,6 +235,50 @@ describe("EventModal", () => {
       expect(screen.getByText("N/A")).toBeInTheDocument();
       expect(screen.queryByText("Location")).not.toBeInTheDocument();
       expect(screen.queryByText("Description")).not.toBeInTheDocument();
+      expect(screen.queryByText("Organizer")).not.toBeInTheDocument();
+      expect(screen.queryByText("Active")).not.toBeInTheDocument();
+    });
+
+    it("should display status with green background for 'Active'", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ...mockEvent, status: "Active" }),
+      });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+
+      await waitFor(() => {
+        const statusElement = screen.getByText("Active");
+        expect(statusElement).toBeInTheDocument();
+        expect(statusElement).toHaveClass("bg-green-500");
+      });
+    });
+
+    it("should display status with red background for other statuses (e.g., 'Cancelled')", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ...mockEvent, status: "Cancelled" }),
+      });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+
+      await waitFor(() => {
+        const statusElement = screen.getByText("Cancelled");
+        expect(statusElement).toBeInTheDocument();
+        expect(statusElement).toHaveClass("bg-red-500");
+      });
+    });
+
+    it("should place organizer before description", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
+      });
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+      const organizer = screen.getByText("Test Organizer");
+      const description = screen.getByText("Test Description");
+      expect(organizer.compareDocumentPosition(description)).toBe(4); // Node.DOCUMENT_POSITION_FOLLOWING
     });
   });
 

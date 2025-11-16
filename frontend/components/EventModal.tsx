@@ -18,6 +18,9 @@ interface Event {
   date: string;
   location: string;
   description: string;
+  organizer: number | null; // The organizer ID
+  organizer_name: string | null; // The organizer's name
+  status: string;
 }
 
 export default function EventModal({
@@ -89,7 +92,22 @@ export default function EventModal({
           {error && <p className="text-red-600 text-lg">Error: {error}</p>}
           {!loading && !error && event && (
             <>
-              <h2 className="text-3xl font-bold mb-8">{event.name}</h2>
+              <h2
+                className={`text-3xl font-bold ${event.status ? "mb-2" : "mb-8"}`}
+              >
+                {event.name}
+              </h2>
+              {event.status && (
+                <div className="mb-8">
+                  <span
+                    className={`px-3 py-1 text-sm font-semibold text-white rounded-full ${
+                      event.status === "Active" ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  >
+                    {event.status}
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-6">
                 <div>
@@ -116,6 +134,17 @@ export default function EventModal({
                     </label>
                     <div className="text-base text-gray-800">
                       {event.location}
+                    </div>
+                  </div>
+                )}
+
+                {event.organizer_name && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                      Organizer
+                    </label>
+                    <div className="text-base text-gray-800">
+                      {event.organizer_name}
                     </div>
                   </div>
                 )}
