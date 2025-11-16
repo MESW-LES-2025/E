@@ -7,9 +7,6 @@ import { Button } from "@/components/ui/button";
 type Props = {
   id: string | null;
   onClose: () => void;
-  showLogin?: boolean;
-  showStudentActions?: boolean;
-  showOrganizerActions?: boolean;
 };
 
 interface Event {
@@ -23,16 +20,17 @@ interface Event {
   status: string;
 }
 
-export default function EventModal({
-  id,
-  onClose,
-  showLogin = false,
-  showStudentActions = false,
-  showOrganizerActions = false,
-}: Props) {
+export default function EventModal({ id, onClose }: Props) {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [isAuthenticated] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("auth_tokens") !== null;
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -161,44 +159,45 @@ export default function EventModal({
                 )}
               </div>
 
-              {showLogin && (
+              {!isAuthenticated ? (
+                // If user is not logged in, show only the Login button
                 <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                  <Link href="" className="flex-1">
+                  <Link href="/profile/login" className="flex-1">
                     <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl">
                       Login
                     </Button>
                   </Link>
                 </div>
-              )}
-
-              {showStudentActions && (
-                <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                  <Link href="" className="flex-1">
-                    <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl">
-                      Participate
-                    </Button>
-                  </Link>
-                  <Link href="" className="flex-1">
-                    <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
-                      Interested
-                    </Button>
-                  </Link>
-                </div>
-              )}
-
-              {showOrganizerActions && (
-                <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                  <Link href="" className="flex-1">
-                    <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl">
-                      Edit
-                    </Button>
-                  </Link>
-                  <Link href="" className="flex-1">
-                    <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
-                      Cancel
-                    </Button>
-                  </Link>
-                </div>
+              ) : (
+                // If user is logged in, show other action buttons.
+                // NOTE: This section can be customized to show different buttons
+                // for organizers vs. other users by using the AuthContext.
+                <>
+                  <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                    <Link href="" className="flex-1">
+                      <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                        Participate
+                      </Button>
+                    </Link>
+                    <Link href="" className="flex-1">
+                      <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
+                        Interested
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                    <Link href="" className="flex-1">
+                      <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                        Edit
+                      </Button>
+                    </Link>
+                    <Link href="" className="flex-1">
+                      <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
+                        Cancel
+                      </Button>
+                    </Link>
+                  </div>
+                </>
               )}
             </>
           )}

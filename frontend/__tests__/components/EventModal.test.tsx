@@ -10,12 +10,14 @@ describe("EventModal", () => {
     date: "2024-12-25T10:00:00Z",
     location: "Test Location",
     description: "Test Description",
-    organizer: "Test Organizer",
+    organizer: 1,
+    organizer_name: "Test Organizer",
     status: "Active",
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
     global.fetch = jest.fn();
     process.env.NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000/api";
   });
@@ -68,7 +70,7 @@ describe("EventModal", () => {
 
       expect(screen.getByText("Test Location")).toBeInTheDocument();
       expect(screen.getByText("Test Description")).toBeInTheDocument();
-      expect(screen.getByText("Test Organizer")).toBeInTheDocument();
+      expect(screen.getByText(mockEvent.organizer_name)).toBeInTheDocument();
       expect(global.fetch).toHaveBeenCalledWith(
         "http://localhost:8000/api/events/1/",
       );
@@ -217,8 +219,9 @@ describe("EventModal", () => {
         date: "",
         location: "",
         description: "",
+        organizer: undefined,
+        organizer_name: undefined,
       };
-      delete (eventWithoutOptionals as Partial<typeof mockEvent>).organizer;
       delete (eventWithoutOptionals as Partial<typeof mockEvent>).status;
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -235,7 +238,7 @@ describe("EventModal", () => {
       expect(screen.getByText("N/A")).toBeInTheDocument();
       expect(screen.queryByText("Location")).not.toBeInTheDocument();
       expect(screen.queryByText("Description")).not.toBeInTheDocument();
-      expect(screen.queryByText("Organizer")).not.toBeInTheDocument();
+      expect(screen.queryByText("Organizer")).not.toBeInTheDocument(); // organizer_name is null
       expect(screen.queryByText("Active")).not.toBeInTheDocument();
     });
 
@@ -276,7 +279,7 @@ describe("EventModal", () => {
       });
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
-      const organizer = screen.getByText("Test Organizer");
+      const organizer = screen.getByText(mockEvent.organizer_name);
       const description = screen.getByText("Test Description");
       expect(organizer.compareDocumentPosition(description)).toBe(4); // Node.DOCUMENT_POSITION_FOLLOWING
     });
@@ -329,64 +332,45 @@ describe("EventModal", () => {
   });
 
   describe("Button Links", () => {
-    it("should not render any action buttons by default", async () => {
+    it("should show only the Login button when user is not authenticated", async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockEvent,
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-
       await screen.findByText(mockEvent.name);
 
+      const loginButton = screen.getByText("Login");
+      expect(loginButton).toBeInTheDocument();
+      expect(loginButton.closest("a")).toHaveAttribute(
+        "href",
+        "/profile/login",
+      );
       expect(screen.queryByText("Participate")).not.toBeInTheDocument();
       expect(screen.queryByText("Interested")).not.toBeInTheDocument();
       expect(screen.queryByText("Edit")).not.toBeInTheDocument();
       expect(screen.queryByText("Cancel")).not.toBeInTheDocument();
+    });
+
+    it("should show action buttons when user is authenticated", async () => {
+      // Mock localStorage to simulate a logged-in user
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens") return "fake-token";
+        return null;
+      });
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
+      });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
       expect(screen.queryByText("Login")).not.toBeInTheDocument();
-    });
-
-    it("should render login button when showLogin is true", async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
-      });
-
-      render(<EventModal id="1" onClose={mockOnClose} showLogin={true} />);
-
-      await screen.findByText(mockEvent.name);
-
-      expect(screen.getByText("Login")).toBeInTheDocument();
-    });
-
-    it("should render student action buttons when showStudentActions is true", async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
-      });
-
-      render(
-        <EventModal id="1" onClose={mockOnClose} showStudentActions={true} />,
-      );
-
-      await screen.findByText(mockEvent.name);
-
       expect(screen.getByText("Participate")).toBeInTheDocument();
       expect(screen.getByText("Interested")).toBeInTheDocument();
-    });
-
-    it("should render organizer action buttons when showOrganizerActions is true", async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
-      });
-
-      render(
-        <EventModal id="1" onClose={mockOnClose} showOrganizerActions={true} />,
-      );
-
-      await screen.findByText(mockEvent.name);
-
       expect(screen.getByText("Edit")).toBeInTheDocument();
       expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
