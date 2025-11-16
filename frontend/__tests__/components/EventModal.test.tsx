@@ -37,8 +37,8 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await screen.findByText("Event details");
-      expect(screen.getByText("Event details")).toBeInTheDocument();
+      await screen.findByText(mockEvent.name);
+      expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
     });
 
     it("should display loading state initially", () => {
@@ -124,8 +124,8 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await screen.findByText("Event details");
       const closeButton = screen.getByLabelText("Close modal");
+      await screen.findByText(mockEvent.name); // Wait for content to load
       fireEvent.click(closeButton);
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -138,8 +138,8 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await screen.findByText("Event details");
       const backdrop = screen.getByRole("dialog");
+      await screen.findByText(mockEvent.name); // Wait for content to load
       fireEvent.click(backdrop);
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -157,8 +157,7 @@ describe("EventModal", () => {
         expect(screen.getByText("Test Event")).toBeInTheDocument();
       });
 
-      const modalContent =
-        screen.getByText("Event details").parentElement?.parentElement;
+      const modalContent = screen.getByText(mockEvent.name).parentElement;
       if (modalContent) {
         fireEvent.click(modalContent);
       }
@@ -173,7 +172,7 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await screen.findByText("Event details");
+      await screen.findByText(mockEvent.name);
       fireEvent.keyDown(window, { key: "Escape" });
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -186,7 +185,7 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await screen.findByText("Event details");
+      await screen.findByText(mockEvent.name);
       fireEvent.keyDown(window, { key: "Enter" });
       fireEvent.keyDown(window, { key: "a" });
 
@@ -204,8 +203,7 @@ describe("EventModal", () => {
       render(<EventModal id="1" onClose={mockOnClose} />);
 
       await waitFor(() => {
-        const dateElement = screen.getByText(/Date:/);
-        expect(dateElement).toBeInTheDocument();
+        expect(screen.getByText("25/12/2024, 10:00")).toBeInTheDocument();
       });
     });
 
@@ -229,9 +227,9 @@ describe("EventModal", () => {
         expect(screen.getByText("Minimal Event")).toBeInTheDocument();
       });
 
-      expect(screen.queryByText("Date:")).not.toBeInTheDocument();
-      expect(screen.queryByText("Location:")).not.toBeInTheDocument();
-      expect(screen.queryByText("Description:")).not.toBeInTheDocument();
+      expect(screen.getByText("N/A")).toBeInTheDocument();
+      expect(screen.queryByText("Location")).not.toBeInTheDocument();
+      expect(screen.queryByText("Description")).not.toBeInTheDocument();
     });
   });
 
@@ -245,7 +243,7 @@ describe("EventModal", () => {
       });
 
       const { unmount } = render(<EventModal id="1" onClose={mockOnClose} />);
-      await screen.findByText("Event details");
+      await screen.findByText(mockEvent.name);
       unmount();
 
       expect(removeEventListenerSpy).toHaveBeenCalledWith(
@@ -282,7 +280,7 @@ describe("EventModal", () => {
   });
 
   describe("Button Links", () => {
-    it("should render all action buttons", async () => {
+    it("should not render any action buttons by default", async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockEvent,
@@ -290,14 +288,58 @@ describe("EventModal", () => {
 
       render(<EventModal id="1" onClose={mockOnClose} />);
 
-      await waitFor(() => {
-        expect(screen.getByText("Edit")).toBeInTheDocument();
+      await screen.findByText(mockEvent.name);
+
+      expect(screen.queryByText("Participate")).not.toBeInTheDocument();
+      expect(screen.queryByText("Interested")).not.toBeInTheDocument();
+      expect(screen.queryByText("Edit")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancel")).not.toBeInTheDocument();
+      expect(screen.queryByText("Login")).not.toBeInTheDocument();
+    });
+
+    it("should render login button when showLogin is true", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
       });
 
-      expect(screen.getByText("Cancel")).toBeInTheDocument();
+      render(<EventModal id="1" onClose={mockOnClose} showLogin={true} />);
+
+      await screen.findByText(mockEvent.name);
+
+      expect(screen.getByText("Login")).toBeInTheDocument();
+    });
+
+    it("should render student action buttons when showStudentActions is true", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
+      });
+
+      render(
+        <EventModal id="1" onClose={mockOnClose} showStudentActions={true} />,
+      );
+
+      await screen.findByText(mockEvent.name);
+
       expect(screen.getByText("Participate")).toBeInTheDocument();
       expect(screen.getByText("Interested")).toBeInTheDocument();
-      expect(screen.getByText("Login")).toBeInTheDocument();
+    });
+
+    it("should render organizer action buttons when showOrganizerActions is true", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
+      });
+
+      render(
+        <EventModal id="1" onClose={mockOnClose} showOrganizerActions={true} />,
+      );
+
+      await screen.findByText(mockEvent.name);
+
+      expect(screen.getByText("Edit")).toBeInTheDocument();
+      expect(screen.getByText("Cancel")).toBeInTheDocument();
     });
   });
 });
