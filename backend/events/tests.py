@@ -25,9 +25,9 @@ class EventModelTest(TestCase):
         self.assertEqual(event.organizer, self.user)
         self.assertEqual(event.status, "Active")
 
-    def test_event_creation_with_default_organizer(self):
+    def test_event_creation_without_organizer(self):
         event = Event.objects.create(
-            name="Default Organizer Event", date="2024-01-01T10:00:00Z"
+            name="Event without organizer", date="2024-01-01T10:00:00Z"
         )
-        self.assertEqual(event.name, "Default Organizer Event")
-        self.assertEqual(event.organizer, self.superuser)
+        self.assertEqual(event.name, "Event without organizer")
+        self.assertIsNone(event.organizer)
