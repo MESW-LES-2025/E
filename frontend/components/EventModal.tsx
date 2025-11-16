@@ -24,6 +24,7 @@ export default function EventModal({ id, onClose }: Props) {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
 
   const [isAuthenticated] = useState(() => {
     if (typeof window !== "undefined") {
@@ -158,6 +159,30 @@ export default function EventModal({ id, onClose }: Props) {
                   </div>
                 )}
               </div>
+
+              {isAuthenticated && (
+                <div className="border-t border-gray-200 mt-6 pt-6">
+                  <button
+                    onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
+                    className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
+                    aria-expanded={isParticipantsOpen}
+                  >
+                    <span>Participants</span>
+                    <span
+                      className={`transform transition-transform duration-200 ${
+                        isParticipantsOpen ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▼
+                    </span>
+                  </button>
+                  {isParticipantsOpen && (
+                    <div className="mt-4 text-gray-700">
+                      Participant list goes here...
+                    </div>
+                  )}
+                </div>
+              )}
 
               {!isAuthenticated ? (
                 // If user is not logged in, show only the Login button

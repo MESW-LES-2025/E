@@ -331,6 +331,73 @@ describe("EventModal", () => {
     });
   });
 
+  describe("Participants Section", () => {
+    it("should not show the Participants section when user is not authenticated", async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
+      });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      expect(
+        screen.queryByRole("button", { name: /Participants/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("should show the Participants section header when user is authenticated", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens") return "fake-token";
+        return null;
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
+      });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      expect(
+        screen.getByRole("button", { name: /Participants/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Participant list goes here..."),
+      ).not.toBeInTheDocument();
+    });
+
+    it("should toggle Participants section visibility on click when user is authenticated", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens") return "fake-token";
+        return null;
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvent,
+      });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const participantsButton = screen.getByRole("button", {
+        name: /Participants/i,
+      });
+
+      expect(participantsButton).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(participantsButton);
+      expect(
+        screen.getByText("Participant list goes here..."),
+      ).toBeInTheDocument();
+      expect(participantsButton).toHaveAttribute("aria-expanded", "true");
+      fireEvent.click(participantsButton);
+      expect(
+        screen.queryByText("Participant list goes here..."),
+      ).not.toBeInTheDocument();
+      expect(participantsButton).toHaveAttribute("aria-expanded", "false");
+    });
+  });
+
   describe("Button Links", () => {
     it("should show only the Login button when user is not authenticated", async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
