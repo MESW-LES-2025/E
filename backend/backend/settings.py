@@ -142,7 +142,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("JWT",),
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
