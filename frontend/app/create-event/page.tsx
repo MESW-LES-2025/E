@@ -9,6 +9,7 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
+import { fetchWithAuth } from "@/lib/auth";
 
 // Add new component for success message with same styling as FieldError
 const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
@@ -157,40 +158,6 @@ export default function CreateEvent() {
       </form>
     </div>
   );
-}
-
-export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const authTokens = localStorage.getItem("auth_tokens");
-  let token = null;
-
-  if (authTokens) {
-    try {
-      const tokens = JSON.parse(authTokens);
-      token = tokens.access;
-    } catch (error) {
-      console.error("Error parsing auth tokens:", error);
-    }
-  }
-
-  const headers = new Headers({
-    "Content-Type": "application/json",
-  });
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  if (options.headers) {
-    const customHeaders = new Headers(options.headers);
-    customHeaders.forEach((value, key) => {
-      headers.set(key, value);
-    });
-  }
-
-  return fetch(url, {
-    ...options,
-    headers,
-  });
 }
 
 export const createEvent = async (eventData: {
