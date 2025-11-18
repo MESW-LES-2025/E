@@ -1,3 +1,7 @@
+<p align="center">
+  <img width="350" height="auto" alt="Erasmus_in_Porto_Youthful_Community_Logo-removebg-preview" src="https://github.com/user-attachments/assets/a0f909ce-684d-48ba-8aa5-b392bb60baa3" />
+</p>
+
 # Erasmus in Porto
 
 This project is designed to facilitate the Erasmus experience in Porto, providing a platform for students to connect and participate in events.
