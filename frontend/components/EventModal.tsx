@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { fetchWithAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -15,9 +16,18 @@ interface Event {
   date: string;
   location: string;
   description: string;
-  organizer: number | null; // The organizer ID
-  organizer_name: string | null; // The organizer's name
+  organizer: number; // The organizer ID
+  organizer_name: string; // The organizer's name
   status: string;
+}
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
 }
 
 export default function EventModal({ id, onClose }: Props) {
@@ -25,6 +35,7 @@ export default function EventModal({ id, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   const [isAuthenticated] = useState(() => {
     if (typeof window !== "undefined") {
@@ -64,6 +75,24 @@ export default function EventModal({ id, onClose }: Props) {
       window.removeEventListener("keydown", onKey);
     };
   }, [id, onClose]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const base =
+        process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+      fetchWithAuth(`${base}/auth/users/me/`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setUser(data);
+        })
+        .catch(() => {
+          // Silently fail, user type-specific UI won't render
+        });
+    }
+  }, [isAuthenticated]);
 
   if (!id) return null;
 
@@ -160,7 +189,7 @@ export default function EventModal({ id, onClose }: Props) {
                 )}
               </div>
 
-              {isAuthenticated && (
+              {user?.role === "ORGANIZER" && user.id === event.organizer && (
                 <div className="border-t border-gray-200 mt-6 pt-6">
                   <button
                     onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
@@ -195,33 +224,39 @@ export default function EventModal({ id, onClose }: Props) {
                 </div>
               ) : (
                 // If user is logged in, show other action buttons.
-                // NOTE: This section can be customized to show different buttons
-                // for organizers vs. other users by using the AuthContext.
                 <>
-                  <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                    <Link href="" className="flex-1">
-                      <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
-                        Participate
-                      </Button>
-                    </Link>
-                    <Link href="" className="flex-1">
-                      <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
-                        Interested
-                      </Button>
-                    </Link>
-                  </div>
-                  <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                    <Link href="" className="flex-1">
-                      <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
-                        Edit
-                      </Button>
-                    </Link>
-                    <Link href="" className="flex-1">
-                      <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
-                        Cancel
-                      </Button>
-                    </Link>
-                  </div>
+                  {user?.role === "ATTENDEE" && (
+                    <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                      <Link href="" className="flex-1">
+                        <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                          Participate
+                        </Button>
+                      </Link>
+                      <Link href="" className="flex-1">
+                        <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
+                          Interested
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                  {user?.role === "ORGANIZER" &&
+                    user?.id === event.organizer && (
+                      <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                        <Link
+                          href={`/events/edit/${event.id}`}
+                          className="flex-1"
+                        >
+                          <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                            Edit
+                          </Button>
+                        </Link>
+                        <Link href="" className="flex-1">
+                          <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
+                            Cancel
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
                 </>
               )}
             </>

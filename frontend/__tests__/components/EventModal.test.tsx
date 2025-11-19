@@ -346,15 +346,23 @@ describe("EventModal", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("should show the Participants section header when user is authenticated", async () => {
+    it("should show the Participants section header when user is the event organizer", async () => {
       jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
-        if (key === "auth_tokens") return "fake-token";
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
         return null;
       });
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
-      });
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          // event fetch
+          ok: true,
+          json: async () => mockEvent, // organizer is 1
+        })
+        .mockResolvedValueOnce({
+          // user fetch
+          ok: true,
+          json: async () => ({ id: 1, role: "ORGANIZER" }), // user is organizer 1
+        });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
@@ -367,15 +375,47 @@ describe("EventModal", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("should toggle Participants section visibility on click when user is authenticated", async () => {
+    it("should NOT show the Participants section for a non-organizer authenticated user", async () => {
       jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
-        if (key === "auth_tokens") return "fake-token";
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
         return null;
       });
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockEvent,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }), // User is an attendee
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      expect(
+        screen.queryByRole("button", { name: /Participants/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("should toggle Participants section visibility on click when user is the event organizer", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
       });
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          // event fetch
+          ok: true,
+          json: async () => mockEvent, // organizer is 1
+        })
+        .mockResolvedValueOnce({
+          // user fetch
+          ok: true,
+          json: async () => ({ id: 1, role: "ORGANIZER" }), // user is organizer 1
+        });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
@@ -420,26 +460,111 @@ describe("EventModal", () => {
       expect(screen.queryByText("Cancel")).not.toBeInTheDocument();
     });
 
-    it("should show action buttons when user is authenticated", async () => {
-      // Mock localStorage to simulate a logged-in user
+    it("should NOT show Edit and Cancel buttons if user is an ORGANIZER but not the event's organizer", async () => {
       jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
-        if (key === "auth_tokens") return "fake-token";
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
         return null;
       });
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
-      });
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          // event fetch
+          ok: true,
+          json: async () => mockEvent,
+        })
+        .mockResolvedValueOnce({
+          // user fetch
+          ok: true,
+          json: async () => ({ id: 99, role: "ORGANIZER" }), // An organizer, but not the event's organizer
+        });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
 
       expect(screen.queryByText("Login")).not.toBeInTheDocument();
-      expect(screen.getByText("Participate")).toBeInTheDocument();
-      expect(screen.getByText("Interested")).toBeInTheDocument();
+      expect(screen.queryByText("Edit")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancel")).not.toBeInTheDocument();
+    });
+
+    it('should show Participate and Interested buttons for an "ATTENDEE" user', async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          // event fetch
+          ok: true,
+          json: async () => mockEvent,
+        })
+        .mockResolvedValueOnce({
+          // user fetch
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Participate")).toBeInTheDocument();
+        expect(screen.getByText("Interested")).toBeInTheDocument();
+      });
+    });
+
+    it('should NOT show Participate and Interested buttons for a non-"ATTENDEE" user', async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockEvent,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 99, role: "ORGANIZER" }), // Or any other type
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      expect(screen.queryByText("Participate")).not.toBeInTheDocument();
+      expect(screen.queryByText("Interested")).not.toBeInTheDocument();
+    });
+
+    it("should show Edit and Cancel buttons if user is the event organizer", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockEvent, // event.organizer is 1
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 1, role: "ORGANIZER" }), // User is organizer with ID 1
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
       expect(screen.getByText("Edit")).toBeInTheDocument();
       expect(screen.getByText("Cancel")).toBeInTheDocument();
+      // Check that the Edit button links to the correct page
+      expect(screen.getByText("Edit").closest("a")).toHaveAttribute(
+        "href",
+        `/events/edit/${mockEvent.id}`,
+      );
     });
   });
 });

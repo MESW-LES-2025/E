@@ -26,9 +26,7 @@ class Event(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="organized_events",
-        # default=get_default_organizer, # Temporarily commented out
-        null=True,  # Temporarily allow null
-        blank=True,
+        default=get_default_organizer,
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
 
