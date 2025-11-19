@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { fetchWithAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -15,16 +16,33 @@ interface Event {
   date: string;
   location: string;
   description: string;
-  // ...
-  participating?: boolean;
+  organizer: number; // The organizer ID
+  organizer_name: string; // The organizer's name
+  status: string;
+}
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
 }
 
 export default function EventModal({ id, onClose }: Props) {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // ...
-  const [participating, setPariticpating] = useState(false);
+  const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  const [isAuthenticated] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("auth_tokens") !== null;
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -58,116 +76,191 @@ export default function EventModal({ id, onClose }: Props) {
     };
   }, [id, onClose]);
 
-  const onToogleParticipate = async () => {
-    try {
-      // Exemplo de chamada (ajuste para o seu endpoint quando disponível):
-      // const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
-      // const token = localStorage.getItem("access"); // ou de onde você guardar
-      // await fetch(`${base}/events/${id}/${participating ? "unparticipate" : "participate"}/`, {
-      //   method: "POST",
-      //   headers: token ? { Authorization: `JWT ${token}` } : {},
-      // });
-      setPariticpating((v) => !v);
-    } catch (e) {
-      console.error(e);
+  useEffect(() => {
+    if (isAuthenticated) {
+      const base =
+        process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+      fetchWithAuth(`${base}/auth/users/me/`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setUser(data);
+        })
+        .catch(() => {
+          // Silently fail, user type-specific UI won't render
+        });
     }
-  };
+  }, [isAuthenticated]);
 
   if (!id) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg max-w-lg w-full p-6 relative"
+        className="bg-white rounded-3xl max-w-2xl w-full mx-4 p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-start">
-          <h3 className="text-lg font-semibold">Event details</h3>
-          <button
-            aria-label="Close modal"
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-        </div>
+        <button
+          aria-label="Close modal"
+          onClick={onClose}
+          className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 text-3xl leading-none"
+        >
+          ×
+        </button>
 
-        <div className="mt-4 min-h-[120px]">
-          {loading && <p>Loading...</p>}
-          {error && <p className="text-red-600">Error: {error}</p>}
+        <div className="pr-8">
+          {loading && <p className="text-lg">Loading...</p>}
+          {error && <p className="text-red-600 text-lg">Error: {error}</p>}
           {!loading && !error && event && (
-            <div>
-              <p>
-                <strong>Name:</strong>{" "}
-                <span className="font-normal">{event.name}</span>
-              </p>
-              {event.date && (
-                <p className="mt-2">
-                  <strong>Date:</strong>{" "}
-                  <span className="font-normal">
-                    {new Date(event.date).toLocaleString()}
+            <>
+              <h2
+                className={`text-3xl font-bold ${event.status ? "mb-2" : "mb-8"}`}
+              >
+                {event.name}
+              </h2>
+              {event.status && (
+                <div className="mb-8">
+                  <span
+                    className={`px-3 py-1 text-sm font-semibold text-white rounded-full ${
+                      event.status === "Active" ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  >
+                    {event.status}
                   </span>
-                </p>
-              )}
-              {event.location && (
-                <p className="mt-2">
-                  <strong>Location:</strong>{" "}
-                  <span className="font-normal">{event.location}</span>
-                </p>
-              )}
-              {event.description && (
-                <div className="mt-2">
-                  <strong>Description:</strong>
-                  <div className="mt-1 whitespace-pre-wrap font-normal">
-                    {event.description}
-                  </div>
                 </div>
               )}
-            </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                    Date
+                  </label>
+                  <div className="text-base text-gray-800">
+                    {event.date
+                      ? new Date(event.date).toLocaleString("en-GB", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "N/A"}
+                  </div>
+                </div>
+
+                {event.location && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                      Location
+                    </label>
+                    <div className="text-base text-gray-800">
+                      {event.location}
+                    </div>
+                  </div>
+                )}
+
+                {event.organizer_name && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                      Organizer
+                    </label>
+                    <div className="text-base text-gray-800">
+                      {event.organizer_name}
+                    </div>
+                  </div>
+                )}
+
+                {event.description && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                      {event.description}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {user?.role === "ORGANIZER" && user.id === event.organizer && (
+                <div className="border-t border-gray-200 mt-6 pt-6">
+                  <button
+                    onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
+                    className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
+                    aria-expanded={isParticipantsOpen}
+                  >
+                    <span>Participants</span>
+                    <span
+                      className={`transform transition-transform duration-200 ${
+                        isParticipantsOpen ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▼
+                    </span>
+                  </button>
+                  {isParticipantsOpen && (
+                    <div className="mt-4 text-gray-700">
+                      Participant list goes here...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!isAuthenticated ? (
+                // If user is not logged in, show only the Login button
+                <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                  <Link href="/profile/login" className="flex-1">
+                    <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl">
+                      Login
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                // If user is logged in, show other action buttons.
+                <>
+                  {user?.role === "ATTENDEE" && (
+                    <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                      <Link href="" className="flex-1">
+                        <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                          Participate
+                        </Button>
+                      </Link>
+                      <Link href="" className="flex-1">
+                        <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
+                          Interested
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                  {user?.role === "ORGANIZER" &&
+                    user?.id === event.organizer && (
+                      <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                        <Link
+                          href={`/events/edit/${event.id}`}
+                          className="flex-1"
+                        >
+                          <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                            Edit
+                          </Button>
+                        </Link>
+                        <Link href="" className="flex-1">
+                          <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
+                            Cancel
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                </>
+              )}
+            </>
           )}
-        </div>
-
-        <div className="mt-6 flex justify-start gap-4">
-          <Link href="">
-            <Button>Edit</Button>
-          </Link>
-
-          <Link href="">
-            <Button>Cancel</Button>
-          </Link>
-        </div>
-
-        <div className="mt-6 flex justify-start gap-4">
-          <Link href="">
-            <Button
-              onClick={onToogleParticipate}
-              variant={participating ? "destructive" : "default"}
-              aria-pressed={participating}
-            >
-              {participating ? "Cancel participation" : "Participate "}
-            </Button>
-          </Link>
-
-          <Link href="">
-            <Button>Interested</Button>
-          </Link>
-        </div>
-
-        <div className="mt-6 flex justify-start gap-4">
-          <Link href="/profile/login">
-            <Button>Login</Button>
-          </Link>
-        </div>
-
-        <div className="mt-6 text-right">
-          <Button className="px-3 py-1 rounded border" onClick={onClose}>
-            Close
-          </Button>
         </div>
       </div>
     </div>
