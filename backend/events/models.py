@@ -29,6 +29,10 @@ class Event(models.Model):
         default=get_default_organizer,
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
+    capacity = models.IntegerField(blank=True, null=True)
+    participants = models.IntegerField()
 
-    def __str__(self):
-        return self.name
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+    )

@@ -14,6 +14,7 @@ class EventSerializer(serializers.ModelSerializer):
             "date",
             "location",
             "description",
+            "capacity",
             "organizer",  # The organizer's ID
             "organizer_name",  # The organizer's username
             "status",
