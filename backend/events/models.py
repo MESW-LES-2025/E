@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 
+# Remove after implement that only organizers can create events
 def get_default_organizer():
     """
     Returns the first superuser to act as a default organizer.
@@ -36,6 +37,12 @@ class Event(models.Model):
         blank=True,
         related_name="participating_events",
     )
+
+    class Meta:
+        ordering = ["date", "id"]  # Order by date, then by id for consistency
+
+    def __str__(self):
+        return self.name
 
     def save(self, *args, **kwargs):
         # Convert 0 to None for unlimited capacity
