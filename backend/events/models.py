@@ -30,9 +30,15 @@ class Event(models.Model):
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
     capacity = models.IntegerField(blank=True, null=True)
-    participants = models.IntegerField()
 
     participants = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         blank=True,
+        related_name="participating_events",
     )
+
+    def save(self, *args, **kwargs):
+        # Convert 0 to None for unlimited capacity
+        if self.capacity == 0:
+            self.capacity = None
+        super().save(*args, **kwargs)
