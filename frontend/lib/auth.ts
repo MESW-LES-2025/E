@@ -20,7 +20,7 @@ export async function login(username: string, password: string): Promise<void> {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.detail || "Credenciais inválidas");
+    throw new Error(err?.detail || "Invalid credentials");
   }
   const data = await res.json();
   if (typeof window !== "undefined") {

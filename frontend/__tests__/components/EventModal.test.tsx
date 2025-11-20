@@ -457,7 +457,7 @@ describe("EventModal", () => {
       expect(screen.queryByText("Participate")).not.toBeInTheDocument();
       expect(screen.queryByText("Interested")).not.toBeInTheDocument();
       expect(screen.queryByText("Edit")).not.toBeInTheDocument();
-      expect(screen.queryByText("Cancel")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancel Event")).not.toBeInTheDocument();
     });
 
     it("should NOT show Edit and Cancel buttons if user is an ORGANIZER but not the event's organizer", async () => {
@@ -484,7 +484,7 @@ describe("EventModal", () => {
 
       expect(screen.queryByText("Login")).not.toBeInTheDocument();
       expect(screen.queryByText("Edit")).not.toBeInTheDocument();
-      expect(screen.queryByText("Cancel")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancel Event")).not.toBeInTheDocument();
     });
 
     it('should show Participate and Interested buttons for an "ATTENDEE" user', async () => {
@@ -559,7 +559,7 @@ describe("EventModal", () => {
       await screen.findByText(mockEvent.name);
 
       expect(screen.getByText("Edit")).toBeInTheDocument();
-      expect(screen.getByText("Cancel")).toBeInTheDocument();
+      expect(screen.getByText("Cancel Event")).toBeInTheDocument();
       // Check that the Edit button links to the correct page
       expect(screen.getByText("Edit").closest("a")).toHaveAttribute(
         "href",

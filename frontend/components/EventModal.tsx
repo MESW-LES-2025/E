@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchWithAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { cancelEventRequest, uncancelEventRequest } from "@/lib/events";
 
 type Props = {
   id: string | null;
@@ -16,8 +17,8 @@ interface Event {
   date: string;
   location: string;
   description: string;
-  organizer: number; // The organizer ID
-  organizer_name: string; // The organizer's name
+  organizer: number;
+  organizer_name: string;
   status: string;
 }
 
@@ -58,9 +59,11 @@ export default function EventModal({ id, onClose }: Props) {
       .then((data) => {
         if (!cancelled) setEvent(data);
       })
-      .catch((err) => {
-        if (!cancelled)
-          setError((err && err.message) || "Failed to load event");
+      .catch((err: Error) => {
+        if (!cancelled) {
+          console.error(err);
+          setError(err.message || "Failed to load event");
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -89,12 +92,44 @@ export default function EventModal({ id, onClose }: Props) {
           setUser(data);
         })
         .catch(() => {
-          // Silently fail, user type-specific UI won't render
+          // silently fail
         });
     }
   }, [isAuthenticated]);
 
   if (!id) return null;
+
+  const handleCancel = async () => {
+    if (!event) return;
+
+    if (!window.confirm("Are you sure you want to cancel this event?")) return;
+
+    try {
+      const res = await cancelEventRequest(event.id);
+      if (!res.ok) throw new Error("Failed to cancel event");
+
+      const updated = await res.json();
+      setEvent(updated);
+    } catch {
+      alert("Could not cancel event");
+    }
+  };
+
+  const handleUncancel = async () => {
+    if (!event) return;
+
+    if (!window.confirm("Do you want to reactivate this event?")) return;
+
+    try {
+      const res = await uncancelEventRequest(event.id);
+      if (!res.ok) throw new Error("Failed to reactivate the event");
+
+      const updated = await res.json();
+      setEvent(updated);
+    } catch {
+      alert("Could not reactivate the event");
+    }
+  };
 
   return (
     <div
@@ -198,9 +233,7 @@ export default function EventModal({ id, onClose }: Props) {
                   >
                     <span>Participants</span>
                     <span
-                      className={`transform transition-transform duration-200 ${
-                        isParticipantsOpen ? "rotate-180" : ""
-                      }`}
+                      className={`transform transition-transform duration-200 ${isParticipantsOpen ? "rotate-180" : ""}`}
                     >
                       ▼
                     </span>
@@ -214,7 +247,6 @@ export default function EventModal({ id, onClose }: Props) {
               )}
 
               {!isAuthenticated ? (
-                // If user is not logged in, show only the Login button
                 <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
                   <Link href="/profile/login" className="flex-1">
                     <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl">
@@ -223,9 +255,8 @@ export default function EventModal({ id, onClose }: Props) {
                   </Link>
                 </div>
               ) : (
-                // If user is logged in, show other action buttons.
                 <>
-                  {user?.role === "ATTENDEE" && (
+                  {user?.role === "ATTENDEE" && event.status !== "Canceled" && (
                     <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
                       <Link href="" className="flex-1">
                         <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
@@ -240,7 +271,7 @@ export default function EventModal({ id, onClose }: Props) {
                     </div>
                   )}
                   {user?.role === "ORGANIZER" &&
-                    user?.id === event.organizer && (
+                    user.id === event.organizer && (
                       <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
                         <Link
                           href={`/events/edit/${event.id}`}
@@ -250,11 +281,21 @@ export default function EventModal({ id, onClose }: Props) {
                             Edit
                           </Button>
                         </Link>
-                        <Link href="" className="flex-1">
-                          <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
-                            Cancel
+                        {event.status === "Canceled" ? (
+                          <Button
+                            onClick={handleUncancel}
+                            className="flex-1 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl"
+                          >
+                            Reactivate Event
                           </Button>
-                        </Link>
+                        ) : (
+                          <Button
+                            onClick={handleCancel}
+                            className="flex-1 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl"
+                          >
+                            Cancel Event
+                          </Button>
+                        )}
                       </div>
                     )}
                 </>

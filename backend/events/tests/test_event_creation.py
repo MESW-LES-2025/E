@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from .models import Event
+from ..models import Event
 
 # Create your tests here.
 
