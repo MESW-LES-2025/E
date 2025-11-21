@@ -68,6 +68,8 @@ class UserOrganizedEventsView(generics.ListAPIView):
 
     def get_queryset(self):
         return Event.objects.filter(organizer=self.request.user)
+
+
 class CancelEventView(APIView):
     permission_classes = [IsAuthenticated]
 
