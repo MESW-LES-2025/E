@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "events",
+    "accounts",
+    "djoser",
 ]
 
 MIDDLEWARE = [
@@ -132,6 +134,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     # Can add later, need to adjust frontend if pagination is enabled
@@ -139,4 +142,19 @@ REST_FRAMEWORK = {
     # "PAGE_SIZE": 10,
 }
 
+SIMPLE_JWT = {
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
 CORS_ALLOW_ALL_ORIGINS = True
+
+AUTH_USER_MODEL = "accounts.User"
+
+DJOSER = {
+    "USER_ID_FIELD": "id",
+    "SERIALIZERS": {
+        "user_create": "accounts.serializers.UserCreateSerializer",
+        "user": "accounts.serializers.UserSerializer",
+        "current_user": "accounts.serializers.UserSerializer",
+    },
+}

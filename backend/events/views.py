@@ -29,29 +29,31 @@ class CreateEventView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserRegisteredEventsView(generics.ListAPIView):
-    serializer_class = EventSerializer
-
-    def get_queryset(self):
-        return self.request.user.registered_events.all()
+        serializer.is_valid(raise_exception=True)
+        serializer.save(organizer=self.request.user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
 
-class UserInterestedEventsView(generics.ListAPIView):
-    serializer_class = EventSerializer
+# TODO: add those views for my feature
+# class UserRegisteredEventsView(generics.ListAPIView):
+#     serializer_class = EventSerializer
 
-    def get_queryset(self):
-        return self.request.user.interested_events.all()
+#     def get_queryset(self):
+#         return self.request.user.registered_events.all()
 
 
-class UserOrganizedEventsView(generics.ListAPIView):
-    serializer_class = EventSerializer
+# class UserInterestedEventsView(generics.ListAPIView):
+#     serializer_class = EventSerializer
 
-    def get_queryset(self):
-        return Event.objects.filter(organizer=self.request.user)
+#     def get_queryset(self):
+#         return self.request.user.interested_events.all()
+
+
+# class UserOrganizedEventsView(generics.ListAPIView):
+#     serializer_class = EventSerializer
+
+#     def get_queryset(self):
+#         return Event.objects.filter(organizer=self.request.user)

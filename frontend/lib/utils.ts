@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export async function fetchWrapped(
+export async function apiRequest(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
   body?: unknown,

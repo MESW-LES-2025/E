@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,9 +9,14 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
+import { fetchWithAuth } from "@/lib/auth";
+
+// Add new component for success message with same styling as FieldError
+const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
+  <span className="text-sm font-medium text-green-600">{children}</span>
+);
 
 export default function CreateEvent() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -21,6 +25,7 @@ export default function CreateEvent() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -52,15 +57,28 @@ export default function CreateEvent() {
 
     try {
       await createEvent(formData);
-      router.push("/event"); // Redirect to events page
-    } catch {
+      setSuccessMessage("Event created successfully!");
+      // Reset form
+      setFormData({
+        name: "",
+        date: "",
+        location: "",
+        description: "",
+      });
+      // Clear any previous errors
+      setErrors({});
+      setSubmitError("");
+    } catch (error) {
       setSubmitError("Failed to create event");
+      console.error("Error creating event:", error);
+      setSuccessMessage("");
     }
   };
 
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Create New Event</h1>
+
       <form onSubmit={handleSubmit}>
         <Field className="mb-4">
           <FieldLabel>Name</FieldLabel>
@@ -72,6 +90,7 @@ export default function CreateEvent() {
                 setFormData({ ...formData, name: e.target.value });
                 setErrors({ ...errors, name: "" });
                 setSubmitError("");
+                setSuccessMessage("");
               }}
             />
           </FieldContent>
@@ -88,6 +107,7 @@ export default function CreateEvent() {
                 setFormData({ ...formData, date: e.target.value });
                 setErrors({ ...errors, date: "" });
                 setSubmitError("");
+                setSuccessMessage("");
               }}
             />
           </FieldContent>
@@ -104,6 +124,7 @@ export default function CreateEvent() {
                 setFormData({ ...formData, location: e.target.value });
                 setErrors({ ...errors, location: "" });
                 setSubmitError("");
+                setSuccessMessage("");
               }}
             />
           </FieldContent>
@@ -120,6 +141,7 @@ export default function CreateEvent() {
                 setFormData({ ...formData, description: e.target.value });
                 setErrors({ ...errors, description: "" });
                 setSubmitError("");
+                setSuccessMessage("");
               }}
             />
           </FieldContent>
@@ -127,48 +149,15 @@ export default function CreateEvent() {
         </Field>
 
         <Button type="submit">Create Event</Button>
-        {submitError && (
-          <div className="mt-4">
-            <FieldError>{submitError}</FieldError>
-          </div>
-        )}
+
+        {/* Messages container */}
+        <div className="mt-4">
+          {submitError && <FieldError>{submitError}</FieldError>}
+          {successMessage && <FieldSuccess>{successMessage}</FieldSuccess>}
+        </div>
       </form>
     </div>
   );
-}
-
-export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const authTokens = localStorage.getItem("auth_tokens");
-  let token = null;
-
-  if (authTokens) {
-    try {
-      const tokens = JSON.parse(authTokens);
-      token = tokens.access;
-    } catch (error) {
-      console.error("Error parsing auth tokens:", error);
-    }
-  }
-
-  const headers = new Headers({
-    "Content-Type": "application/json",
-  });
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  if (options.headers) {
-    const customHeaders = new Headers(options.headers);
-    customHeaders.forEach((value, key) => {
-      headers.set(key, value);
-    });
-  }
-
-  return fetch(url, {
-    ...options,
-    headers,
-  });
 }
 
 export const createEvent = async (eventData: {
