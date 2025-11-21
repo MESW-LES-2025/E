@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/utils";
 import { ErasmusEvent } from "@/lib/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { isAuthenticated } from "@/lib/auth";
+import { fetchWithAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import EventModal from "@/components/EventModal";
 
@@ -41,6 +42,15 @@ const ENDPOINT_CONFIG: Record<
   },
 };
 
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
 export default function EventsCalendar() {
   const date = new Date();
   const router = useRouter();
@@ -49,6 +59,7 @@ export default function EventsCalendar() {
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<Date>(date);
   const [selectedDay, setSelectedDay] = useState<Date>(date);
+  const [user, setUser] = useState<User | null>(null);
 
   // modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,6 +68,21 @@ export default function EventsCalendar() {
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push("/profile/login");
+    } else {
+      // Fetch user info
+      const base =
+        process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+      fetchWithAuth(`${base}/auth/users/me/`)
+        .then((res) => {
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          setUser(data);
+        })
+        .catch(() => {
+          // Silently fail
+        });
     }
   }, [router]);
 
@@ -109,32 +135,45 @@ export default function EventsCalendar() {
     [filter],
   );
 
+  const availableFilters = useMemo(() => {
+    if (user?.role === "ORGANIZER") {
+      return [
+        {
+          type: EndpointType.ALL,
+          label: "All Events",
+          onClick: () => setFilter(EndpointType.ALL),
+        },
+        {
+          type: EndpointType.ORGANIZED,
+          label: "Organized",
+          onClick: () => setFilter(EndpointType.ORGANIZED),
+        },
+      ];
+    }
+    return [
+      {
+        type: EndpointType.ALL,
+        label: "All Events",
+        onClick: () => setFilter(EndpointType.ALL),
+      },
+      {
+        type: EndpointType.PARTICIPATING,
+        label: "Participating",
+        onClick: () => setFilter(EndpointType.PARTICIPATING),
+      },
+      {
+        type: EndpointType.INTERESTED,
+        label: "Interested",
+        onClick: () => setFilter(EndpointType.INTERESTED),
+      },
+    ];
+  }, [user]);
+
   return (
     <div className="flex flex-col lg:flex-row justify-center">
       <div className="flex-1 p-4 flex flex-col">
         <div className="flex space-x-2 mb-4 justify-center">
-          {[
-            {
-              type: EndpointType.ALL,
-              label: "All Events",
-              onClick: () => setFilter(EndpointType.ALL),
-            },
-            {
-              type: EndpointType.PARTICIPATING,
-              label: "Participating",
-              onClick: () => setFilter(EndpointType.PARTICIPATING),
-            },
-            {
-              type: EndpointType.INTERESTED,
-              label: "Interested",
-              onClick: () => setFilter(EndpointType.INTERESTED),
-            },
-            {
-              type: EndpointType.ORGANIZED,
-              label: "Organized",
-              onClick: () => setFilter(EndpointType.ORGANIZED),
-            },
-          ].map(({ type, label, onClick }) => (
+          {availableFilters.map(({ type, label, onClick }) => (
             <Button
               key={type}
               variant={filter === type ? "default" : "outline"}

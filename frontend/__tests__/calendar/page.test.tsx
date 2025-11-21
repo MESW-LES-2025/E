@@ -16,7 +16,7 @@ jest.mock("@/lib/auth");
 const mockedIsAuthenticated = auth.isAuthenticated as jest.Mock;
 
 jest.mock("@/lib/utils");
-const mockedFetchWrapped = utils.fetchWrapped as jest.Mock;
+const mockedFetchWrapped = utils.apiRequest as jest.Mock;
 
 const mockEvents: ErasmusEvent[] = [
   {
