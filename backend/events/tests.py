@@ -225,7 +225,7 @@ class EventListCreateViewTest(APITestCase):
         Event.objects.all().delete()
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="pass123")
-        self.url = reverse("event-list")
+        self.url = reverse("all-events")
 
     def test_list_events(self):
         """Test listing all events"""
