@@ -93,10 +93,97 @@ class ProfileSerializer(serializers.ModelSerializer):
         ]
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
-    owner_id = serializers.IntegerField(read_only=True)
+class PublicOrganizationSerializer(serializers.ModelSerializer):
+    """Public serializer for organization profiles - safe fields only"""
+
+    owner_name = serializers.SerializerMethodField()
+    event_count = serializers.SerializerMethodField()
+
+    def get_owner_name(self, obj):
+        """Return owner's full name instead of ID for privacy"""
+        return f"{obj.owner.first_name} {obj.owner.last_name}".strip()
+
+    def get_event_count(self, obj):
+        """Count events organized by this organization's owner"""
+        from events.models import Event
+
+        return Event.objects.filter(organizer=obj.owner).count()
 
     class Meta:
         model = Organization
-        fields = ["id", "name", "description", "owner_id", "created_at", "updated_at"]
-        read_only_fields = ["id", "owner_id", "created_at", "updated_at"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "email",
+            "website",
+            "phone",
+            "address",
+            "city",
+            "country",
+            "logo_url",
+            "cover_image_url",
+            "twitter_handle",
+            "facebook_url",
+            "linkedin_url",
+            "instagram_handle",
+            "organization_type",
+            "established_date",
+            "owner_name",
+            "event_count",
+            "created_at",
+        ]
+        read_only_fields = ["id", "owner_name", "event_count", "created_at"]
+
+
+class OrganizationSerializer(serializers.ModelSerializer):
+    """Full serializer for organization owners - includes sensitive fields"""
+
+    owner_id = serializers.IntegerField(read_only=True)
+    owner_name = serializers.SerializerMethodField()
+    event_count = serializers.SerializerMethodField()
+
+    def get_owner_name(self, obj):
+        """Return owner's full name"""
+        return f"{obj.owner.first_name} {obj.owner.last_name}".strip()
+
+    def get_event_count(self, obj):
+        """Count events organized by this organization's owner"""
+        from events.models import Event
+
+        return Event.objects.filter(organizer=obj.owner).count()
+
+    class Meta:
+        model = Organization
+        fields = [
+            "id",
+            "name",
+            "description",
+            "owner_id",
+            "owner_name",
+            "email",
+            "website",
+            "phone",
+            "address",
+            "city",
+            "country",
+            "logo_url",
+            "cover_image_url",
+            "twitter_handle",
+            "facebook_url",
+            "linkedin_url",
+            "instagram_handle",
+            "organization_type",
+            "established_date",
+            "event_count",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "owner_id",
+            "owner_name",
+            "event_count",
+            "created_at",
+            "updated_at",
+        ]
