@@ -181,7 +181,7 @@ class EventSerializerTest(TestCase):
         self.assertFalse(serializer.data["is_full"])
 
     def test_is_full_when_at_capacity(self):
-        """Test is_full resturns True when event is at capacity"""
+        """Test is_full returns True when event is at capacity"""
         for i in range(5):
             user = User.objects.create_user(
                 username=f"participant{i}",
