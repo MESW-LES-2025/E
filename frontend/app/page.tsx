@@ -1,13 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ErasmusEvent } from "@/lib/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EventModal from "@/components/EventModal";
 
+interface Event {
+  id: number;
+  name: string;
+  date: string;
+  location: string;
+  description: string;
+  organizer: number;
+  organizer_name: string;
+  status: string;
+  participant_count: number;
+  is_participating: boolean;
+  capacity: number | null;
+  is_full: boolean;
+}
+
 export default function Home() {
-  const [events, setEvents] = useState<ErasmusEvent[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +64,7 @@ export default function Home() {
             key={event.id}
             className="shadow transition relative hover:shadow-lg"
           >
-            {event.status === "Cancelled" && (
+            {event.status === "Canceled" && (
               <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md">
                 Canceled
               </span>
