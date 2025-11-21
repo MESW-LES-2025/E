@@ -40,12 +40,16 @@ export default function EventModal({ id, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-
-  const [isAuthenticated] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("auth_tokens") !== null;
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const tokens = localStorage.getItem("auth_tokens");
+      if (!tokens) return false;
+      const parsed = JSON.parse(tokens);
+      return !!parsed.access;
+    } catch {
+      return false;
     }
-    return false;
   });
 
   useEffect(() => {
@@ -61,8 +65,18 @@ export default function EventModal({ id, onClose }: Props) {
         if (isAuthenticated) {
           try {
             res = await fetchWithAuth(`${base}/events/${id}/`);
+            // if 401/403, expired token
+            if (res.status === 401 || res.status === 403) {
+              // remove invalid token
+              localStorage.removeItem("auth_tokens");
+              setIsAuthenticated(false);
+              // try public fetch
+              res = await fetch(`${base}/events/${id}/`);
+            }
           } catch {
-            // Expired or invalid token, do fallback to public fetch
+            // if error, removes token and try public fetch
+            localStorage.removeItem("auth_tokens");
+            setIsAuthenticated(false);
             res = await fetch(`${base}/events/${id}/`);
           }
         } else {
@@ -99,7 +113,14 @@ export default function EventModal({ id, onClose }: Props) {
         process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
       fetchWithAuth(`${base}/auth/users/me/`)
         .then((res) => {
-          if (!res.ok) throw new Error(`Status ${res.status}`);
+          if (!res.ok) {
+            // Invalid token
+            if (res.status === 401 || res.status === 403) {
+              localStorage.removeItem("auth_tokens");
+              setIsAuthenticated(false);
+            }
+            throw new Error(`Status ${res.status}`);
+          }
           return res.json();
         })
         .then((data) => {
