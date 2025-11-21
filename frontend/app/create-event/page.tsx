@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +9,9 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
-import { fetchWithAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/utils";
+import { isAuthenticated } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 // Add new component for success message with same styling as FieldError
 const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
@@ -17,11 +19,20 @@ const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function CreateEvent() {
+  const router = useRouter();
+  // TODO: check if, besides being logged in, is also an Organizer
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push("profile/login");
+    }
+  }, [router]);
+
   const [formData, setFormData] = useState({
     name: "",
     date: "",
     location: "",
     description: "",
+    capacity: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string>("");
@@ -32,12 +43,19 @@ export default function CreateEvent() {
     let hasErrors = false;
 
     Object.entries(formData).forEach(([key, value]) => {
-      if (!value.trim()) {
+      if (key === "capacity") return; //ignores empty validation
+      if (typeof value === "string" && !value.trim()) {
         newErrors[key] =
           `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
         hasErrors = true;
       }
     });
+
+    //validates if capacity is a positive number
+    if (formData.capacity && Number(formData.capacity) < 0) {
+      newErrors.capacity = "Capacity cannot be negative";
+      hasErrors = true;
+    }
 
     setErrors(newErrors);
     if (hasErrors) {
@@ -56,7 +74,12 @@ export default function CreateEvent() {
     }
 
     try {
-      await createEvent(formData);
+      const dataToSend = {
+        ...formData,
+        capacity: formData.capacity === "" ? 0 : Number(formData.capacity),
+      };
+
+      await createEvent(dataToSend);
       setSuccessMessage("Event created successfully!");
       // Reset form
       setFormData({
@@ -64,6 +87,7 @@ export default function CreateEvent() {
         date: "",
         location: "",
         description: "",
+        capacity: "",
       });
       // Clear any previous errors
       setErrors({});
@@ -131,6 +155,25 @@ export default function CreateEvent() {
           {errors.location && <FieldError>{errors.location}</FieldError>}
         </Field>
 
+        <Field>
+          <FieldLabel>Maximum Capacity</FieldLabel>
+          <FieldContent>
+            <Input
+              className="mb-4"
+              type="number"
+              placeholder="Unlimited if blank"
+              value={formData.capacity}
+              onChange={(e) => {
+                setFormData({ ...formData, capacity: e.target.value });
+                setErrors({ ...errors, capacity: "" });
+                setSubmitError("");
+                setSuccessMessage("");
+              }}
+            />
+          </FieldContent>
+          {errors.capacity && <FieldError>{errors.capacity}</FieldError>}
+        </Field>
+
         <Field className="mb-4">
           <FieldLabel>Description</FieldLabel>
           <FieldContent>
@@ -165,14 +208,9 @@ export const createEvent = async (eventData: {
   date: string;
   location: string;
   description: string;
+  capacity: string | number;
 }) => {
-  const response = await fetchWithAuth(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/create/`,
-    {
-      method: "POST",
-      body: JSON.stringify(eventData),
-    },
-  );
+  const response = await apiRequest("events/create/", "POST", eventData);
 
   if (!response.ok) {
     throw new Error("Failed to create event");

@@ -78,7 +78,7 @@ export async function register(payload: RegisterPayload): Promise<void> {
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const authTokens = await getAuthToken();
+  const authTokens = localStorage.getItem("auth_tokens");
   let token = null;
 
   if (authTokens) {

@@ -1,19 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import EventCard from "@/components/EventCard"; // TODO: extract class
-import { ErasmusEvent } from "@/lib/types"; // TODO: fix type
+import { ErasmusEvent } from "@/lib/types";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EventModal from "@/components/EventModal";
-
-// TODO: remove
-type Event = {
-  id: number;
-  name: string;
-  date: string;
-  location?: string;
-};
 
 export default function Home() {
   const [events, setEvents] = useState<ErasmusEvent[]>([]);
@@ -31,7 +22,6 @@ export default function Home() {
           process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
         const response = await fetch(`${base}/events/upcoming/`);
         if (!response.ok) throw new Error("Failed to fetch events");
-        // TODO: fix non paginated fetch. also its "apiRequest" now
         const data: ErasmusEvent[] = await response.json();
         setEvents(data || []);
       } catch (err: unknown) {

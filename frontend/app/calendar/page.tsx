@@ -3,17 +3,18 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { fetchWrapped } from "@/lib/utils";
+import { apiRequest } from "@/lib/utils";
 import { ErasmusEvent } from "@/lib/types";
-import EventCard from "@/components/EventCard";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { isAuthenticated } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import EventModal from "@/components/EventModal";
 
 const EVENTS_ENDPOINT_BASE = "events";
 
 enum EndpointType {
   ALL = "",
-  REGISTERED = "Registered",
+  PARTICIPATING = "Participating",
   INTERESTED = "Interested",
   ORGANIZED = "Organized",
 }
@@ -26,8 +27,8 @@ const ENDPOINT_CONFIG: Record<
     endpoint: EVENTS_ENDPOINT_BASE,
     style: "bg-green-400 text-primary-foreground rounded-lg",
   },
-  [EndpointType.REGISTERED]: {
-    endpoint: `${EVENTS_ENDPOINT_BASE}/registered/`,
+  [EndpointType.PARTICIPATING]: {
+    endpoint: `${EVENTS_ENDPOINT_BASE}/participating/`,
     style: "bg-lime-400 text-white rounded-lg",
   },
   [EndpointType.INTERESTED]: {
@@ -49,6 +50,10 @@ export default function EventsCalendar() {
   const [currentMonth, setCurrentMonth] = useState<Date>(date);
   const [selectedDay, setSelectedDay] = useState<Date>(date);
 
+  // modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push("/profile/login");
@@ -61,7 +66,7 @@ export default function EventsCalendar() {
     const endpoint = ENDPOINT_CONFIG[filter].endpoint;
 
     try {
-      const response = await fetchWrapped(endpoint);
+      const response = await apiRequest(endpoint);
       if (!response.ok) {
         throw new Error("Failed to fetch events");
       }
@@ -96,6 +101,7 @@ export default function EventsCalendar() {
 
   const calendarClasses = useMemo(
     () => ({
+      past: "opacity-50",
       event: ENDPOINT_CONFIG[filter].style,
       today: "bg-blue-300 text-white rounded-lg",
       selected: "bg-primary text-primary-foreground rounded-lg",
@@ -103,34 +109,32 @@ export default function EventsCalendar() {
     [filter],
   );
 
-  const filterButtons = [
-    {
-      type: EndpointType.ALL,
-      label: "All Events",
-      onClick: () => setFilter(EndpointType.ALL),
-    },
-    {
-      type: EndpointType.REGISTERED,
-      label: "Registered",
-      onClick: () => setFilter(EndpointType.REGISTERED),
-    },
-    {
-      type: EndpointType.INTERESTED,
-      label: "Interested",
-      onClick: () => setFilter(EndpointType.INTERESTED),
-    },
-    {
-      type: EndpointType.ORGANIZED,
-      label: "Organized",
-      onClick: () => setFilter(EndpointType.ORGANIZED),
-    },
-  ];
-
   return (
     <div className="flex flex-col lg:flex-row justify-center">
       <div className="flex-1 p-4 flex flex-col">
         <div className="flex space-x-2 mb-4 justify-center">
-          {filterButtons.map(({ type, label, onClick }) => (
+          {[
+            {
+              type: EndpointType.ALL,
+              label: "All Events",
+              onClick: () => setFilter(EndpointType.ALL),
+            },
+            {
+              type: EndpointType.PARTICIPATING,
+              label: "Participating",
+              onClick: () => setFilter(EndpointType.PARTICIPATING),
+            },
+            {
+              type: EndpointType.INTERESTED,
+              label: "Interested",
+              onClick: () => setFilter(EndpointType.INTERESTED),
+            },
+            {
+              type: EndpointType.ORGANIZED,
+              label: "Organized",
+              onClick: () => setFilter(EndpointType.ORGANIZED),
+            },
+          ].map(({ type, label, onClick }) => (
             <Button
               key={type}
               variant={filter === type ? "default" : "outline"}
@@ -146,9 +150,11 @@ export default function EventsCalendar() {
             mode="single"
             className="rounded-lg border [--cell-size:--spacing(12)]"
             modifiers={{
+              past: (date) => date.getTime() < new Date().setHours(0, 0, 0, 0),
               event: eventDates,
             }}
             modifiersClassNames={{
+              past: calendarClasses.past,
               event: calendarClasses.event,
               today: "bg-blue-300 text-white rounded-lg",
               selected: "bg-primary text-primary-foreground rounded-lg",
@@ -185,18 +191,48 @@ export default function EventsCalendar() {
             </p>
             <div className="flex flex-wrap justify-center gap-4 max-h-[calc(100vh-13.5rem)] overflow-y-auto">
               {eventsForSelectedDay.map((event) => (
-                <EventCard
+                <Card
                   key={event.id}
-                  id={event.id}
-                  name={event.name}
-                  date={event.date}
-                  location={event.location}
-                />
+                  className="shadow hover:shadow-lg transition w-full max-w-sm"
+                >
+                  <CardContent>
+                    <h3 className="text-xl font-semibold">{event.name}</h3>
+                    <p className="text-sm text-gray-600">
+                      {new Date(event.date).toLocaleString()}
+                    </p>
+                    {event.location && (
+                      <p className="text-sm text-gray-700 mt-1">
+                        📍 {event.location}
+                      </p>
+                    )}
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedEventId(String(event.id));
+                        setModalOpen(true);
+                      }}
+                    >
+                      View Details
+                    </Button>
+                  </CardFooter>
+                </Card>
               ))}
             </div>
           </>
         )}
       </div>
+
+      {modalOpen && (
+        <EventModal
+          id={selectedEventId}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedEventId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

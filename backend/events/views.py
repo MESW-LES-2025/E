@@ -1,7 +1,9 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Event
 from .serializers import EventSerializer
@@ -12,6 +14,11 @@ class AllEventsListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Event.objects.all()
+
+
+class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
 
 
 class UpcomingEventsListView(generics.ListAPIView):
@@ -37,23 +44,112 @@ class CreateEventView(generics.CreateAPIView):
         )
 
 
-# TODO: add those views for my feature
-# class UserRegisteredEventsView(generics.ListAPIView):
-#     serializer_class = EventSerializer
+class UserRegisteredEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
 
-#     def get_queryset(self):
-#         return self.request.user.registered_events.all()
-
-
-# class UserInterestedEventsView(generics.ListAPIView):
-#     serializer_class = EventSerializer
-
-#     def get_queryset(self):
-#         return self.request.user.interested_events.all()
+    def get_queryset(self):
+        return self.request.user.participating_events.all()
 
 
-# class UserOrganizedEventsView(generics.ListAPIView):
-#     serializer_class = EventSerializer
+class UserInterestedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
 
-#     def get_queryset(self):
-#         return Event.objects.filter(organizer=self.request.user)
+    def get_queryset(self):
+        return self.request.user.interested_events.all()
+
+
+class UserOrganizedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return Event.objects.filter(organizer=self.request.user)
+
+
+class ParticipateEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if event.participants.filter(pk=user.pk).exists():
+            is_full = (
+                event.capacity is not None
+                and event.capacity > 0
+                and event.participants.count() >= event.capacity
+            )
+            return Response(
+                {
+                    "detail": "Already registered.",
+                    "participant_count": event.participants.count(),
+                    "is_participating": True,
+                    "is_full": is_full,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # Check if event is full (only if capacity is set and > 0)
+        if (
+            event.capacity is not None
+            and event.capacity > 0
+            and event.participants.count() >= event.capacity
+        ):
+            return Response(
+                {
+                    "detail": "Event is full.",
+                    "participant_count": event.participants.count(),
+                    "is_participating": False,
+                    "is_full": True,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        event.participants.add(user)
+        is_full = (
+            event.capacity is not None
+            and event.capacity > 0
+            and event.participants.count() >= event.capacity
+        )
+        return Response(
+            {
+                "detail": "Participation registered.",
+                "participant_count": event.participants.count(),
+                "is_participating": True,
+                "is_full": is_full,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def delete(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+        if not event.participants.filter(pk=user.pk).exists():
+            is_full = (
+                event.capacity is not None
+                and event.capacity > 0
+                and event.participants.count() >= event.capacity
+            )
+            return Response(
+                {
+                    "detail": "You are not registered for this event.",
+                    "participant_count": event.participants.count(),
+                    "is_participating": False,
+                    "is_full": is_full,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        event.participants.remove(user)
+        is_full = (
+            event.capacity is not None
+            and event.capacity > 0
+            and event.participants.count() >= event.capacity
+        )
+        return Response(
+            {
+                "detail": "Participation removed.",
+                "participant_count": event.participants.count(),
+                "is_participating": False,
+                "is_full": is_full,
+            },
+            status=status.HTTP_200_OK,
+        )
