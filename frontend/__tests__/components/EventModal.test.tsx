@@ -471,7 +471,7 @@ describe("EventModal", () => {
         .mockResolvedValueOnce({
           // event fetch
           ok: true,
-          json: async () => mockEvent,
+          json: async () => mockEvent, // organizer is 1
         })
         .mockResolvedValueOnce({
           // user fetch
@@ -498,7 +498,7 @@ describe("EventModal", () => {
         .mockResolvedValueOnce({
           // event fetch
           ok: true,
-          json: async () => mockEvent,
+          json: async () => mockEvent, // organizer is 1
         })
         .mockResolvedValueOnce({
           // user fetch
@@ -565,6 +565,500 @@ describe("EventModal", () => {
         "href",
         `/events/edit/${mockEvent.id}`,
       );
+    });
+  });
+
+  describe("Participation Features", () => {
+    it("should display participant count and capacity when event has capacity", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventWithCapacity = {
+        ...mockEvent,
+        participant_count: 5,
+        capacity: 10,
+        is_full: false,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventWithCapacity,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const participantElements = screen.getAllByText((_, element) => {
+        return (
+          element?.textContent?.replace(/\s+/g, "") === "Participants:5/10"
+        );
+      });
+      expect(participantElements.length).toBeGreaterThan(0);
+    });
+
+    it("should display 'Unlimited' when capacity is null", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventUnlimited = {
+        ...mockEvent,
+        participant_count: 15,
+        capacity: null,
+        is_full: false,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventUnlimited,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      expect(
+        screen.getAllByText(
+          (_, element) =>
+            element?.textContent === "Participants: 15 (Unlimited)",
+        ).length,
+      ).toBeGreaterThan(0);
+    });
+
+    it("should display 'Unlimited' when capacity is 0", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventZeroCapacity = {
+        ...mockEvent,
+        participant_count: 20,
+        capacity: 0,
+        is_full: false,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventZeroCapacity,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      expect(
+        screen.getAllByText(
+          (_, element) =>
+            element?.textContent === "Participants: 20 (Unlimited)",
+        ).length,
+      ).toBeGreaterThan(0);
+    });
+
+    it("should display 'Event Full' badge when event is full", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const fullEvent = {
+        ...mockEvent,
+        participant_count: 10,
+        capacity: 10,
+        is_full: true,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => fullEvent,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const badges = screen.getAllByText("Event Full");
+      // Find the <span> badge (not the button)
+      const badge = badges.find(
+        (el) =>
+          el.tagName.toLowerCase() === "span" &&
+          el.className.includes("bg-red-500"),
+      );
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveClass("bg-red-500");
+    });
+
+    it("should show 'Participate' button when user is not participating", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventNotParticipating = {
+        ...mockEvent,
+        participant_count: 5,
+        capacity: 10,
+        is_full: false,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventNotParticipating,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const participateButton = screen.getByRole("button", {
+        name: "Participate",
+      });
+      expect(participateButton).toBeInTheDocument();
+      expect(participateButton).not.toBeDisabled();
+    });
+
+    it("should show 'Cancel Participation' button when user is already participating", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventParticipating = {
+        ...mockEvent,
+        participant_count: 5,
+        capacity: 10,
+        is_full: false,
+        is_participating: true,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventParticipating,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel Participation",
+      });
+      expect(cancelButton).toBeInTheDocument();
+      expect(cancelButton).toHaveClass("bg-red-600");
+    });
+
+    it("should disable participate button when event is full and user is not participating", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const fullEvent = {
+        ...mockEvent,
+        participant_count: 10,
+        capacity: 10,
+        is_full: true,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => fullEvent,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const participateButton = screen.getByRole("button", {
+        name: "Event Full",
+      });
+      expect(participateButton).toBeDisabled();
+      expect(participateButton).toHaveClass("bg-gray-400");
+    });
+
+    it("should allow canceling participation even when event is full", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const fullEventParticipating = {
+        ...mockEvent,
+        participant_count: 10,
+        capacity: 10,
+        is_full: true,
+        is_participating: true,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => fullEventParticipating,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel Participation",
+      });
+      expect(cancelButton).not.toBeDisabled();
+    });
+
+    it("should successfully participate in an event", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventNotParticipating = {
+        ...mockEvent,
+        participant_count: 5,
+        capacity: 10,
+        is_full: false,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventNotParticipating,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            participant_count: 6,
+            is_participating: true,
+            is_full: false,
+          }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const participateButton = screen.getByRole("button", {
+        name: "Participate",
+      });
+      fireEvent.click(participateButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByText(
+            (_, element) => element?.textContent === "Participants: 6/10",
+          ).length,
+        ).toBeGreaterThan(0);
+        expect(
+          screen.getByRole("button", { name: "Cancel Participation" }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should successfully cancel participation", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventParticipating = {
+        ...mockEvent,
+        participant_count: 6,
+        capacity: 10,
+        is_full: false,
+        is_participating: true,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventParticipating,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            participant_count: 5,
+            is_participating: false,
+            is_full: false,
+          }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const cancelButton = screen.getByRole("button", {
+        name: "Cancel Participation",
+      });
+      fireEvent.click(cancelButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByText(
+            (_, element) => element?.textContent === "Participants: 5/10",
+          ).length,
+        ).toBeGreaterThan(0);
+        expect(
+          screen.getByRole("button", { name: "Participate" }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should handle participation API error gracefully", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const eventNotParticipating = {
+        ...mockEvent,
+        participant_count: 5,
+        capacity: 10,
+        is_full: false,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => eventNotParticipating,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        })
+        .mockRejectedValueOnce(new Error("API Error"));
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const participateButton = screen.getByRole("button", {
+        name: "Participate",
+      });
+      fireEvent.click(participateButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByText(
+            (_, element) => element?.textContent === "Participants: 5/10",
+          ).length,
+        ).toBeGreaterThan(0);
+        expect(
+          screen.getByRole("button", { name: "Participate" }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should update to full status when participating fills the event", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+
+      const almostFullEvent = {
+        ...mockEvent,
+        participant_count: 9,
+        capacity: 10,
+        is_full: false,
+        is_participating: false,
+      };
+
+      (global.fetch as jest.Mock)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => almostFullEvent,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 2, role: "ATTENDEE" }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            participant_count: 10,
+            is_participating: true,
+            is_full: true,
+          }),
+        });
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+
+      const participateButton = screen.getByRole("button", {
+        name: "Participate",
+      });
+      fireEvent.click(participateButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText((content, element) => {
+            return element?.textContent === "Participants: 10/10";
+          }),
+        ).toBeInTheDocument();
+        expect(screen.getByText("Event Full")).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: "Cancel Participation" }),
+        ).toBeInTheDocument();
+      });
     });
   });
 });

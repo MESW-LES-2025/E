@@ -20,6 +20,10 @@ interface Event {
   organizer: number;
   organizer_name: string;
   status: string;
+  participant_count: number;
+  is_participating: boolean;
+  capacity: number | null;
+  is_full: boolean;
 }
 
 interface User {
@@ -37,12 +41,16 @@ export default function EventModal({ id, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-
-  const [isAuthenticated] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("auth_tokens") !== null;
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const tokens = localStorage.getItem("auth_tokens");
+      if (!tokens) return false;
+      const parsed = JSON.parse(tokens);
+      return !!parsed.access;
+    } catch {
+      return false;
     }
-    return false;
   });
 
   useEffect(() => {
@@ -51,23 +59,44 @@ export default function EventModal({ id, onClose }: Props) {
 
     const base =
       process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
-    fetch(`${base}/events/${id}/`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Status ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (!cancelled) setEvent(data);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) {
-          console.error(err);
-          setError(err.message || "Failed to load event");
+
+    const fetchEvent = async () => {
+      try {
+        let res;
+        if (isAuthenticated) {
+          try {
+            res = await fetchWithAuth(`${base}/events/${id}/`);
+            // if 401/403, expired token
+            if (res.status === 401 || res.status === 403) {
+              // remove invalid token
+              localStorage.removeItem("auth_tokens");
+              setIsAuthenticated(false);
+              // try public fetch
+              res = await fetch(`${base}/events/${id}/`);
+            }
+          } catch {
+            // if error, removes token and try public fetch
+            localStorage.removeItem("auth_tokens");
+            setIsAuthenticated(false);
+            res = await fetch(`${base}/events/${id}/`);
+          }
+        } else {
+          res = await fetch(`${base}/events/${id}/`);
         }
-      })
-      .finally(() => {
+
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const data = await res.json();
+        if (!cancelled) setEvent(data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load event");
+        }
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+
+    fetchEvent();
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -77,7 +106,7 @@ export default function EventModal({ id, onClose }: Props) {
       cancelled = true;
       window.removeEventListener("keydown", onKey);
     };
-  }, [id, onClose]);
+  }, [id, onClose, isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -85,7 +114,14 @@ export default function EventModal({ id, onClose }: Props) {
         process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
       fetchWithAuth(`${base}/auth/users/me/`)
         .then((res) => {
-          if (!res.ok) throw new Error(`Status ${res.status}`);
+          if (!res.ok) {
+            // Invalid token
+            if (res.status === 401 || res.status === 403) {
+              localStorage.removeItem("auth_tokens");
+              setIsAuthenticated(false);
+            }
+            throw new Error(`Status ${res.status}`);
+          }
           return res.json();
         })
         .then((data) => {
@@ -96,6 +132,34 @@ export default function EventModal({ id, onClose }: Props) {
         });
     }
   }, [isAuthenticated]);
+
+  const toggleParticipation = async () => {
+    if (!event) return;
+    const base =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+    const method = event.is_participating ? "DELETE" : "POST";
+    try {
+      const res = await fetchWithAuth(
+        `${base}/events/${event.id}/participate/`,
+        { method },
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setEvent((prev) =>
+          prev
+            ? {
+                ...prev,
+                participant_count: data.participant_count,
+                is_participating: data.is_participating,
+                is_full: data.is_full,
+              }
+            : prev,
+        );
+      }
+    } catch {
+      // Silently fail
+    }
+  };
 
   if (!id) return null;
 
@@ -257,17 +321,47 @@ export default function EventModal({ id, onClose }: Props) {
               ) : (
                 <>
                   {user?.role === "ATTENDEE" && event.status !== "Canceled" && (
-                    <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                      <Link href="" className="flex-1">
-                        <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
-                          Participate
+                    <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col gap-4">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">
+                          Participants: {event?.participant_count}
+                          {event?.capacity !== null &&
+                            event?.capacity !== undefined &&
+                            event?.capacity > 0 && (
+                              <span>/{event.capacity}</span>
+                            )}
+                          {(event?.capacity === null ||
+                            event?.capacity === 0) && <span> (Unlimited)</span>}
+                        </span>
+                        {event?.is_full && (
+                          <span className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded-full">
+                            Event Full
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-4">
+                        <Button
+                          onClick={toggleParticipation}
+                          disabled={event?.is_full && !event?.is_participating}
+                          className={
+                            "flex-1 font-bold py-4 rounded-xl " +
+                            (event?.is_participating
+                              ? "bg-red-600 hover:bg-red-500 text-white"
+                              : event?.is_full
+                                ? "bg-gray-400 cursor-not-allowed text-white"
+                                : "bg-gray-800 hover:bg-gray-600 text-white")
+                          }
+                        >
+                          {event?.is_participating
+                            ? "Cancel Participation"
+                            : event?.is_full
+                              ? "Event Full"
+                              : "Participate"}
                         </Button>
-                      </Link>
-                      <Link href="" className="flex-1">
-                        <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
+                        <Button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
                           Interested
                         </Button>
-                      </Link>
+                      </div>
                     </div>
                   )}
                   {user?.role === "ORGANIZER" &&

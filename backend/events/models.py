@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 
 
+# Remove after implement that only organizers can create events
 def get_default_organizer():
     """
     Returns the first superuser to act as a default organizer.
@@ -29,6 +30,22 @@ class Event(models.Model):
         default=get_default_organizer,
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
+    capacity = models.IntegerField(blank=True, null=True)
+
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="participating_events",
+    )
+
+    class Meta:
+        ordering = ["date", "id"]  # Order by date, then by id for consistency
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        # Convert 0 to None for unlimited capacity
+        if self.capacity == 0:
+            self.capacity = None
+        super().save(*args, **kwargs)
