@@ -51,7 +51,7 @@ export default function CreateEvent() {
       }
     });
 
-    //validates if capacity is a positive number
+    //validates if capacity is a non-negative number
     if (formData.capacity && Number(formData.capacity) < 0) {
       newErrors.capacity = "Capacity cannot be negative";
       hasErrors = true;
