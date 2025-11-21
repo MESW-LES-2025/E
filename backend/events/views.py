@@ -60,6 +60,7 @@ class UserInterestedEventsView(generics.ListAPIView):
 
 class UserOrganizedEventsView(generics.ListAPIView):
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Event.objects.filter(organizer=self.request.user)
