@@ -54,6 +54,7 @@ class UserRegisteredEventsView(generics.ListAPIView):
 
 class UserInterestedEventsView(generics.ListAPIView):
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return self.request.user.interested_events.all()
