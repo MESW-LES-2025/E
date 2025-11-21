@@ -43,7 +43,7 @@ export default function CreateEvent() {
     let hasErrors = false;
 
     Object.entries(formData).forEach(([key, value]) => {
-      if (key === "capacity") return; //ignores empty validation
+      if (key === "capacity") return; // Skip validation for capacity field as it is optional; empty means unlimited capacity
       if (typeof value === "string" && !value.trim()) {
         newErrors[key] =
           `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
