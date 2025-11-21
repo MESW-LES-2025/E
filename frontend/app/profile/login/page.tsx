@@ -29,7 +29,7 @@ export default function LoginPage() {
       await login(username, password);
       router.push("/profile");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Falha no login";
+      const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
     } finally {
       setLoading(false);
@@ -45,7 +45,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
-        <h1 className="text-xl font-semibold mb-4">Iniciar sessão</h1>
+        <h1 className="text-xl font-semibold mb-4">Sign in</h1>
         <form onSubmit={onSubmit} className="space-y-3" noValidate>
           <Field>
             <FieldLabel htmlFor="username">Username</FieldLabel>
@@ -77,7 +77,7 @@ export default function LoginPage() {
           {error && <FieldError>{error}</FieldError>}
 
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "A entrar..." : "Entrar"}
+            {loading ? "Entering..." : "Enter"}
           </Button>
         </form>
 
