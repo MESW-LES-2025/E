@@ -6,14 +6,6 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EventModal from "@/components/EventModal";
 
-type Event = {
-  id: number;
-  name: string;
-  date: string;
-  status: string;
-  location?: string;
-};
-
 export default function Home() {
   const [events, setEvents] = useState<ErasmusEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +22,9 @@ export default function Home() {
       try {
         const response = await fetch(`${base}/events/upcoming/`);
         if (!response.ok) throw new Error("Failed to fetch events");
-        const data: { results: Event[] } = await response.json();
-        setEvents(data.results ?? []);
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : data.results;
+        setEvents(list ?? []);
       } catch (err) {
         console.error(err);
         setError("Could not load events");
@@ -57,7 +50,7 @@ export default function Home() {
             key={event.id}
             className="shadow transition relative hover:shadow-lg"
           >
-            {event.status === "Canceled" && (
+            {event.status === "Cancelled" && (
               <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md">
                 Canceled
               </span>
