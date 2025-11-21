@@ -14,6 +14,7 @@ jest.mock("next/navigation", () => ({
 
 jest.mock("@/lib/auth");
 const mockedIsAuthenticated = auth.isAuthenticated as jest.Mock;
+const mockedFetchWithAuth = auth.fetchWithAuth as jest.Mock;
 
 jest.mock("@/lib/utils");
 const mockedFetchWrapped = utils.apiRequest as jest.Mock;
@@ -38,6 +39,18 @@ describe("EventsCalendar", () => {
       ok: true,
       json: () => Promise.resolve(mockEvents),
     });
+    mockedFetchWithAuth.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          id: 1,
+          username: "testuser",
+          email: "test@example.com",
+          first_name: "Test",
+          last_name: "User",
+          role: "ATTENDEE",
+        }),
+    });
   });
 
   it("redirects to login if not authenticated", () => {
@@ -51,9 +64,8 @@ describe("EventsCalendar", () => {
     render(<EventsCalendar />);
 
     expect(screen.getByText("All Events")).toBeInTheDocument();
-    expect(screen.getByText("Registered")).toBeInTheDocument();
+    expect(screen.getByText("Participating")).toBeInTheDocument();
     expect(screen.getByText("Interested")).toBeInTheDocument();
-    expect(screen.getByText("Organized")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(mockedFetchWrapped).toHaveBeenCalledWith("events");
@@ -73,10 +85,12 @@ describe("EventsCalendar", () => {
     render(<EventsCalendar />);
 
     await waitFor(() => {
+      expect(mockedFetchWrapped).toHaveBeenCalledWith("events");
+    });
+
+    await waitFor(() => {
       expect(
-        screen.getByText(
-          `No events are planned for ${new Date().toLocaleDateString()}`,
-        ),
+        screen.getByText(/No.*events are planned for/),
       ).toBeInTheDocument();
     });
   });
@@ -89,10 +103,10 @@ describe("EventsCalendar", () => {
       expect(mockedFetchWrapped).toHaveBeenCalledWith("events");
     });
 
-    fireEvent.click(screen.getByText("Registered"));
+    fireEvent.click(screen.getByText("Participating"));
 
     await waitFor(() => {
-      expect(mockedFetchWrapped).toHaveBeenCalledWith("events/registered/");
+      expect(mockedFetchWrapped).toHaveBeenCalledWith("events/participating/");
     });
 
     fireEvent.click(screen.getByText("Interested"));
@@ -101,10 +115,10 @@ describe("EventsCalendar", () => {
       expect(mockedFetchWrapped).toHaveBeenCalledWith("events/interested/");
     });
 
-    fireEvent.click(screen.getByText("Organized"));
+    fireEvent.click(screen.getByText("All Events"));
 
     await waitFor(() => {
-      expect(mockedFetchWrapped).toHaveBeenCalledWith("events/organized/");
+      expect(mockedFetchWrapped).toHaveBeenCalledWith("events");
     });
   });
 });

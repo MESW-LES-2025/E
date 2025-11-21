@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchWithAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { apiRequest } from "@/lib/utils";
 
 type Props = {
   id: string | null;
@@ -57,29 +56,31 @@ export default function EventModal({ id, onClose }: Props) {
     if (!id) return;
     let cancelled = false;
 
+    const base =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+
     const fetchEvent = async () => {
       try {
         let res;
-        console.log(isAuthenticated);
         if (isAuthenticated) {
           try {
-            res = await apiRequest(`events/${id}/`);
+            res = await fetchWithAuth(`${base}/events/${id}/`);
             // if 401/403, expired token
             if (res.status === 401 || res.status === 403) {
               // remove invalid token
               localStorage.removeItem("auth_tokens");
               setIsAuthenticated(false);
               // try public fetch
-              res = await apiRequest(`events/${id}/`);
+              res = await fetch(`${base}/events/${id}/`);
             }
           } catch {
             // if error, removes token and try public fetch
             localStorage.removeItem("auth_tokens");
             setIsAuthenticated(false);
-            res = await apiRequest(`events/${id}/`);
+            res = await fetch(`${base}/events/${id}/`);
           }
         } else {
-          res = await apiRequest(`events/${id}/`);
+          res = await fetch(`${base}/events/${id}/`);
         }
 
         if (!res.ok) throw new Error(`Status ${res.status}`);
