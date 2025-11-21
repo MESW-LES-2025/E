@@ -260,7 +260,7 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
         self.url = reverse("event-detail", kwargs={"pk": self.event.pk})
 
     def test_retrieve_event(self):
-        """Test retriving a specific event"""
+        """Test retrieving a specific event"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["name"], "Test Event")
