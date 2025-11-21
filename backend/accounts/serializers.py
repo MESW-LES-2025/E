@@ -57,6 +57,10 @@ class UserSerializer(BaseUserSerializer):
 
 class ProfileSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
     participating_events = serializers.PrimaryKeyRelatedField(
         many=True,
         read_only=True,
@@ -68,12 +72,25 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user_id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
             "role",
             "phone_number",
             "bio",
             "participating_events",
         ]
-        read_only_fields = ["id", "user_id", "participating_events"]
+        read_only_fields = [
+            "id",
+            "user_id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "role",
+            "participating_events",
+        ]
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
