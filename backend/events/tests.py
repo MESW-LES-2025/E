@@ -185,7 +185,7 @@ class EventSerializerTest(TestCase):
         for i in range(5):
             user = User.objects.create_user(
                 username=f"participant{i}",
-                email=f"prticipant{i}@gmail.com",
+                email=f"participant{i}@gmail.com",
                 password="password123",
             )
             self.event.participants.add(user)
