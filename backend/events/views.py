@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -40,6 +41,47 @@ class CreateEventView(generics.CreateAPIView):
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+
+class CancelEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            event = Event.objects.get(pk=pk)
+        except Event.DoesNotExist:
+            raise NotFound("Event not found")
+
+        if event.organizer != request.user:  # Only the organizer can cancel
+            raise PermissionDenied("Only the event organizer can cancel this event.")
+
+        event.status = "Canceled"
+        event.save()
+
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UncancelEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            event = Event.objects.get(pk=pk)
+        except Event.DoesNotExist:
+            raise NotFound("Event not found")
+
+        if event.organizer != request.user:
+            raise PermissionDenied("Only the organizer can uncancel this event.")
+
+        if event.status != "Canceled":
+            return Response({"error": "Event is not canceled."}, status=400)
+
+        event.status = "Active"
+        event.save()
+
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=200)
 
 
 class ParticipateEventView(APIView):
