@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from ..models import Even
+from ..models import Event
 from ..serializers import EventSerializer
 
 # Create your tests here.

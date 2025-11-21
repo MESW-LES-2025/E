@@ -2,19 +2,27 @@
  * @jest-environment jsdom
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
-import EventModal from "@/components/EventModal";
-import { cancelEventRequest, uncancelEventRequest } from "@/lib/events";
 
-// Mock the API calls
-jest.mock("@/../../lib/events", () => ({
+// Caminhos relativos (estamos em frontend/__tests__/components)
+import EventModal from "../../components/EventModal";
+import { cancelEventRequest, uncancelEventRequest } from "../../lib/events";
+
+// Relative path
+jest.mock("../../lib/events", () => ({
   cancelEventRequest: jest.fn(),
   uncancelEventRequest: jest.fn(),
 }));
 
-const mockEvent = {
+// Mock fetchWithAuth (relative path)
+jest.mock("../../lib/auth", () => ({
+  fetchWithAuth: (url: string, options?: RequestInit) =>
+    global.fetch(url, options),
+}));
+
+const mockEventActive = {
   id: 1,
   name: "Test Event",
   date: "2030-01-01T12:00:00Z",
@@ -23,9 +31,13 @@ const mockEvent = {
   organizer: 10,
   organizer_name: "Organizer User",
   status: "Active",
+  participant_count: 0,
+  is_participating: false,
+  capacity: null,
+  is_full: false,
 };
 
-const mockUser = {
+const mockUserOrganizer = {
   id: 10,
   username: "organizer",
   email: "organizer@test.com",
@@ -35,61 +47,58 @@ const mockUser = {
 };
 
 describe("EventModal Cancel/Reactivate Functionality", () => {
+  const onClose = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Mock localStorage for authentication
     Object.defineProperty(window, "localStorage", {
       value: {
-        getItem: jest.fn(() => "fake_token"),
+        getItem: jest.fn(() => JSON.stringify({ access: "fake_token" })),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
       },
       writable: true,
     });
 
-    // Mock window.confirm to always return true
     jest.spyOn(window, "confirm").mockImplementation(() => true);
 
-    // Mock fetch to return event and user
     global.fetch = jest.fn((url) =>
       Promise.resolve({
         ok: true,
         json: () => {
-          if (url.toString().includes("/auth/users/me/"))
-            return Promise.resolve(mockUser);
-          return Promise.resolve(mockEvent);
+          const s = url.toString();
+          if (s.includes("/auth/users/me/"))
+            return Promise.resolve(mockUserOrganizer);
+          if (s.includes("/events/1/")) return Promise.resolve(mockEventActive);
+          return Promise.resolve({});
         },
       } as Response),
     );
   });
 
-  const onClose = jest.fn();
-
   test("shows Cancel Event button for active event", async () => {
     render(<EventModal id="1" onClose={onClose} />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Test Event")).toBeInTheDocument();
+    const cancelBtn = await screen.findByRole("button", {
+      name: /Cancel Event/i,
     });
-
-    const cancelBtn = screen.getByRole("button", { name: /Cancel Event/i });
     expect(cancelBtn).toBeInTheDocument();
   });
 
   test("cancels event and shows Reactivate Event button", async () => {
     (cancelEventRequest as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => ({ ...mockEvent, status: "Canceled" }),
+      json: async () => ({ ...mockEventActive, status: "Canceled" }),
     });
 
     render(<EventModal id="1" onClose={onClose} />);
 
-    // Wait for initial load
     const cancelBtn = await screen.findByRole("button", {
       name: /Cancel Event/i,
     });
     await userEvent.click(cancelBtn);
 
-    // After cancel, Reactivate button should appear
     const reactivateBtn = await screen.findByRole("button", {
       name: /Reactivate Event/i,
     });
@@ -97,24 +106,18 @@ describe("EventModal Cancel/Reactivate Functionality", () => {
     expect(screen.getByText("Canceled")).toBeInTheDocument();
   });
 
-  test("reactivates event and shows Cancel Event button", async () => {
-    const canceledEvent = { ...mockEvent, status: "Canceled" };
-
-    // Mock Cancel first
+  test("Reactivate event and shows Cancel Event agains", async () => {
     (cancelEventRequest as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => canceledEvent,
+      json: async () => ({ ...mockEventActive, status: "Canceled" }),
     });
-
-    // Mock Uncancel
     (uncancelEventRequest as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => ({ ...mockEvent, status: "Active" }),
+      json: async () => ({ ...mockEventActive, status: "Active" }),
     });
 
     render(<EventModal id="1" onClose={onClose} />);
 
-    // Cancel event first
     const cancelBtn = await screen.findByRole("button", {
       name: /Cancel Event/i,
     });
@@ -125,7 +128,6 @@ describe("EventModal Cancel/Reactivate Functionality", () => {
     });
     await userEvent.click(reactivateBtn);
 
-    // After reactivation
     const cancelBtnAfter = await screen.findByRole("button", {
       name: /Cancel Event/i,
     });
