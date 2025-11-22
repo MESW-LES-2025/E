@@ -5,9 +5,21 @@ from .models import Event
 
 class EventSerializer(serializers.ModelSerializer):
     organizer_name = serializers.CharField(source="organizer.username", read_only=True)
+    organization_name = serializers.SerializerMethodField()
+    organization_id = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     is_participating = serializers.SerializerMethodField()
     is_full = serializers.SerializerMethodField()
+
+    def get_organization_name(self, obj):
+        if obj.organization:
+            return obj.organization.name
+        return None
+
+    def get_organization_id(self, obj):
+        if obj.organization:
+            return obj.organization.id
+        return None
 
     def get_participant_count(self, obj):
         return obj.participants.count()
@@ -31,6 +43,12 @@ class EventSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Capacity cannot be negative.")
         return value
 
+    def validate_organization(self, value):
+        """Ensure organization is provided"""
+        if not value:
+            raise serializers.ValidationError("Organization is required.")
+        return value
+
     class Meta:
         model = Event
         fields = [
@@ -42,6 +60,9 @@ class EventSerializer(serializers.ModelSerializer):
             "capacity",
             "organizer",
             "organizer_name",
+            "organization",
+            "organization_id",
+            "organization_name",
             "status",
             "participant_count",
             "is_participating",
@@ -49,7 +70,13 @@ class EventSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "organizer",
+            "organizer_name",
+            "organization_name",
+            "organization_id",
             "participant_count",
             "is_participating",
             "is_full",
         ]
+        extra_kwargs = {
+            "organization": {"required": True},
+        }

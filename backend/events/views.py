@@ -11,13 +11,83 @@ from .serializers import EventSerializer
 
 
 class EventListCreateView(generics.ListCreateAPIView):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+    def get_queryset(self):
+        """Only return events that have an organization"""
+        return Event.objects.filter(organization__isnull=False).select_related(
+            "organization", "organizer"
+        )
+
+    def create(self, request, *args, **kwargs):
+        """Ensure organization is required and user owns it"""
+        from accounts.models import Organization
+
+        organization_id = request.data.get("organization")
+        if not organization_id:
+            return Response(
+                {"organization": ["This field is required."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify the user owns the organization
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except (Organization.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"organization": ["Organization not found."]},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if organization.owner != request.user:
+            return Response(
+                {
+                    "organization": [
+                        (
+                            "You do not have permission to create events "
+                            "for this organization."
+                        )
+                    ]
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(organizer=request.user, organization=organization)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
 
 class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+    def get_queryset(self):
+        """Only return events that have an organization"""
+        return Event.objects.filter(organization__isnull=False).select_related(
+            "organization", "organizer"
+        )
+
+    def update(self, request, *args, **kwargs):
+        """Ensure organization cannot be removed or changed to None"""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        # Ensure organization is not being removed before validation
+        organization_id = request.data.get("organization")
+        if organization_id is not None and not organization_id:
+            return Response(
+                {"organization": ["Organization cannot be removed from an event."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
 
 class UpcomingEventsListView(generics.ListAPIView):
@@ -25,7 +95,27 @@ class UpcomingEventsListView(generics.ListAPIView):
 
     def get_queryset(self):
         now = timezone.now()
-        return Event.objects.filter(date__gte=now).order_by("date")
+        return (
+            Event.objects.filter(
+                date__gte=now, status="Active", organization__isnull=False
+            )
+            .select_related("organization", "organizer")
+            .order_by("date")
+        )
+
+
+class PastEventsListView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        now = timezone.now()
+        return (
+            Event.objects.filter(
+                date__lt=now, status="Active", organization__isnull=False
+            )
+            .select_related("organization", "organizer")
+            .order_by("-date")
+        )
 
 
 class CreateEventView(generics.CreateAPIView):
@@ -34,9 +124,40 @@ class CreateEventView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
+        from accounts.models import Organization
+
+        # Get organization from request data before validation
+        organization_id = request.data.get("organization")
+        if not organization_id:
+            return Response(
+                {"organization": ["This field is required."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify the user owns the organization
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except (Organization.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"organization": ["Organization not found."]},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if organization.owner != request.user:
+            return Response(
+                {
+                    "organization": [
+                        "You can only create events for organizations you own."
+                    ]
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Now validate the serializer
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(organizer=self.request.user)
+
+        serializer.save(organizer=self.request.user, organization=organization)
         headers = self.get_success_headers(serializer.data)
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
