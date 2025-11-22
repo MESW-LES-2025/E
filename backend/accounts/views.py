@@ -4,6 +4,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
+from events.models import Event
+from events.serializers import EventSerializer
+
 from .models import Organization, Profile
 from .permissions import IsOrganizerOrReadOnly
 from .serializers import (
@@ -35,6 +38,10 @@ class ProfileViewSet(
             )
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
+            # Refresh profile from DB to get updated data
+            profile.refresh_from_db()
+            # Create new serializer with updated profile
+            serializer = self.get_serializer(profile)
         else:
             serializer = self.get_serializer(profile)
 
@@ -83,15 +90,27 @@ class OrganizationViewSet(ModelViewSet):
         """Set owner when creating organization"""
         serializer.save(owner=self.request.user)
 
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        """Get organizations owned by the current user"""
+        if not request.user.is_authenticated:
+            from rest_framework.exceptions import NotAuthenticated
+
+            raise NotAuthenticated()
+        organizations = Organization.objects.filter(owner=request.user).select_related(
+            "owner"
+        )
+        serializer = OrganizationSerializer(
+            organizations, many=True, context={"request": request}
+        )
+        return Response(serializer.data)
+
     @action(detail=True, methods=["get"], permission_classes=[AllowAny])
     def events(self, request, pk=None):
-        """Get events organized by this organization's owner (public endpoint)"""
+        """Get events for this organization (public endpoint)"""
         organization = self.get_object()
-        from events.models import Event
-        from events.serializers import EventSerializer
-
         events = Event.objects.filter(
-            organizer=organization.owner, status="Active"
+            organization=organization, status="Active"
         ).order_by("date")
 
         serializer = EventSerializer(events, many=True, context={"request": request})
