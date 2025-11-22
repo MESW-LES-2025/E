@@ -1,4 +1,7 @@
+"""Tests for accounts views"""
+
 from datetime import date, timedelta
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -6,7 +9,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from .models import Organization, Profile
+from accounts.models import Organization, Profile
+from accounts.serializers import PublicOrganizationSerializer
+from accounts.views import OrganizationViewSet
 
 User = get_user_model()
 
@@ -803,3 +808,36 @@ class OrganizationViewSetTests(APITestCase):
         data = response.json()
         # Should handle empty names gracefully
         self.assertIn("owner_name", data)
+
+
+class OrganizationViewSetExceptionTest(APITestCase):
+    """Tests for OrganizationViewSet exception handling"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="testuser",
+            email="test@example.com",
+            password="password123",
+        )
+        self.user.profile.role = Profile.Role.ORGANIZER
+        self.user.profile.save()
+
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.user
+        )
+
+    def test_get_serializer_class_exception(self):
+        """Test OrganizationViewSet.get_serializer_class exception handling"""
+        viewset = OrganizationViewSet()
+        viewset.action = "retrieve"
+        viewset.request = Mock()
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+        viewset.kwargs = {"pk": 99999}  # Non-existent ID
+
+        # Mock get_object to raise exception
+        with patch.object(viewset, "get_object", side_effect=Exception("Not found")):
+            # This should handle the exception and return PublicOrganizationSerializer
+            serializer_class = viewset.get_serializer_class()
+            self.assertEqual(serializer_class, PublicOrganizationSerializer)
