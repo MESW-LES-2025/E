@@ -1,10 +1,21 @@
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import Home from "../app/page";
+import { listOrganizations } from "../lib/organizations";
+
+// Mock organizations library
+jest.mock("../lib/organizations", () => ({
+  listOrganizations: jest.fn(),
+}));
+
+const mockListOrganizations = listOrganizations as jest.MockedFunction<
+  typeof listOrganizations
+>;
 
 describe("Home Page", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockListOrganizations.mockResolvedValue([]);
   });
 
   it("shows 'No upcoming events' when no events exist", async () => {
@@ -17,7 +28,9 @@ describe("Home Page", () => {
 
     render(<Home />);
     await waitFor(() => {
-      expect(screen.getByText("No events available")).toBeInTheDocument();
+      expect(
+        screen.getByText("No events are available at the moment."),
+      ).toBeInTheDocument();
     });
   });
 
@@ -29,6 +42,7 @@ describe("Home Page", () => {
         name: "Test Event",
         date: new Date(now.getTime() + 1000 * 60 * 60 * 24).toISOString(), // 1 day in future
         location: "City Center",
+        status: "Active",
       },
     ];
 
@@ -41,21 +55,30 @@ describe("Home Page", () => {
 
     render(<Home />);
     await waitFor(() => {
-      expect(screen.getByText("Test Event")).toBeInTheDocument();
+      const eventTitles = screen.getAllByText("Test Event");
+      // Should find at least one in the events section
+      expect(eventTitles.length).toBeGreaterThan(0);
       expect(screen.getByText(/City Center/)).toBeInTheDocument();
     });
   });
 
   it("shows error message when fetch fails", async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        ok: false,
-      }),
-    ) as jest.Mock;
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    try {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+        }),
+      ) as jest.Mock;
 
-    render(<Home />);
-    await waitFor(() => {
-      expect(screen.getByText(/Error/)).toBeInTheDocument();
-    });
+      render(<Home />);
+      await waitFor(() => {
+        expect(screen.getByText(/Error/)).toBeInTheDocument();
+      });
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 });
