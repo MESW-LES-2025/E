@@ -55,6 +55,12 @@ export default function ProfilePage() {
         setLoading(true);
         setError(null);
         const data = await getProfile();
+        if (!data) {
+          setProfile(null);
+          setPhoneNumber("");
+          setBio("");
+          return;
+        }
         setProfile(data);
         setPhoneNumber(data.phone_number || "");
         setBio(data.bio || "");
