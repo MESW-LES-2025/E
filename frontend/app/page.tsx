@@ -38,7 +38,6 @@ export default function Home() {
         setLoading(false);
       }
     };
-
     fetchEvents();
   }, [base]);
 
