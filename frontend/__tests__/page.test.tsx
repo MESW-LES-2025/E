@@ -70,7 +70,7 @@ describe("Home Page", () => {
     render(<Home />);
     await waitFor(() => {
       expect(
-        screen.getByText("Error: Failed to fetch events"),
+        screen.getByText("Error: Could not load events"),
       ).toBeInTheDocument();
     });
   });

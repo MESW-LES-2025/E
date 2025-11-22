@@ -84,7 +84,7 @@ describe("auth library", () => {
       });
 
       await expect(login("testuser", "wrongpassword")).rejects.toThrow(
-        "Credenciais inválidas",
+        "Invalid credentials",
       );
       expect(localStorageMock.getItem(storageKey)).toBeNull();
     });

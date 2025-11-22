@@ -39,8 +39,7 @@ export default function Home() {
         const data = await response.json();
         const list = Array.isArray(data) ? data : data.results;
         setEvents(list ?? []);
-      } catch (err) {
-        console.error(err);
+      } catch {
         setError("Could not load events");
       } finally {
         setLoading(false);

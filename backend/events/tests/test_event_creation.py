@@ -143,7 +143,9 @@ class EventSerializerTest(TestCase):
             "organizer_name",
             "status",
             "participant_count",
+            "interested_users",
             "is_participating",
+            "is_interested",
             "is_full",
         ]
         self.assertEqual(set(data.keys()), set(expected_fields))
@@ -238,13 +240,13 @@ class EventListCreateViewTest(APITestCase):
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 2)
+        self.assertEqual(len(response.data), 2)
 
     def test_list_events_empty(self):
         """Test listing events when none exist"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 0)
+        self.assertEqual(len(response.data), 0)
 
 
 class EventRetrieveUpdateDestroyViewTest(APITestCase):
@@ -300,7 +302,7 @@ class UpcomingEventsListViewTest(APITestCase):
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 2)
+        self.assertEqual(len(response.data), 2)
 
     def test_upcoming_events_ordered_by_date(self):
         """Test upcoming events are ordered by date"""
@@ -316,8 +318,8 @@ class UpcomingEventsListViewTest(APITestCase):
         )
 
         response = self.client.get(self.url)
-        self.assertEqual(response.data["results"][0]["name"], "Event 1 Day")
-        self.assertEqual(response.data["results"][1]["name"], "Event 3 Days")
+        self.assertEqual(response.data[0]["name"], "Event 1 Day")
+        self.assertEqual(response.data[1]["name"], "Event 3 Days")
 
 
 class CreateEventViewTest(APITestCase):
