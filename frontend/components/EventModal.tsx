@@ -19,6 +19,9 @@ interface Event {
   description: string;
   organizer: number;
   organizer_name: string;
+  organization: number;
+  organization_id: number;
+  organization_name: string;
   status: string;
   participant_count: number;
   is_participating: boolean;
@@ -265,14 +268,30 @@ export default function EventModal({ id, onClose }: Props) {
                   </div>
                 )}
 
-                {event.organizer_name && (
+                {event.organization_name && event.organization_id && (
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                      Organizer
+                      Organization
                     </label>
-                    <div className="text-base text-gray-800">
-                      {event.organizer_name}
-                    </div>
+                    <Link
+                      href={`/organizations/${event.organization_id}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-colors duration-200 group"
+                      onClick={() => {
+                        // Store referrer before navigation
+                        sessionStorage.setItem(
+                          "org_detail_referrer",
+                          window.location.pathname,
+                        );
+                      }}
+                    >
+                      <span className="text-lg">🏢</span>
+                      <span className="group-hover:underline">
+                        {event.organization_name}
+                      </span>
+                      <span className="text-blue-500 group-hover:translate-x-1 transition-transform duration-200">
+                        →
+                      </span>
+                    </Link>
                   </div>
                 )}
 
