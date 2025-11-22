@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+from accounts.models import Organization, Profile
 from events.models import Event
 
 User = get_user_model()
@@ -15,22 +17,28 @@ class EventCancelUncancelTests(APITestCase):
         self.organizer = User.objects.create_user(
             username="org", email="org@test.com", password="pass123"
         )
-        self.organizer.profile.role = "ORGANIZER"
+        self.organizer.profile.role = Profile.Role.ORGANIZER
         self.organizer.profile.save()
 
         self.other_user = User.objects.create_user(
             username="att", email="att@test.com", password="pass123"
         )
-        self.other_user.profile.role = "ATTENDEE"
+        self.other_user.profile.role = Profile.Role.ATTENDEE
         self.other_user.profile.save()
+
+        # Create organization for organizer
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.organizer
+        )
 
         # Create an event owned by organizer
         self.event = Event.objects.create(
             name="Test Event",
-            date="2030-01-01T12:00:00Z",
+            date=timezone.now() + timezone.timedelta(days=1),
             location="Somewhere",
             description="Test Description",
             organizer=self.organizer,
+            organization=self.organization,
             status="Active",
         )
 
