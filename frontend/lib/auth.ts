@@ -149,14 +149,26 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
         localStorage.removeItem("auth_tokens");
       }
       // Return a response that indicates authentication failed
-      return new Response(
-        JSON.stringify({ detail: "Session expired. Please log in again." }),
-        {
+      // Use a Response-like object that works in both browser and Node.js test environments
+      const errorBody = JSON.stringify({
+        detail: "Session expired. Please log in again.",
+      });
+      if (typeof Response !== "undefined") {
+        return new Response(errorBody, {
           status: 401,
           statusText: "Unauthorized",
           headers: { "Content-Type": "application/json" },
-        },
-      );
+        });
+      } else {
+        // Fallback for test environments without Response
+        return {
+          ok: false,
+          status: 401,
+          statusText: "Unauthorized",
+          json: async () => JSON.parse(errorBody),
+          text: async () => errorBody,
+        } as Response;
+      }
     }
   }
 
