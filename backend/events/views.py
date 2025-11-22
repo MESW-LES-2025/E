@@ -1,7 +1,10 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Event
 from .serializers import EventSerializer
@@ -32,8 +35,140 @@ class CreateEventView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(organizer=self.request.user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CancelEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            event = Event.objects.get(pk=pk)
+        except Event.DoesNotExist:
+            raise NotFound("Event not found")
+
+        if event.organizer != request.user:  # Only the organizer can cancel
+            raise PermissionDenied("Only the event organizer can cancel this event.")
+
+        event.status = "Canceled"
+        event.save()
+
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UncancelEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            event = Event.objects.get(pk=pk)
+        except Event.DoesNotExist:
+            raise NotFound("Event not found")
+
+        if event.organizer != request.user:
+            raise PermissionDenied("Only the organizer can uncancel this event.")
+
+        if event.status != "Canceled":
+            return Response({"error": "Event is not canceled."}, status=400)
+
+        event.status = "Active"
+        event.save()
+
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=200)
+
+
+class ParticipateEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if event.participants.filter(pk=user.pk).exists():
+            is_full = (
+                event.capacity is not None
+                and event.capacity > 0
+                and event.participants.count() >= event.capacity
+            )
+            return Response(
+                {
+                    "detail": "Already registered.",
+                    "participant_count": event.participants.count(),
+                    "is_participating": True,
+                    "is_full": is_full,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # Check if event is full (only if capacity is set and > 0)
+        if (
+            event.capacity is not None
+            and event.capacity > 0
+            and event.participants.count() >= event.capacity
+        ):
+            return Response(
+                {
+                    "detail": "Event is full.",
+                    "participant_count": event.participants.count(),
+                    "is_participating": False,
+                    "is_full": True,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        event.participants.add(user)
+        is_full = (
+            event.capacity is not None
+            and event.capacity > 0
+            and event.participants.count() >= event.capacity
+        )
+        return Response(
+            {
+                "detail": "Participation registered.",
+                "participant_count": event.participants.count(),
+                "is_participating": True,
+                "is_full": is_full,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def delete(self, request, pk):
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+        if not event.participants.filter(pk=user.pk).exists():
+            is_full = (
+                event.capacity is not None
+                and event.capacity > 0
+                and event.participants.count() >= event.capacity
+            )
+            return Response(
+                {
+                    "detail": "You are not registered for this event.",
+                    "participant_count": event.participants.count(),
+                    "is_participating": False,
+                    "is_full": is_full,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        event.participants.remove(user)
+        is_full = (
+            event.capacity is not None
+            and event.capacity > 0
+            and event.participants.count() >= event.capacity
+        )
+        return Response(
+            {
+                "detail": "Participation removed.",
+                "participant_count": event.participants.count(),
+                "is_participating": False,
+                "is_full": is_full,
+            },
+            status=status.HTTP_200_OK,
+        )
