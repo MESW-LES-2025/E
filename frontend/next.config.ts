@@ -5,8 +5,13 @@ const env = process.env.NODE_ENV;
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: "export",
+  // Only use static export for production builds if explicitly enabled
+  // For development with dynamic routes, we need runtime rendering
+  ...(env === "production" && process.env.STATIC_EXPORT === "true"
+    ? { output: "export" }
+    : {}),
   images: { unoptimized: true },
+  trailingSlash: true,
   basePath:
     env === "development"
       ? ""
