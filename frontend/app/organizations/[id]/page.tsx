@@ -1,17 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
   getOrganization,
   getOrganizationEvents,
+  searchUsers,
+  getCollaborators,
+  addCollaborator,
+  removeCollaborator,
   type Organization,
   type PublicOrganization,
   type OrganizationEvent,
+  type UserSearchResult,
+  type Collaborator,
 } from "@/lib/organizations";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import EventModal from "@/components/EventModal";
 import {
   Card,
@@ -26,6 +33,7 @@ import {
   FieldContent,
   FieldGroup,
   FieldLabel,
+  FieldError,
 } from "@/components/ui/field";
 
 export default function OrganizationDetailPage() {
@@ -43,9 +51,20 @@ export default function OrganizationDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [isCollaborator, setIsCollaborator] = useState(false);
   const [referrer, setReferrer] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  // Collaborator management state
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [collaboratorsLoading, setCollaboratorsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [collaboratorError, setCollaboratorError] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -82,6 +101,8 @@ export default function OrganizationDetailPage() {
         setOrganization(orgData);
         // Check if user is owner (has owner_id field)
         setIsOwner("owner_id" in orgData);
+        // Check if user is a collaborator
+        setIsCollaborator(orgData.is_collaborator || false);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load organization",
@@ -94,23 +115,107 @@ export default function OrganizationDetailPage() {
     fetchData();
   }, [id]);
 
-  useEffect(() => {
+  const fetchEvents = useCallback(async () => {
     if (!organization) return;
+    try {
+      setEventsLoading(true);
+      const eventsData = await getOrganizationEvents(id);
+      setEvents(eventsData);
+    } catch (err) {
+      console.error("Failed to load events:", err);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [organization, id]);
 
-    const fetchEvents = async () => {
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  // Fetch collaborators if user is owner
+  useEffect(() => {
+    if (!organization || !isOwner) return;
+
+    const fetchCollaborators = async () => {
       try {
-        setEventsLoading(true);
-        const eventsData = await getOrganizationEvents(id);
-        setEvents(eventsData);
+        setCollaboratorsLoading(true);
+        const collaboratorsData = await getCollaborators(id);
+        setCollaborators(collaboratorsData);
       } catch (err) {
-        console.error("Failed to load events:", err);
+        console.error("Failed to load collaborators:", err);
       } finally {
-        setEventsLoading(false);
+        setCollaboratorsLoading(false);
       }
     };
 
-    fetchEvents();
-  }, [organization, id]);
+    fetchCollaborators();
+  }, [organization, id, isOwner]);
+
+  // Search users with debounce
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setSearching(true);
+        setCollaboratorError(null);
+        const results = await searchUsers(searchQuery);
+        // Filter out users who are already collaborators or the owner
+        const ownerId =
+          "owner_id" in organization ? organization.owner_id : null;
+        const filteredResults = results.filter(
+          (user) =>
+            user.id !== ownerId &&
+            !collaborators.some((collab) => collab.id === user.id),
+        );
+        setSearchResults(filteredResults);
+      } catch (err) {
+        console.error("Failed to search users:", err);
+        setCollaboratorError(
+          err instanceof Error ? err.message : "Failed to search users",
+        );
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, organization, collaborators]);
+
+  const handleAddCollaborator = async (user: UserSearchResult) => {
+    try {
+      setCollaboratorError(null);
+      await addCollaborator(id, user.id);
+      // Refresh collaborators list
+      const updatedCollaborators = await getCollaborators(id);
+      setCollaborators(updatedCollaborators);
+      // Clear search
+      setSearchQuery("");
+      setSearchResults([]);
+    } catch (err) {
+      setCollaboratorError(
+        err instanceof Error ? err.message : "Failed to add collaborator",
+      );
+    }
+  };
+
+  const handleRemoveCollaborator = async (userId: number) => {
+    try {
+      setCollaboratorError(null);
+      await removeCollaborator(id, userId);
+      // Refresh collaborators list
+      const updatedCollaborators = await getCollaborators(id);
+      setCollaborators(updatedCollaborators);
+    } catch (err) {
+      setCollaboratorError(
+        err instanceof Error ? err.message : "Failed to remove collaborator",
+      );
+    }
+  };
 
   const getOrganizationTypeLabel = (type: string | null) => {
     if (!type) return "Not specified";
@@ -386,6 +491,110 @@ export default function OrganizationDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Collaborators Section (only for owners) */}
+      {isOwner && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Collaborators</CardTitle>
+            <CardDescription>
+              Add organizers as collaborators who can create, update, and cancel
+              events for this organization
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Search for users */}
+            <div className="mb-6">
+              <Field>
+                <FieldLabel>Search for Organizers</FieldLabel>
+                <FieldContent>
+                  <Input
+                    type="text"
+                    placeholder="Search by username, name, or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searching && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Searching...
+                    </p>
+                  )}
+                  {collaboratorError && (
+                    <FieldError>{collaboratorError}</FieldError>
+                  )}
+                </FieldContent>
+              </Field>
+
+              {/* Search results */}
+              {searchResults.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium">Search Results:</p>
+                  {searchResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {user.first_name} {user.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          @{user.username} • {user.email}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddCollaborator(user)}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Current collaborators */}
+            <div>
+              <p className="text-sm font-medium mb-3">Current Collaborators:</p>
+              {collaboratorsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              ) : collaborators.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No collaborators yet. Search above to add organizers.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {collaborators.map((collaborator) => (
+                    <div
+                      key={collaborator.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {collaborator.first_name} {collaborator.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          @{collaborator.username} • {collaborator.email}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          handleRemoveCollaborator(collaborator.id)
+                        }
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -395,7 +604,7 @@ export default function OrganizationDetailPage() {
                 Events organized by {organization.name}
               </CardDescription>
             </div>
-            {isOwner && (
+            {(isOwner || isCollaborator) && (
               <Button asChild>
                 <Link
                   href={`/create-event?organization=${id}`}
@@ -426,7 +635,21 @@ export default function OrganizationDetailPage() {
           ) : (
             <div className="space-y-4">
               {events.map((event) => (
-                <Card key={event.id} className="border">
+                <Card key={event.id} className="border relative">
+                  {(isOwner || isCollaborator) && event.status && (
+                    <span
+                      className={`absolute top-2 right-2 text-white text-xs px-2 py-1 rounded-md z-10 font-semibold ${
+                        event.status === "Active"
+                          ? "bg-green-500"
+                          : event.status === "Cancelled" ||
+                              event.status === "Canceled"
+                            ? "bg-red-500"
+                            : "bg-gray-500"
+                      }`}
+                    >
+                      {event.status}
+                    </span>
+                  )}
                   <CardContent className="pt-6">
                     <h4 className="font-semibold text-lg">{event.name}</h4>
                     {event.date && (
@@ -469,6 +692,8 @@ export default function OrganizationDetailPage() {
           onClose={() => {
             setModalOpen(false);
             setSelectedEventId(null);
+            // Refresh events list to update status badges
+            fetchEvents();
           }}
         />
       )}

@@ -39,6 +39,8 @@ export interface PublicOrganization {
 export interface Organization extends PublicOrganization {
   owner_id: number;
   updated_at: string;
+  collaborators?: Collaborator[];
+  is_collaborator?: boolean;
 }
 
 export interface CreateOrganizationPayload {
@@ -172,13 +174,30 @@ export async function deleteOrganization(id: number): Promise<void> {
   }
 }
 
-// Get organization events (public endpoint)
+// Get organization events (public endpoint, but uses auth if available for owners/collaborators)
 export async function getOrganizationEvents(
   id: number,
 ): Promise<OrganizationEvent[]> {
-  const response = await fetch(
-    `${API_BASE}/accounts/organizations/${id}/events/`,
-  );
+  // Try authenticated request first (for owners/collaborators to see all events)
+  // Fall back to public request if not authenticated
+  let response;
+  try {
+    response = await fetchWithAuth(
+      `${API_BASE}/accounts/organizations/${id}/events/`,
+      {
+        method: "GET",
+      },
+    );
+    // If 401/403, try public fetch
+    if (response.status === 401 || response.status === 403) {
+      response = await fetch(
+        `${API_BASE}/accounts/organizations/${id}/events/`,
+      );
+    }
+  } catch {
+    // If fetchWithAuth fails, try public fetch
+    response = await fetch(`${API_BASE}/accounts/organizations/${id}/events/`);
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -188,8 +207,14 @@ export async function getOrganizationEvents(
   return response.json();
 }
 
-// Get organizations owned by current user (requires auth)
-export async function getMyOrganizations(): Promise<Organization[]> {
+// Response type for my organizations endpoint
+export interface MyOrganizationsResponse {
+  owned: Organization[];
+  collaborated: Organization[];
+}
+
+// Get organizations owned by current user and organizations where user is a collaborator (requires auth)
+export async function getMyOrganizations(): Promise<MyOrganizationsResponse> {
   const response = await fetchWithAuth(
     `${API_BASE}/accounts/organizations/me/`,
     {
@@ -203,4 +228,93 @@ export async function getMyOrganizations(): Promise<Organization[]> {
   }
 
   return response.json();
+}
+
+// User search result interface
+export interface UserSearchResult {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
+// Collaborator interface (same as UserSearchResult)
+export type Collaborator = UserSearchResult;
+
+// Search users by username (for adding collaborators)
+export async function searchUsers(query: string): Promise<UserSearchResult[]> {
+  if (query.length < 2) {
+    return [];
+  }
+
+  const response = await fetchWithAuth(
+    `${API_BASE}/accounts/organizations/search_users/?q=${encodeURIComponent(query)}`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to search users");
+  }
+
+  return response.json();
+}
+
+// Get collaborators for an organization
+export async function getCollaborators(
+  organizationId: number,
+): Promise<Collaborator[]> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/accounts/organizations/${organizationId}/collaborators/`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to fetch collaborators");
+  }
+
+  return response.json();
+}
+
+// Add a collaborator to an organization
+export async function addCollaborator(
+  organizationId: number,
+  userId: number,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/accounts/organizations/${organizationId}/collaborators/${userId}/`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to add collaborator");
+  }
+}
+
+// Remove a collaborator from an organization
+export async function removeCollaborator(
+  organizationId: number,
+  userId: number,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/accounts/organizations/${organizationId}/collaborators/${userId}/`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to remove collaborator");
+  }
 }
