@@ -104,10 +104,10 @@ class PublicOrganizationSerializer(serializers.ModelSerializer):
         return f"{obj.owner.first_name} {obj.owner.last_name}".strip()
 
     def get_event_count(self, obj):
-        """Count events organized by this organization's owner"""
+        """Count all active events for this organization."""
         from events.models import Event
 
-        return Event.objects.filter(organizer=obj.owner).count()
+        return Event.objects.filter(organization=obj, status="Active").count()
 
     class Meta:
         model = Organization
@@ -136,22 +136,63 @@ class PublicOrganizationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "owner_name", "event_count", "created_at"]
 
 
+class CollaboratorOrganizationSerializer(PublicOrganizationSerializer):
+    """Serializer for collaborators with is_collaborator flag."""
+
+    is_collaborator = serializers.SerializerMethodField()
+
+    def get_is_collaborator(self, obj):
+        """Check if the current user is a collaborator"""
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            return obj.collaborators.filter(pk=request.user.pk).exists()
+        return False
+
+    class Meta(PublicOrganizationSerializer.Meta):
+        fields = PublicOrganizationSerializer.Meta.fields + ["is_collaborator"]
+        read_only_fields = PublicOrganizationSerializer.Meta.read_only_fields + [
+            "is_collaborator"
+        ]
+
+
 class OrganizationSerializer(serializers.ModelSerializer):
     """Full serializer for organization owners - includes sensitive fields"""
 
     owner_id = serializers.IntegerField(read_only=True)
     owner_name = serializers.SerializerMethodField()
     event_count = serializers.SerializerMethodField()
+    collaborators = serializers.SerializerMethodField()
+    is_collaborator = serializers.SerializerMethodField()
 
     def get_owner_name(self, obj):
         """Return owner's full name"""
         return f"{obj.owner.first_name} {obj.owner.last_name}".strip()
 
     def get_event_count(self, obj):
-        """Count events organized by this organization's owner"""
+        """Count all active events for this organization."""
         from events.models import Event
 
-        return Event.objects.filter(organizer=obj.owner).count()
+        return Event.objects.filter(organization=obj, status="Active").count()
+
+    def get_collaborators(self, obj):
+        """Return list of collaborator usernames"""
+        return [
+            {
+                "id": user.id,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+            }
+            for user in obj.collaborators.all()
+        ]
+
+    def get_is_collaborator(self, obj):
+        """Check if the current user is a collaborator"""
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            return obj.collaborators.filter(pk=request.user.pk).exists()
+        return False
 
     class Meta:
         model = Organization
@@ -176,6 +217,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "organization_type",
             "established_date",
             "event_count",
+            "collaborators",
+            "is_collaborator",
             "created_at",
             "updated_at",
         ]
@@ -184,6 +227,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "owner_id",
             "owner_name",
             "event_count",
+            "collaborators",
+            "is_collaborator",
             "created_at",
             "updated_at",
         ]

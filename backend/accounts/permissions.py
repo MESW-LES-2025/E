@@ -24,7 +24,7 @@ class IsOrganizerOrReadOnly(permissions.BasePermission):
     Custom permission:
     - Anyone can read (GET, HEAD, OPTIONS)
     - Only authenticated users with ORGANIZER role can create
-    - Only the owner can update/delete
+    - Only the owner can update/delete (collaborators cannot edit organization)
     """
 
     def has_permission(self, request, view):
@@ -50,7 +50,7 @@ class IsOrganizerOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Write permissions are only allowed to the owner
+        # Write permissions are only allowed to the owner (not collaborators)
         return obj.owner == request.user
 
 
