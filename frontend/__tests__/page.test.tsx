@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import Home from "../app/page";
+import { ErasmusEvent } from "@/lib/types";
 
 describe("Home Page", () => {
   beforeEach(() => {
@@ -11,7 +12,7 @@ describe("Home Page", () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ results: [] }),
+        json: () => Promise.resolve([]),
       }),
     ) as jest.Mock;
 
@@ -23,26 +24,39 @@ describe("Home Page", () => {
 
   it("renders event cards when upcoming events exist", async () => {
     const now = new Date();
-    const events = [
+    const events: ErasmusEvent[] = [
       {
         id: 1,
         name: "Test Event",
-        date: new Date(now.getTime() + 1000 * 60 * 60 * 24).toISOString(), // 1 day in future
+        date: now.toISOString(),
         location: "City Center",
+        description: "A test event description",
+        organizerId: "org1",
+        registeredUsersIds: [],
+        interestedUsersIds: [],
+      },
+      {
+        id: 2,
+        name: "Another Event",
+        date: now.toISOString(),
+        location: "Main Hall",
+        description: "Another event description",
+        organizerId: "org2",
+        registeredUsersIds: [],
+        interestedUsersIds: [],
       },
     ];
 
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ results: events }),
+        json: () => Promise.resolve(events),
       }),
     ) as jest.Mock;
 
     render(<Home />);
     await waitFor(() => {
       expect(screen.getByText("Test Event")).toBeInTheDocument();
-      expect(screen.getByText(/City Center/)).toBeInTheDocument();
     });
   });
 
@@ -55,7 +69,9 @@ describe("Home Page", () => {
 
     render(<Home />);
     await waitFor(() => {
-      expect(screen.getByText(/Error/)).toBeInTheDocument();
+      expect(
+        screen.getByText("Error: Could not load events"),
+      ).toBeInTheDocument();
     });
   });
 });

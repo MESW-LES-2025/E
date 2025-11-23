@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +9,9 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
-import { fetchWithAuth } from "@/lib/auth";
+import { apiRequest } from "@/lib/utils";
+import { isAuthenticated } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 // Add new component for success message with same styling as FieldError
 const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
@@ -17,6 +19,14 @@ const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function CreateEvent() {
+  const router = useRouter();
+  // TODO: check if, besides being logged in, is also an Organizer
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push("profile/login");
+    }
+  }, [router]);
+
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -33,7 +43,7 @@ export default function CreateEvent() {
     let hasErrors = false;
 
     Object.entries(formData).forEach(([key, value]) => {
-      if (key === "capacity") return; //ignores empty validation
+      if (key === "capacity") return; // Skip validation for capacity field as it is optional; empty means unlimited capacity
       if (typeof value === "string" && !value.trim()) {
         newErrors[key] =
           `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
@@ -41,7 +51,7 @@ export default function CreateEvent() {
       }
     });
 
-    //validates if capacity is a positive number
+    //validates if capacity is a non-negative number
     if (formData.capacity && Number(formData.capacity) < 0) {
       newErrors.capacity = "Capacity cannot be negative";
       hasErrors = true;
@@ -200,13 +210,7 @@ export const createEvent = async (eventData: {
   description: string;
   capacity: string | number;
 }) => {
-  const response = await fetchWithAuth(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/create/`,
-    {
-      method: "POST",
-      body: JSON.stringify(eventData),
-    },
-  );
+  const response = await apiRequest("events/create/", "POST", eventData);
 
   if (!response.ok) {
     throw new Error("Failed to create event");

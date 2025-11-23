@@ -10,9 +10,11 @@ from .models import Event
 from .serializers import EventSerializer
 
 
-class EventListCreateView(generics.ListCreateAPIView):
-    queryset = Event.objects.all()
+class AllEventsListView(generics.ListAPIView):
     serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return Event.objects.all()
 
 
 class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
@@ -41,6 +43,31 @@ class CreateEventView(generics.CreateAPIView):
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+
+class UserRegisteredEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.participating_events.all()
+
+
+class UserInterestedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.interested_events.all()
+
+
+class UserOrganizedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Event.objects.filter(organizer=self.request.user)
 
 
 class CancelEventView(APIView):

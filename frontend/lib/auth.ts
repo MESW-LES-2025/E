@@ -31,6 +31,15 @@ export async function login(username: string, password: string): Promise<void> {
   }
 }
 
+export async function getAuthToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const tokens = localStorage.getItem(storageKey);
+    return tokens ? JSON.parse(tokens)?.access : null;
+  } catch {
+    return null;
+  }
+}
 export type RegisterRole = "ATTENDEE" | "ORGANIZER";
 
 export interface RegisterPayload {

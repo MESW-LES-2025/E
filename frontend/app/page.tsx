@@ -5,13 +5,20 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EventModal from "@/components/EventModal";
 
-type Event = {
+interface Event {
   id: number;
   name: string;
   date: string;
+  location: string;
+  description: string;
+  organizer: number;
+  organizer_name: string;
   status: string;
-  location?: string;
-};
+  participant_count: number;
+  is_participating: boolean;
+  capacity: number | null;
+  is_full: boolean;
+}
 
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -29,10 +36,10 @@ export default function Home() {
       try {
         const response = await fetch(`${base}/events/upcoming/`);
         if (!response.ok) throw new Error("Failed to fetch events");
-        const data: { results: Event[] } = await response.json();
-        setEvents(data.results ?? []);
-      } catch (err) {
-        console.error(err);
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : data.results;
+        setEvents(list ?? []);
+      } catch {
         setError("Could not load events");
       } finally {
         setLoading(false);

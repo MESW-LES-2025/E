@@ -143,7 +143,9 @@ class EventSerializerTest(TestCase):
             "organizer_name",
             "status",
             "participant_count",
+            "interested_users",
             "is_participating",
+            "is_interested",
             "is_full",
         ]
         self.assertEqual(set(data.keys()), set(expected_fields))
@@ -181,11 +183,11 @@ class EventSerializerTest(TestCase):
         self.assertFalse(serializer.data["is_full"])
 
     def test_is_full_when_at_capacity(self):
-        """Test is_full resturns True when event is at capacity"""
+        """Test is_full returns True when event is at capacity"""
         for i in range(5):
             user = User.objects.create_user(
                 username=f"participant{i}",
-                email=f"prticipant{i}@gmail.com",
+                email=f"participant{i}@gmail.com",
                 password="password123",
             )
             self.event.participants.add(user)
@@ -225,7 +227,7 @@ class EventListCreateViewTest(APITestCase):
         Event.objects.all().delete()
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="pass123")
-        self.url = reverse("event-list")
+        self.url = reverse("all-events")
 
     def test_list_events(self):
         """Test listing all events"""
@@ -238,13 +240,13 @@ class EventListCreateViewTest(APITestCase):
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 2)
+        self.assertEqual(len(response.data), 2)
 
     def test_list_events_empty(self):
         """Test listing events when none exist"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 0)
+        self.assertEqual(len(response.data), 0)
 
 
 class EventRetrieveUpdateDestroyViewTest(APITestCase):
@@ -260,7 +262,7 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
         self.url = reverse("event-detail", kwargs={"pk": self.event.pk})
 
     def test_retrieve_event(self):
-        """Test retriving a specific event"""
+        """Test retrieving a specific event"""
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["name"], "Test Event")
@@ -300,7 +302,7 @@ class UpcomingEventsListViewTest(APITestCase):
 
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 2)
+        self.assertEqual(len(response.data), 2)
 
     def test_upcoming_events_ordered_by_date(self):
         """Test upcoming events are ordered by date"""
@@ -316,8 +318,8 @@ class UpcomingEventsListViewTest(APITestCase):
         )
 
         response = self.client.get(self.url)
-        self.assertEqual(response.data["results"][0]["name"], "Event 1 Day")
-        self.assertEqual(response.data["results"][1]["name"], "Event 3 Days")
+        self.assertEqual(response.data[0]["name"], "Event 1 Day")
+        self.assertEqual(response.data[1]["name"], "Event 3 Days")
 
 
 class CreateEventViewTest(APITestCase):
