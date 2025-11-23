@@ -44,14 +44,6 @@ class Event(models.Model):
         related_name="participating_events",
     )
 
-    capacity = models.IntegerField(blank=True, null=True)
-
-    participants = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        blank=True,
-        related_name="participating_events",
-    )
-
     interested_users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         blank=True,

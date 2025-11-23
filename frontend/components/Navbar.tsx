@@ -84,6 +84,10 @@ export default function Navbar() {
           </Button>
         ) : authed ? (
           <>
+            <Link href="/calendar">
+              <Button variant="ghost">Calendar</Button>
+            </Link>
+
             {isOrganizer && (
               <Link href="/organizations/my">
                 <Button variant="ghost">My Organizations</Button>
@@ -104,6 +108,9 @@ export default function Navbar() {
           </>
         ) : (
           <>
+            <Link href="/calendar">
+              <Button variant="ghost">Calendar</Button>
+            </Link>
             <Link href="/profile/register">
               <Button variant="ghost">Register</Button>
             </Link>
