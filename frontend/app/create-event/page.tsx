@@ -77,15 +77,20 @@ export default function CreateEvent() {
           return;
         }
 
-        // Fetch user's organizations
-        const orgs = await getMyOrganizations();
-        setOrganizations(orgs);
+        // Fetch user's organizations (owned and collaborated)
+        const orgsData = await getMyOrganizations();
+        // Combine owned and collaborated organizations
+        const allOrgs = [
+          ...(orgsData.owned || []),
+          ...(orgsData.collaborated || []),
+        ];
+        setOrganizations(allOrgs);
 
         // Check if organization ID is provided in query params
         const orgIdParam = searchParams.get("organization");
         if (orgIdParam) {
-          // Verify the user owns this organization
-          const org = orgs.find((o) => o.id === Number(orgIdParam));
+          // Verify the user owns or collaborates with this organization
+          const org = allOrgs.find((o) => o.id === Number(orgIdParam));
           if (org) {
             setSelectedOrganizationId(orgIdParam);
             // Store the referrer from organization page if it exists
@@ -101,9 +106,9 @@ export default function CreateEvent() {
               sessionStorage.setItem("org_create_event_referrer", orgReferrer);
             }
           }
-        } else if (orgs.length === 1) {
+        } else if (allOrgs.length === 1) {
           // If only one organization, auto-select it
-          setSelectedOrganizationId(String(orgs[0].id));
+          setSelectedOrganizationId(String(allOrgs[0].id));
         }
       } catch (err) {
         console.error("Failed to load data:", err);

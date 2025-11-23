@@ -21,7 +21,12 @@ export default function MyOrganizationsPage() {
   const [mounted, setMounted] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [ownedOrganizations, setOwnedOrganizations] = useState<Organization[]>(
+    [],
+  );
+  const [collaboratedOrganizations, setCollaboratedOrganizations] = useState<
+    Organization[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,9 +54,10 @@ export default function MyOrganizationsPage() {
           return;
         }
 
-        // Fetch user's organizations
-        const orgs = await getMyOrganizations();
-        setOrganizations(orgs);
+        // Fetch user's organizations (owned and collaborated)
+        const orgsData = await getMyOrganizations();
+        setOwnedOrganizations(orgsData.owned || []);
+        setCollaboratedOrganizations(orgsData.collaborated || []);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load organizations",
@@ -116,18 +122,68 @@ export default function MyOrganizationsPage() {
     );
   }
 
+  const renderOrganizationCard = (org: Organization, isOwner: boolean) => (
+    <Card key={org.id} className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <CardTitle className="line-clamp-2">{org.name}</CardTitle>
+        <CardDescription>
+          {org.event_count > 0 && (
+            <span>
+              {org.event_count} event{org.event_count !== 1 ? "s" : ""}
+            </span>
+          )}
+          {!isOwner && (
+            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              Collaborator
+            </span>
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {org.description && (
+          <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
+            {org.description}
+          </p>
+        )}
+        {org.city && org.country && (
+          <p className="text-sm text-muted-foreground">
+            📍 {org.city}, {org.country}
+          </p>
+        )}
+      </CardContent>
+      <CardFooter className="flex gap-2">
+        <Button variant="outline" className="flex-1" asChild>
+          <Link
+            href={`/organizations/${org.id}`}
+            onClick={() =>
+              sessionStorage.setItem("org_detail_referrer", "/organizations/my")
+            }
+          >
+            View
+          </Link>
+        </Button>
+        {isOwner && (
+          <Button variant="outline" className="flex-1" asChild>
+            <Link href={`/organizations/${org.id}/edit`}>Edit</Link>
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+
+  const hasAnyOrganizations =
+    ownedOrganizations.length > 0 || collaboratedOrganizations.length > 0;
+
   return (
     <div className="container mx-auto p-8 max-w-7xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">My Organizations</h1>
-        {organizations.length > 0 && (
-          <Button asChild>
-            <Link href="/organizations/create">Create Organization</Link>
-          </Button>
-        )}
+        <Button asChild>
+          <Link href="/organizations/create">Create Organization</Link>
+        </Button>
       </div>
 
-      {organizations.length === 0 ? (
+      {!hasAnyOrganizations ? (
         <Card>
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground mb-4">
@@ -141,52 +197,35 @@ export default function MyOrganizationsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {organizations.map((org) => (
-            <Card key={org.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="line-clamp-2">{org.name}</CardTitle>
-                <CardDescription>
-                  {org.event_count > 0 && (
-                    <span>
-                      {org.event_count} event{org.event_count !== 1 ? "s" : ""}
-                    </span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {org.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
-                    {org.description}
-                  </p>
+        <>
+          {/* Owned Organizations Section */}
+          {ownedOrganizations.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">
+                Organizations I Own
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {ownedOrganizations.map((org) =>
+                  renderOrganizationCard(org, true),
                 )}
-                {org.city && org.country && (
-                  <p className="text-sm text-muted-foreground">
-                    📍 {org.city}, {org.country}
-                  </p>
+              </div>
+            </div>
+          )}
+
+          {/* Collaborated Organizations Section */}
+          {collaboratedOrganizations.length > 0 && (
+            <div className={ownedOrganizations.length > 0 ? "mt-8" : ""}>
+              <h2 className="text-2xl font-semibold mb-4">
+                Organizations I Collaborate With
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {collaboratedOrganizations.map((org) =>
+                  renderOrganizationCard(org, false),
                 )}
-              </CardContent>
-              <CardFooter className="flex gap-2">
-                <Button variant="outline" className="flex-1" asChild>
-                  <Link
-                    href={`/organizations/${org.id}`}
-                    onClick={() =>
-                      sessionStorage.setItem(
-                        "org_detail_referrer",
-                        "/organizations/my",
-                      )
-                    }
-                  >
-                    View
-                  </Link>
-                </Button>
-                <Button variant="outline" className="flex-1" asChild>
-                  <Link href={`/organizations/${org.id}/edit`}>Edit</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
