@@ -5,6 +5,7 @@ from .models import Event
 
 class EventSerializer(serializers.ModelSerializer):
     organizer_name = serializers.CharField(source="organizer.username", read_only=True)
+    created_by = serializers.CharField(source="organizer.username", read_only=True)
     organization_name = serializers.SerializerMethodField()
     organization_id = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
@@ -60,6 +61,7 @@ class EventSerializer(serializers.ModelSerializer):
             "capacity",
             "organizer",
             "organizer_name",
+            "created_by",
             "organization",
             "organization_id",
             "organization_name",
@@ -71,6 +73,7 @@ class EventSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "organizer",
             "organizer_name",
+            "created_by",
             "organization_name",
             "organization_id",
             "participant_count",
