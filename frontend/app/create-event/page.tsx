@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,9 +10,23 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
-import { apiRequest } from "@/lib/utils";
+import {
+  Card,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { isAuthenticated } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import { getProfile, type Profile } from "@/lib/profiles";
+import { getMyOrganizations, type Organization } from "@/lib/organizations";
 
 // Add new component for success message with same styling as FieldError
 const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
@@ -20,13 +35,14 @@ const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
 
 export default function CreateEvent() {
   const router = useRouter();
-  // TODO: check if, besides being logged in, is also an Organizer
-  useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push("profile/login");
-    }
-  }, [router]);
-
+  const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOrganizationId, setSelectedOrganizationId] =
+    useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -38,9 +54,82 @@ export default function CreateEvent() {
   const [submitError, setSubmitError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
 
+  useEffect(() => {
+    setMounted(true);
+    const authenticated = isAuthenticated();
+    setAuthed(authenticated);
+
+    if (!authenticated) {
+      router.replace("/profile/login");
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await getProfile();
+        setProfile(data);
+
+        // Check if user has ORGANIZER role
+        if (data.role !== "ORGANIZER") {
+          router.replace("/");
+          return;
+        }
+
+        // Fetch user's organizations (owned and collaborated)
+        const orgsData = await getMyOrganizations();
+        // Combine owned and collaborated organizations
+        const allOrgs = [
+          ...(orgsData.owned || []),
+          ...(orgsData.collaborated || []),
+        ];
+        setOrganizations(allOrgs);
+
+        // Check if organization ID is provided in query params
+        const orgIdParam = searchParams.get("organization");
+        if (orgIdParam) {
+          // Verify the user owns or collaborates with this organization
+          const org = allOrgs.find((o) => o.id === Number(orgIdParam));
+          if (org) {
+            setSelectedOrganizationId(orgIdParam);
+            // Store the referrer from organization page if it exists
+            const orgReferrer = sessionStorage.getItem("org_detail_referrer");
+            if (!orgReferrer) {
+              // If no referrer stored, store the organization page as referrer
+              sessionStorage.setItem(
+                "org_create_event_referrer",
+                `/organizations/${orgIdParam}`,
+              );
+            } else {
+              // Store the original referrer for when we go back
+              sessionStorage.setItem("org_create_event_referrer", orgReferrer);
+            }
+          }
+        } else if (allOrgs.length === 1) {
+          // If only one organization, auto-select it
+          setSelectedOrganizationId(String(allOrgs[0].id));
+        }
+      } catch (err) {
+        console.error("Failed to load data:", err);
+        setSubmitError(
+          "Failed to load data. Please make sure you are logged in.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router, searchParams]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     let hasErrors = false;
+
+    if (!selectedOrganizationId) {
+      newErrors.organization = "Organization is required";
+      hasErrors = true;
+    }
 
     Object.entries(formData).forEach(([key, value]) => {
       if (key === "capacity") return; // Skip validation for capacity field as it is optional; empty means unlimited capacity
@@ -77,6 +166,7 @@ export default function CreateEvent() {
       const dataToSend = {
         ...formData,
         capacity: formData.capacity === "" ? 0 : Number(formData.capacity),
+        organization: Number(selectedOrganizationId),
       };
 
       await createEvent(dataToSend);
@@ -92,6 +182,23 @@ export default function CreateEvent() {
       // Clear any previous errors
       setErrors({});
       setSubmitError("");
+      // Redirect to organization page after successful creation
+      const org = organizations.find(
+        (o) => o.id === Number(selectedOrganizationId),
+      );
+      if (org) {
+        // Restore the referrer that was stored when we came from organization page
+        const storedReferrer = sessionStorage.getItem(
+          "org_create_event_referrer",
+        );
+        if (storedReferrer) {
+          sessionStorage.setItem("org_detail_referrer", storedReferrer);
+          sessionStorage.removeItem("org_create_event_referrer");
+        }
+        // Use replace to remove create event page from history
+        // Navigate immediately to ensure referrer is available when component mounts
+        router.replace(`/organizations/${selectedOrganizationId}`);
+      }
     } catch (error) {
       setSubmitError("Failed to create event");
       console.error("Error creating event:", error);
@@ -99,11 +206,69 @@ export default function CreateEvent() {
     }
   };
 
+  if (!mounted || !authed || loading) {
+    return (
+      <div className="container mx-auto p-8 max-w-4xl">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (profile?.role !== "ORGANIZER") {
+    return (
+      <div className="container mx-auto p-8 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>
+              Only users with ORGANIZER role can create events.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button variant="outline" onClick={() => router.push("/")}>
+              Back to Home
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-8 max-w-4xl">
       <h1 className="text-2xl font-bold mb-6">Create New Event</h1>
 
       <form onSubmit={handleSubmit}>
+        <Field className="mb-4">
+          <FieldLabel>
+            Organization <span className="text-destructive">*</span>
+          </FieldLabel>
+          <FieldContent>
+            <Select
+              value={selectedOrganizationId}
+              onValueChange={(value) => {
+                setSelectedOrganizationId(value);
+                setErrors({ ...errors, organization: "" });
+                setSubmitError("");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select organization" />
+              </SelectTrigger>
+              <SelectContent>
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={String(org.id)}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.organization && (
+              <FieldError>{errors.organization}</FieldError>
+            )}
+          </FieldContent>
+        </Field>
+
         <Field className="mb-4">
           <FieldLabel>Name</FieldLabel>
           <FieldContent>
@@ -209,6 +374,7 @@ export const createEvent = async (eventData: {
   location: string;
   description: string;
   capacity: string | number;
+  organization: number;
 }) => {
   const response = await apiRequest("events/create/", "POST", eventData);
 

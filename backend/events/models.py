@@ -29,15 +29,13 @@ class Event(models.Model):
         related_name="organized_events",
         default=get_default_organizer,
     )
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
-    capacity = models.IntegerField(blank=True, null=True)
-
-    participants = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        blank=True,
-        related_name="participating_events",
+    organization = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="events",
+        null=False,
     )
-
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
     capacity = models.IntegerField(blank=True, null=True)
 
     participants = models.ManyToManyField(

@@ -14,7 +14,16 @@ class User(AbstractUser):
 
 
 class Organization(models.Model):
-    name = models.CharField(max_length=255)
+    class OrganizationType(models.TextChoices):
+        COMPANY = "COMPANY", "Company"
+        NON_PROFIT = "NON_PROFIT", "Non-profit"
+        COMMUNITY = "COMMUNITY", "Community"
+        EDUCATIONAL = "EDUCATIONAL", "Educational"
+        GOVERNMENT = "GOVERNMENT", "Government"
+        OTHER = "OTHER", "Other"
+
+    # Basic information
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -22,6 +31,46 @@ class Organization(models.Model):
         on_delete=models.CASCADE,
     )
 
+    # Contact information
+    email = models.EmailField(blank=True, null=True, unique=True)
+    website = models.URLField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+
+    # Location
+    address = models.CharField(max_length=500, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+
+    # Branding
+    logo_url = models.URLField(blank=True, null=True)
+    cover_image_url = models.URLField(blank=True, null=True)
+
+    # Social media
+    twitter_handle = models.CharField(max_length=100, blank=True)
+    facebook_url = models.URLField(blank=True)
+    linkedin_url = models.URLField(blank=True)
+    instagram_handle = models.CharField(max_length=100, blank=True)
+
+    # Metadata
+    organization_type = models.CharField(
+        max_length=50,
+        choices=OrganizationType.choices,
+        blank=True,
+    )
+    established_date = models.DateField(null=True, blank=True)
+
+    # Collaborators (organizers who can manage events but not the organization)
+    collaborators = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="collaborating_organizations",
+        blank=True,
+        help_text=(
+            "Organizers who can create, update, and cancel events "
+            "for this organization"
+        ),
+    )
+
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

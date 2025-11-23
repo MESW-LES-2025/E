@@ -5,6 +5,7 @@ import Link from "next/link";
 import { fetchWithAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { cancelEventRequest, uncancelEventRequest } from "@/lib/events";
+import { getOrganization } from "@/lib/organizations";
 
 type Props = {
   id: string | null;
@@ -19,6 +20,10 @@ interface Event {
   description: string;
   organizer: number;
   organizer_name: string;
+  created_by?: string;
+  organization: number;
+  organization_id: number;
+  organization_name: string;
   status: string;
   participant_count: number;
   is_participating: boolean;
@@ -41,6 +46,7 @@ export default function EventModal({ id, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -132,6 +138,22 @@ export default function EventModal({ id, onClose }: Props) {
         });
     }
   }, [isAuthenticated]);
+
+  // Fetch organization data to check if user is owner
+  useEffect(() => {
+    if (event?.organization_id && isAuthenticated && user) {
+      getOrganization(event.organization_id)
+        .then((orgData) => {
+          // Check if user is owner (has owner_id field means it's the full serializer)
+          if ("owner_id" in orgData) {
+            setIsOwner(orgData.owner_id === user.id);
+          }
+        })
+        .catch(() => {
+          // Silently fail - organization might not be accessible
+        });
+    }
+  }, [event?.organization_id, isAuthenticated, user]);
 
   const toggleParticipation = async () => {
     if (!event) return;
@@ -265,16 +287,45 @@ export default function EventModal({ id, onClose }: Props) {
                   </div>
                 )}
 
-                {event.organizer_name && (
+                {event.organization_name && event.organization_id && (
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                      Organizer
+                      Organization
                     </label>
-                    <div className="text-base text-gray-800">
-                      {event.organizer_name}
-                    </div>
+                    <Link
+                      href={`/organizations/${event.organization_id}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-colors duration-200 group"
+                      onClick={() => {
+                        // Store referrer before navigation
+                        sessionStorage.setItem(
+                          "org_detail_referrer",
+                          window.location.pathname,
+                        );
+                      }}
+                    >
+                      <span className="text-lg">🏢</span>
+                      <span className="group-hover:underline">
+                        {event.organization_name}
+                      </span>
+                      <span className="text-blue-500 group-hover:translate-x-1 transition-transform duration-200">
+                        →
+                      </span>
+                    </Link>
                   </div>
                 )}
+
+                {/* Show "Created by" only when there's an organization_name (below organization link) */}
+                {event.organization_name &&
+                  (event.created_by || event.organizer_name) && (
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        Created by
+                      </label>
+                      <div className="text-base text-gray-800">
+                        {event.created_by || event.organizer_name}
+                      </div>
+                    </div>
+                  )}
 
                 {event.description && (
                   <div>
@@ -288,27 +339,28 @@ export default function EventModal({ id, onClose }: Props) {
                 )}
               </div>
 
-              {user?.role === "ORGANIZER" && user.id === event.organizer && (
-                <div className="border-t border-gray-200 mt-6 pt-6">
-                  <button
-                    onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
-                    className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
-                    aria-expanded={isParticipantsOpen}
-                  >
-                    <span>Participants</span>
-                    <span
-                      className={`transform transition-transform duration-200 ${isParticipantsOpen ? "rotate-180" : ""}`}
+              {user?.role === "ORGANIZER" &&
+                (user.id === event.organizer || isOwner) && (
+                  <div className="border-t border-gray-200 mt-6 pt-6">
+                    <button
+                      onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
+                      className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
+                      aria-expanded={isParticipantsOpen}
                     >
-                      ▼
-                    </span>
-                  </button>
-                  {isParticipantsOpen && (
-                    <div className="mt-4 text-gray-700">
-                      Participant list goes here...
-                    </div>
-                  )}
-                </div>
-              )}
+                      <span>Participants</span>
+                      <span
+                        className={`transform transition-transform duration-200 ${isParticipantsOpen ? "rotate-180" : ""}`}
+                      >
+                        ▼
+                      </span>
+                    </button>
+                    {isParticipantsOpen && (
+                      <div className="mt-4 text-gray-700">
+                        Participant list goes here...
+                      </div>
+                    )}
+                  </div>
+                )}
 
               {!isAuthenticated ? (
                 <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
@@ -365,7 +417,7 @@ export default function EventModal({ id, onClose }: Props) {
                     </div>
                   )}
                   {user?.role === "ORGANIZER" &&
-                    user.id === event.organizer && (
+                    (user.id === event.organizer || isOwner) && (
                       <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
                         <Link
                           href={`/events/edit/${event.id}`}
