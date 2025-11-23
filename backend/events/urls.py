@@ -5,6 +5,7 @@ from .views import (
     CreateEventView,
     EventListCreateView,
     EventRetrieveUpdateDestroyView,
+    MyOrganizedEventsView,
     ParticipateEventView,
     PastEventsListView,
     UncancelEventView,
@@ -29,5 +30,10 @@ urlpatterns = [
         "events/<int:pk>/participate/",
         ParticipateEventView.as_view(),
         name="event-participate",
+    ),
+    path(
+        "events/my-organized/",
+        MyOrganizedEventsView.as_view(),
+        name="my-organized-events",
     ),
 ]
