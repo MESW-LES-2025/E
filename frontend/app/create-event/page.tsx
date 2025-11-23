@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchWithAuth } from "@/lib/auth";
 import { isAuthenticated } from "@/lib/auth";
 import { getProfile, type Profile } from "@/lib/profiles";
 import { getMyOrganizations, type Organization } from "@/lib/organizations";
@@ -133,7 +132,7 @@ export default function CreateEvent() {
     }
 
     Object.entries(formData).forEach(([key, value]) => {
-      if (key === "capacity") return; //ignores empty validation
+      if (key === "capacity") return; // Skip validation for capacity field as it is optional; empty means unlimited capacity
       if (typeof value === "string" && !value.trim()) {
         newErrors[key] =
           `${key.charAt(0).toUpperCase() + key.slice(1)} is required`;
@@ -141,7 +140,7 @@ export default function CreateEvent() {
       }
     });
 
-    //validates if capacity is a positive number
+    //validates if capacity is a non-negative number
     if (formData.capacity && Number(formData.capacity) < 0) {
       newErrors.capacity = "Capacity cannot be negative";
       hasErrors = true;
@@ -377,13 +376,7 @@ export const createEvent = async (eventData: {
   capacity: string | number;
   organization: number;
 }) => {
-  const response = await fetchWithAuth(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/events/create/`,
-    {
-      method: "POST",
-      body: JSON.stringify(eventData),
-    },
-  );
+  const response = await apiRequest("events/create/", "POST", eventData);
 
   if (!response.ok) {
     throw new Error("Failed to create event");

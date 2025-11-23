@@ -1,19 +1,22 @@
 from django.urls import path
 
 from .views import (
+    AllEventsListView,
     CancelEventView,
     CreateEventView,
-    EventListCreateView,
     EventRetrieveUpdateDestroyView,
     MyOrganizedEventsView,
     ParticipateEventView,
     PastEventsListView,
     UncancelEventView,
     UpcomingEventsListView,
+    UserInterestedEventsView,
+    UserOrganizedEventsView,
+    UserRegisteredEventsView,
 )
 
 urlpatterns = [
-    path("events/", EventListCreateView.as_view(), name="event-list"),
+    path("events/", AllEventsListView.as_view(), name="all-events"),
     path(
         "events/<int:pk>/",
         EventRetrieveUpdateDestroyView.as_view(),
@@ -25,6 +28,21 @@ urlpatterns = [
     path("events/<int:pk>/cancel/", CancelEventView.as_view(), name="event-cancel"),
     path(
         "events/<int:pk>/uncancel/", UncancelEventView.as_view(), name="event-uncancel"
+    ),
+    path(
+        "events/participating/",
+        UserRegisteredEventsView.as_view(),
+        name="user-registered-events",
+    ),
+    path(
+        "events/interested/",
+        UserInterestedEventsView.as_view(),
+        name="user-interested-events",
+    ),
+    path(
+        "events/organized/",
+        UserOrganizedEventsView.as_view(),
+        name="user-organized-events",
     ),
     path(
         "events/<int:pk>/participate/",

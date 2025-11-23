@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { register, type RegisterRole } from "@/lib/auth";
+import { isAuthenticated, register, type RegisterRole } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -111,6 +111,12 @@ function validate(values: FormState): FieldErrors {
 
 export default function RegisterPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.push("/profile");
+    }
+  }, [router]);
 
   const [registrationType, setRegistrationType] =
     useState<RegistrationType>("student");

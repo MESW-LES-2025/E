@@ -22,7 +22,7 @@ describe("Home Page", () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ results: [] }),
+        json: () => Promise.resolve([]),
       }),
     ) as jest.Mock;
 
@@ -36,11 +36,11 @@ describe("Home Page", () => {
 
   it("renders event cards when upcoming events exist", async () => {
     const now = new Date();
-    const events = [
+    const events: ErasmusEvent[] = [
       {
         id: 1,
         name: "Test Event",
-        date: new Date(now.getTime() + 1000 * 60 * 60 * 24).toISOString(), // 1 day in future
+        date: now.toISOString(),
         location: "City Center",
         status: "Active",
       },
@@ -49,7 +49,7 @@ describe("Home Page", () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ results: events }),
+        json: () => Promise.resolve(events),
       }),
     ) as jest.Mock;
 

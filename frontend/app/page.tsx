@@ -17,13 +17,20 @@ import {
   type PublicOrganization,
 } from "@/lib/organizations";
 
-type Event = {
+interface Event {
   id: number;
   name: string;
   date: string;
+  location: string;
+  description: string;
+  organizer: number;
+  organizer_name: string;
   status: string;
-  location?: string;
-};
+  participant_count: number;
+  is_participating: boolean;
+  capacity: number | null;
+  is_full: boolean;
+}
 
 export default function Home() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -63,7 +70,6 @@ export default function Home() {
         setOrgsLoading(false);
       }
     };
-
     fetchEvents();
     fetchOrganizations();
   }, [base]);

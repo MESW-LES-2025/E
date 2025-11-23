@@ -10,6 +10,7 @@ class EventSerializer(serializers.ModelSerializer):
     organization_id = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
     is_participating = serializers.SerializerMethodField()
+    is_interested = serializers.SerializerMethodField()
     is_full = serializers.SerializerMethodField()
 
     def get_organization_name(self, obj):
@@ -29,6 +30,12 @@ class EventSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request and hasattr(request, "user") and request.user.is_authenticated:
             return obj.participants.filter(pk=request.user.pk).exists()
+        return False
+
+    def get_is_interested(self, obj):
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            return obj.interested_users.filter(pk=request.user.pk).exists()
         return False
 
     def get_is_full(self, obj):
@@ -67,7 +74,9 @@ class EventSerializer(serializers.ModelSerializer):
             "organization_name",
             "status",
             "participant_count",
+            "interested_users",
             "is_participating",
+            "is_interested",
             "is_full",
         ]
         read_only_fields = [

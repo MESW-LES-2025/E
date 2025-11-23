@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/auth";
+import { isAuthenticated, login } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,12 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.push("/profile");
+    }
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 flex items-center justify-center px-4">
