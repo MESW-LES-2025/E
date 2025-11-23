@@ -23,7 +23,7 @@ class Organization(models.Model):
         OTHER = "OTHER", "Other"
 
     # Basic information
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -32,7 +32,7 @@ class Organization(models.Model):
     )
 
     # Contact information
-    email = models.EmailField(blank=True)
+    email = models.EmailField(blank=True, null=True, unique=True)
     website = models.URLField(blank=True)
     phone = models.CharField(max_length=20, blank=True)
 
@@ -58,6 +58,17 @@ class Organization(models.Model):
         blank=True,
     )
     established_date = models.DateField(null=True, blank=True)
+
+    # Collaborators (organizers who can manage events but not the organization)
+    collaborators = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="collaborating_organizations",
+        blank=True,
+        help_text=(
+            "Organizers who can create, update, and cancel events "
+            "for this organization"
+        ),
+    )
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
