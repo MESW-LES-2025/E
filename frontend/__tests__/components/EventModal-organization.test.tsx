@@ -106,8 +106,10 @@ describe("EventModal - Organization Link", () => {
       expect(screen.getByText("Test Organization")).toBeInTheDocument();
     });
 
-    // Should not show organizer name
-    expect(screen.queryByText("Organizer Name")).not.toBeInTheDocument();
+    // Should show "Created by" with organizer name when organization exists
+    // The organizer name should be shown as part of "Created by" text
+    expect(screen.getByText(/Created by/i)).toBeInTheDocument();
+    expect(screen.getByText("Organizer Name")).toBeInTheDocument();
   });
 
   it("should store referrer when clicking organization link", async () => {

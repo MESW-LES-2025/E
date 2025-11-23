@@ -177,6 +177,7 @@ class EventSerializerTest(TestCase):
             "is_participating",
             "is_interested",
             "is_full",
+            "created_by",
         ]
         self.assertEqual(set(data.keys()), set(expected_fields))
 

@@ -146,7 +146,7 @@ describe("My Events Page", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/You are not participating in any events/i),
+        screen.getByText(/You have not registered for any events yet/i),
       ).toBeInTheDocument();
     });
   });
@@ -194,13 +194,12 @@ describe("My Events Page", () => {
     render(<MyEventsPage />);
 
     await waitFor(() => {
-      // When event fetch fails, the error is set but the page might show empty state
-      // if the error happens during individual event fetches. Check for either error or empty state.
-      const errorTitle = screen.queryByText("Error");
+      // When event fetch fails, the page shows empty state for participating events
+      // Check for the empty state text
       const emptyState = screen.queryByText(
-        /You are not participating in any events/i,
+        /You have not registered for any events yet/i,
       );
-      expect(errorTitle || emptyState).toBeTruthy();
+      expect(emptyState).toBeTruthy();
     });
     consoleSpy.mockRestore();
   });

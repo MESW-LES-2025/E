@@ -314,16 +314,18 @@ export default function EventModal({ id, onClose }: Props) {
                   </div>
                 )}
 
-                {(event.created_by || event.organizer_name) && (
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                      Created by
-                    </label>
-                    <div className="text-base text-gray-800">
-                      {event.created_by || event.organizer_name}
+                {/* Show "Created by" only when there's an organization_name (below organization link) */}
+                {event.organization_name &&
+                  (event.created_by || event.organizer_name) && (
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        Created by
+                      </label>
+                      <div className="text-base text-gray-800">
+                        {event.created_by || event.organizer_name}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {event.description && (
                   <div>

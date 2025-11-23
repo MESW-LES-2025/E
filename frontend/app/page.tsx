@@ -50,8 +50,10 @@ export default function Home() {
       try {
         const response = await fetch(`${base}/events/upcoming/`);
         if (!response.ok) throw new Error("Failed to fetch events");
-        const data: { results: Event[] } = await response.json();
-        setEvents((data.results ?? []).slice(0, 6)); // Show only first 6 events
+        const data = await response.json();
+        // Handle both paginated (results) and non-paginated (list) responses
+        const eventsList = Array.isArray(data) ? data : (data.results ?? []);
+        setEvents(eventsList.slice(0, 6)); // Show only first 6 events
       } catch (err) {
         console.error(err);
         setError("Could not load events");

@@ -274,8 +274,10 @@ class OrganizationViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(len(data["results"]), 1)
-        self.assertEqual(data["results"][0]["name"], "Test Organization")
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "Test Organization")
 
     def test_retrieve_organization_public_access(self):
         """Test that anyone can view organization details (public access)"""
@@ -573,19 +575,25 @@ class OrganizationViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["id"], self.organization.id)
-        self.assertEqual(data[0]["name"], "Test Organization")
-        self.assertEqual(data[0]["owner_id"], self.owner.id)
+        self.assertIsInstance(data, dict)
+        self.assertIn("owned", data)
+        self.assertIn("collaborated", data)
+        self.assertEqual(len(data["owned"]), 1)
+        self.assertEqual(len(data["collaborated"]), 0)
+        self.assertEqual(data["owned"][0]["id"], self.organization.id)
+        self.assertEqual(data["owned"][0]["name"], "Test Organization")
+        self.assertEqual(data["owned"][0]["owner_id"], self.owner.id)
 
-        # Other user should see empty list
+        # Other user should see empty lists
         self.client.force_authenticate(user=self.other_user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 0)
+        self.assertIsInstance(data, dict)
+        self.assertIn("owned", data)
+        self.assertIn("collaborated", data)
+        self.assertEqual(len(data["owned"]), 0)
+        self.assertEqual(len(data["collaborated"]), 0)
 
     def test_get_my_organizations_requires_authentication(self):
         """Test that /organizations/me/ requires authentication"""
@@ -609,8 +617,11 @@ class OrganizationViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(len(data), 2)
-        org_names = [org["name"] for org in data]
+        self.assertIsInstance(data, dict)
+        self.assertIn("owned", data)
+        self.assertIn("collaborated", data)
+        self.assertEqual(len(data["owned"]), 2)
+        org_names = [org["name"] for org in data["owned"]]
         self.assertIn("Test Organization", org_names)
         self.assertIn("Second Organization", org_names)
 
@@ -699,7 +710,9 @@ class OrganizationViewSetTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        org_names = [org["name"] for org in data["results"]]
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
+        org_names = [org["name"] for org in data]
         self.assertEqual(org_names, sorted(org_names))
 
     def test_organization_serializer_event_count(self):

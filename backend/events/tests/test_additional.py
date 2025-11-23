@@ -171,7 +171,7 @@ class EventListCreateViewTest(APITestCase):
         self.user.save()
 
         self.client.force_authenticate(user=self.user)
-        url = reverse("event-list")
+        url = reverse("create_event")
         data = {
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
@@ -191,7 +191,7 @@ class EventListCreateViewTest(APITestCase):
         self.user.save()
 
         self.client.force_authenticate(user=self.user)
-        url = reverse("event-list")
+        url = reverse("create_event")
         data = {
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
@@ -216,7 +216,7 @@ class EventListCreateViewTest(APITestCase):
         self.user.save()
 
         self.client.force_authenticate(user=self.user)
-        url = reverse("event-list")
+        url = reverse("create_event")
         data = {
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
@@ -241,7 +241,7 @@ class EventListCreateViewTest(APITestCase):
         self.user.save()
 
         self.client.force_authenticate(user=self.user)
-        url = reverse("event-list")
+        url = reverse("create_event")
         data = {
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
@@ -262,7 +262,7 @@ class EventListCreateViewTest(APITestCase):
         self.user.save()
 
         self.client.force_authenticate(user=self.user)
-        url = reverse("event-list")
+        url = reverse("create_event")
         data = {
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),

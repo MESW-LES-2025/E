@@ -246,14 +246,16 @@ class EventOrganizationViewTest(APITestCase):
 
     def test_list_events_includes_organization_fields(self):
         """Test that list endpoint includes organization fields"""
-        url = reverse("event-list")
+        url = reverse("all-events")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertGreater(len(data["results"]), 0)
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
+        self.assertGreater(len(data), 0)
 
-        event_data = data["results"][0]
+        event_data = data[0]
         self.assertIn("organization", event_data)
         self.assertIn("organization_id", event_data)
         self.assertIn("organization_name", event_data)
@@ -263,20 +265,22 @@ class EventOrganizationViewTest(APITestCase):
     def test_list_events_only_shows_events_with_organization(self):
         """Test that list endpoint only shows events with organization"""
         # This test ensures events without organization are filtered out
-        url = reverse("event-list")
+        url = reverse("all-events")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
 
-        for event in data["results"]:
+        for event in data:
             self.assertIsNotNone(event["organization"])
             self.assertIsNotNone(event["organization_id"])
 
     def test_create_event_without_organization(self):
         """Test that creating event without organization returns error"""
         self.client.force_authenticate(user=self.user)
-        url = reverse("event-list")
+        url = reverse("create_event")
         data = {
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
@@ -463,8 +467,10 @@ class EventOrganizationViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
 
-        for event in data["results"]:
+        for event in data:
             self.assertIn("organization", event)
             self.assertIn("organization_id", event)
             self.assertIn("organization_name", event)
@@ -485,8 +491,10 @@ class EventOrganizationViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
 
-        for event in data["results"]:
+        for event in data:
             self.assertIn("organization", event)
             self.assertIn("organization_id", event)
             self.assertIn("organization_name", event)
@@ -500,8 +508,10 @@ class EventOrganizationViewTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
 
-        for event in data["results"]:
+        for event in data:
             self.assertIsNotNone(event["organization"])
             self.assertIsNotNone(event["organization_id"])
 
@@ -577,18 +587,20 @@ class EventOrganizationFilterTest(APITestCase):
 
     def test_events_filtered_by_organization(self):
         """Test that events can be filtered by organization"""
-        url = reverse("event-list")
+        url = reverse("all-events")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
+        # Pagination is disabled, so response is a list directly
+        self.assertIsInstance(data, list)
 
         # Both events should be in the list
-        event_names = [event["name"] for event in data["results"]]
+        event_names = [event["name"] for event in data]
         self.assertIn("Event 1", event_names)
         self.assertIn("Event 2", event_names)
 
         # Verify each event has correct organization
-        event_dict = {event["name"]: event for event in data["results"]}
+        event_dict = {event["name"]: event for event in data}
         self.assertEqual(event_dict["Event 1"]["organization"], self.organization1.id)
         self.assertEqual(event_dict["Event 2"]["organization"], self.organization2.id)
