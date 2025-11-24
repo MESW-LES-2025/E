@@ -58,6 +58,23 @@ class OrganizationViewSet(ModelViewSet):
 
     def get_permissions(self):
         """Different permissions for different actions"""
+        # Follow/unfollow actions only need authentication (checked in action)
+        # Check action name - DRF uses method name for custom actions
+        action = getattr(self, "action", None)
+        # The action name is the method name, not the url_path
+        if action in ["manage_follow", "followed"]:
+            return [IsAuthenticated()]
+        # Fallback: check request path and method if action name not available yet
+        if hasattr(self, "request") and self.request:
+            path = getattr(self.request, "path", "") or ""
+            method = getattr(self.request, "method", "").upper()
+            # Check if this is a follow/unfollow request
+            if (
+                "/follow" in path
+                or path.endswith("/followed/")
+                or (method in ["POST", "DELETE"] and "/follow/" in path)
+            ):
+                return [IsAuthenticated()]
         # Use IsOrganizerOrReadOnly which handles:
         # - Public read access
         # - ORGANIZER role required for create
@@ -271,7 +288,6 @@ class OrganizationViewSet(ModelViewSet):
     @action(
         detail=True,
         methods=["post", "delete"],
-        permission_classes=[IsAuthenticated],
         url_path="follow",
     )
     def manage_follow(self, request, pk=None):
@@ -279,19 +295,15 @@ class OrganizationViewSet(ModelViewSet):
         organization = self.get_object()
 
         # Only attendees can follow organizations
-        try:
-            profile = request.user.profile
-            if profile.role != Profile.Role.ATTENDEE:
-                from rest_framework.exceptions import PermissionDenied
-
-                raise PermissionDenied(
-                    "Only attendees can follow organizations. "
-                    "Organizers cannot follow organizations."
-                )
-        except Profile.DoesNotExist:
+        # Use get_or_create to ensure profile exists
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.role != Profile.Role.ATTENDEE:
             from rest_framework.exceptions import PermissionDenied
 
-            raise PermissionDenied("User profile not found")
+            raise PermissionDenied(
+                "Only attendees can follow organizations. "
+                "Organizers cannot follow organizations."
+            )
 
         if request.method == "POST":
             # Follow organization
@@ -318,25 +330,20 @@ class OrganizationViewSet(ModelViewSet):
     @action(
         detail=False,
         methods=["get"],
-        permission_classes=[IsAuthenticated],
         url_path="followed",
     )
     def followed(self, request):
         """Get all organizations the current user is following (only for attendees)"""
         # Only attendees can view followed organizations
-        try:
-            profile = request.user.profile
-            if profile.role != Profile.Role.ATTENDEE:
-                from rest_framework.exceptions import PermissionDenied
-
-                raise PermissionDenied(
-                    "Only attendees can view followed organizations. "
-                    "Organizers cannot follow organizations."
-                )
-        except Profile.DoesNotExist:
+        # Use get_or_create to ensure profile exists
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.role != Profile.Role.ATTENDEE:
             from rest_framework.exceptions import PermissionDenied
 
-            raise PermissionDenied("User profile not found")
+            raise PermissionDenied(
+                "Only attendees can view followed organizations. "
+                "Organizers cannot follow organizations."
+            )
 
         followed_organizations = Organization.objects.filter(
             followers=request.user
