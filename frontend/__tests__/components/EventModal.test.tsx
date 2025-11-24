@@ -2,10 +2,20 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import EventModal from "../../components/EventModal";
 import { fetchWithAuth } from "../../lib/auth";
+import {
+  cancelEventRequest,
+  getEventParticipants,
+  uncancelEventRequest,
+} from "../../lib/events";
 
 // Mock auth module
 jest.mock("../../lib/auth", () => ({
   fetchWithAuth: jest.fn(),
+}));
+jest.mock("../../lib/events", () => ({
+  getEventParticipants: jest.fn(),
+  cancelEventRequest: jest.fn(),
+  uncancelEventRequest: jest.fn(),
 }));
 
 const mockFetchWithAuth = fetchWithAuth as jest.MockedFunction<
@@ -14,6 +24,10 @@ const mockFetchWithAuth = fetchWithAuth as jest.MockedFunction<
 
 describe("EventModal", () => {
   const mockOnClose = jest.fn();
+  const mockGetEventParticipants = getEventParticipants as jest.Mock;
+  const mockCancelEventRequest = cancelEventRequest as jest.Mock;
+  const mockUncancelEventRequest = uncancelEventRequest as jest.Mock;
+
   const mockEvent = {
     id: 1,
     name: "Test Event",
@@ -26,6 +40,8 @@ describe("EventModal", () => {
     organization_id: 1,
     organization_name: "Test Organization",
     status: "Active",
+    participant_count: 2,
+    capacity: 10,
   };
 
   beforeEach(() => {
@@ -33,6 +49,9 @@ describe("EventModal", () => {
     localStorage.clear();
     global.fetch = jest.fn();
     process.env.NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000/api";
+    mockGetEventParticipants.mockClear();
+    mockCancelEventRequest.mockClear();
+    mockUncancelEventRequest.mockClear();
     mockFetchWithAuth.mockClear();
   });
 
@@ -389,7 +408,7 @@ describe("EventModal", () => {
         { timeout: 5000 },
       );
       expect(
-        screen.queryByText("Participant list goes here..."),
+        screen.queryByText("Loading participants..."),
       ).not.toBeInTheDocument();
     });
 
@@ -423,7 +442,7 @@ describe("EventModal", () => {
       );
     });
 
-    it("should toggle Participants section visibility on click when user is the event organizer", async () => {
+    it("should fetch and display participants when section is opened by organizer", async () => {
       jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
         if (key === "auth_tokens")
           return JSON.stringify({ access: "fake-token" });
@@ -439,6 +458,17 @@ describe("EventModal", () => {
           ok: true,
           json: async () => ({ id: 1, role: "ORGANIZER" }), // user is organizer 1
         } as Response);
+      // Mock participants fetch
+      const mockParticipants = [
+        {
+          id: 101,
+          username: "john.doe",
+          first_name: "John",
+          last_name: "Doe",
+        },
+        { id: 102, username: "jane.doe", first_name: "Jane", last_name: "Doe" },
+      ];
+      mockGetEventParticipants.mockResolvedValue(mockParticipants);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
@@ -459,19 +489,96 @@ describe("EventModal", () => {
 
       expect(participantsButton).toHaveAttribute("aria-expanded", "false");
       fireEvent.click(participantsButton);
-      await waitFor(() => {
-        expect(
-          screen.getByText("Participant list goes here..."),
-        ).toBeInTheDocument();
-      });
       expect(participantsButton).toHaveAttribute("aria-expanded", "true");
+
+      // Check for loading state and participant count
+      expect(screen.getByText("Loading participants...")).toBeInTheDocument();
+
+      // Wait for participants to be displayed
+      await waitFor(() => {
+        expect(screen.getByText("John Doe (@john.doe)")).toBeInTheDocument();
+        expect(screen.getByText("Jane Doe (@jane.doe)")).toBeInTheDocument();
+      });
+
+      // Check that loading state is gone
+      expect(
+        screen.queryByText("Loading participants..."),
+      ).not.toBeInTheDocument();
+
+      // Close the section
       fireEvent.click(participantsButton);
       await waitFor(() => {
         expect(
-          screen.queryByText("Participant list goes here..."),
+          screen.queryByText("John Doe (@john.doe)"),
         ).not.toBeInTheDocument();
       });
       expect(participantsButton).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("should display an error message if fetching participants fails", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+      mockFetchWithAuth
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockEvent,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 1, role: "ORGANIZER" }),
+        } as Response);
+      mockGetEventParticipants.mockRejectedValue(
+        new Error("Failed to load participants."),
+      );
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+      const participantsButton = await screen.findByRole("button", {
+        name: /Participants/i,
+      });
+
+      fireEvent.click(participantsButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Failed to load participants."),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it("should display a message when there are no participants", async () => {
+      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+        if (key === "auth_tokens")
+          return JSON.stringify({ access: "fake-token" });
+        return null;
+      });
+      mockFetchWithAuth
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ ...mockEvent, participant_count: 0 }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ id: 1, role: "ORGANIZER" }),
+        } as Response);
+      mockGetEventParticipants.mockResolvedValue([]); // Empty array
+
+      render(<EventModal id="1" onClose={mockOnClose} />);
+      await screen.findByText(mockEvent.name);
+      const participantsButton = await screen.findByRole("button", {
+        name: /Participants/i,
+      });
+
+      fireEvent.click(participantsButton);
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("No participants have registered yet."),
+        ).toBeInTheDocument();
+      });
     });
   });
 
@@ -651,11 +758,12 @@ describe("EventModal", () => {
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
 
-      const participantElements = screen.getAllByText((_, element) => {
+      const participantElements = screen.getAllByText((content, element) => {
+        const text = element?.textContent ?? "";
         return (
-          element?.textContent?.includes("Participants:") &&
-          element?.textContent?.includes("5") &&
-          element?.textContent?.includes("10")
+          text.includes("Participants:") &&
+          text.includes("5") &&
+          text.includes("10")
         );
       });
       expect(participantElements.length).toBeGreaterThan(0);
@@ -1219,6 +1327,11 @@ describe("EventModal", () => {
       });
       window.alert = jest.fn();
 
+      // Mock cancelEventRequest to throw an error
+      mockCancelEventRequest.mockImplementation(() => {
+        throw new Error("Network error");
+      });
+
       const eventOrganizer = {
         ...mockEvent,
         organizer: 2,
@@ -1233,8 +1346,7 @@ describe("EventModal", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ id: 2, role: "ORGANIZER" }),
-        } as Response)
-        .mockRejectedValueOnce(new Error("Network error"));
+        } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
@@ -1249,7 +1361,7 @@ describe("EventModal", () => {
       // Wait for the error to occur (the catch block will call alert)
       await waitFor(
         () => {
-          expect(window.alert).toHaveBeenCalled();
+          expect(window.alert).toHaveBeenCalledWith("Could not cancel event");
         },
         { timeout: 3000 },
       );
@@ -1263,6 +1375,11 @@ describe("EventModal", () => {
       });
       window.alert = jest.fn();
       window.confirm = jest.fn(() => true);
+
+      // Mock uncancelEventRequest to throw an error
+      mockUncancelEventRequest.mockImplementation(() => {
+        throw new Error("Network error");
+      });
 
       const canceledEvent = {
         ...mockEvent,
@@ -1279,8 +1396,7 @@ describe("EventModal", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ id: 2, role: "ORGANIZER" }),
-        } as Response)
-        .mockRejectedValueOnce(new Error("Network error"));
+        } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);

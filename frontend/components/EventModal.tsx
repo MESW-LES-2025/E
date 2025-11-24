@@ -5,7 +5,11 @@ import Link from "next/link";
 import { fetchWithAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cancelEventRequest, uncancelEventRequest } from "@/lib/events";
+import {
+  cancelEventRequest,
+  getEventParticipants,
+  uncancelEventRequest,
+} from "@/lib/events";
 import { getOrganization } from "@/lib/organizations";
 
 type Props = {
@@ -42,6 +46,13 @@ interface User {
   role: string;
 }
 
+interface Participant {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+}
+
 const CATEGORY_COLORS: Record<string, string> = {
   SOCIAL: "bg-blue-500 text-white",
   ACADEMIC: "bg-green-500 text-white",
@@ -62,6 +73,11 @@ export default function EventModal({ id, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [participantsError, setParticipantsError] = useState<string | null>(
+    null,
+  );
   const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -171,6 +187,29 @@ export default function EventModal({ id, onClose }: Props) {
         });
     }
   }, [event?.organization_id, isAuthenticated, user]);
+
+  // Fetch participants when dropdown is opened
+  useEffect(() => {
+    if (isParticipantsOpen && event?.id && isAuthenticated) {
+      setParticipantsLoading(true);
+      setParticipantsError(null);
+      getEventParticipants(event.id)
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setParticipants(data);
+          } else {
+            // Handle cases where the API returns an error object
+            throw new Error("Failed to load participants.");
+          }
+        })
+        .catch((err) => {
+          setParticipantsError(
+            err.message || "Could not fetch participant information.",
+          );
+        })
+        .finally(() => setParticipantsLoading(false));
+    }
+  }, [isParticipantsOpen, event?.id, isAuthenticated]);
 
   const toggleParticipation = async () => {
     if (!event) return;
@@ -383,7 +422,38 @@ export default function EventModal({ id, onClose }: Props) {
                     </button>
                     {isParticipantsOpen && (
                       <div className="mt-4 text-gray-700">
-                        Participant list goes here...
+                        <div className="mb-4 text-sm text-gray-600">
+                          <span className="font-semibold">
+                            {event.participant_count}
+                          </span>
+                          {event.capacity !== null &&
+                          event.capacity !== undefined &&
+                          event.capacity > 0 ? (
+                            <span> / {event.capacity}</span>
+                          ) : (
+                            ""
+                          )}{" "}
+                          {event.capacity === null || event.capacity === 0
+                            ? " (Unlimited capacity)"
+                            : ""}
+                        </div>
+                        {participantsLoading && <p>Loading participants...</p>}
+                        {participantsError && (
+                          <p className="text-red-500">{participantsError}</p>
+                        )}
+                        {!participantsLoading &&
+                          !participantsError &&
+                          (participants.length > 0 ? (
+                            <ul className="space-y-2">
+                              {participants.map((p) => (
+                                <li key={p.id} className="text-sm">
+                                  {p.first_name} {p.last_name} (@{p.username})
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No participants have registered yet.</p>
+                          ))}
                       </div>
                     )}
                   </div>
