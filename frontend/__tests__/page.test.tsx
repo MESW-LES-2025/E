@@ -75,9 +75,7 @@ describe("Home Page", () => {
 
       render(<Home />);
       await waitFor(() => {
-        expect(
-          screen.getByText(/No events found matching your filters/),
-        ).toBeInTheDocument();
+        expect(screen.getByText(/Could not load events/)).toBeInTheDocument();
       });
     } finally {
       consoleSpy.mockRestore();

@@ -245,9 +245,9 @@ class EventListCreateViewTest(APITestCase):
         data = {
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
-            "organization": self.organization.id,
+            "organization": self.organization.id,  # Ensure organization ID is passed
             "location": "Test Location",
-            "category": "Social",
+            "category": "SOCIAL",
         }
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

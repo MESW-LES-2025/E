@@ -397,12 +397,14 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Social Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="SOCIAL",
         )
         Event.objects.create(
             name="Sports Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="SPORTS",
         )
 
@@ -417,18 +419,21 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Social Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="SOCIAL",
         )
         Event.objects.create(
             name="Sports Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="SPORTS",
         )
         Event.objects.create(
             name="Academic Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="ACADEMIC",
         )
 
@@ -444,6 +449,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Today Event",
             date=today_event_time,
             organizer=self.user,
+            organization=self.organization,
         )
         tomorrow_event_time = (now + timedelta(days=1)).replace(
             hour=12, minute=0, second=0, microsecond=0
@@ -452,6 +458,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Tomorrow Event",
             date=tomorrow_event_time,
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"date_filter": "today"})
@@ -467,6 +474,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Today Event",
             date=today_event_time,
             organizer=self.user,
+            organization=self.organization,
         )
         tomorrow_event_time = (now + timedelta(days=1)).replace(
             hour=12, minute=0, second=0, microsecond=0
@@ -475,6 +483,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Tomorrow Event",
             date=tomorrow_event_time,
             organizer=self.user,
+            organization=self.organization,
         )
         day_after_event_time = (now + timedelta(days=2)).replace(
             hour=12, minute=0, second=0, microsecond=0
@@ -483,6 +492,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Day After Event",
             date=day_after_event_time,
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"date_filter": "tomorrow"})
@@ -500,6 +510,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="This Week Event",
             date=this_week_event_time,
             organizer=self.user,
+            organization=self.organization,
         )
         next_week_event_time = (now + timedelta(days=8)).replace(
             hour=12, minute=0, second=0, microsecond=0
@@ -508,6 +519,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Next Week Event",
             date=next_week_event_time,
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"date_filter": "this_week"})
@@ -525,11 +537,13 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Before Target",
             date=now + timedelta(days=2),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="After Target",
             date=now + timedelta(days=7),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"date_from": target_date.isoformat()})
@@ -546,11 +560,13 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Before Target",
             date=now + timedelta(days=2),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="After Target",
             date=now + timedelta(days=7),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"date_to": target_date.isoformat()})
@@ -568,16 +584,19 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Before Range",
             date=now + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="In Range",
             date=now + timedelta(days=5),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="After Range",
             date=now + timedelta(days=10),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(
@@ -594,11 +613,13 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Python Workshop",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="Java Meetup",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"search": "Python"})
@@ -613,12 +634,14 @@ class UpcomingEventsListViewTest(APITestCase):
             description="Learn about machine learning",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="Event 2",
             description="Web development basics",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"search": "machine learning"})
@@ -631,12 +654,14 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Social Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="SOCIAL",
         )
         Event.objects.create(
             name="Sports Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="SPORTS",
         )
 
@@ -650,6 +675,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Python Workshop",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url, {"search": "python"})
@@ -667,18 +693,21 @@ class UpcomingEventsListViewTest(APITestCase):
             description="Learn socializing",
             date=now + timedelta(days=2),
             organizer=self.user,
+            organization=self.organization,
             category="SOCIAL",
         )
         Event.objects.create(
             name="Sports Workshop",
             date=now + timedelta(days=2),
             organizer=self.user,
+            organization=self.organization,
             category="SPORTS",
         )
         Event.objects.create(
             name="Social Meetup",
             date=now + timedelta(days=10),
             organizer=self.user,
+            organization=self.organization,
             category="SOCIAL",
         )
 
@@ -700,6 +729,7 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Social Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             category="SOCIAL",
         )
 

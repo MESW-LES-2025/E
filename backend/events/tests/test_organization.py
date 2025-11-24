@@ -306,6 +306,7 @@ class EventOrganizationViewTest(APITestCase):
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
             "location": "Test Location",
             "organization": self.organization.id,
+            "category": "SOCIAL",
         }
         response = self.client.post(url, data)
 
@@ -369,6 +370,7 @@ class EventOrganizationViewTest(APITestCase):
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
             "organization": self.organization.id,
+            "category": "SOCIAL",
         }
         response = self.client.post(url, data)
 
@@ -524,6 +526,7 @@ class EventOrganizationViewTest(APITestCase):
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
             "organization": self.organization.id,
             "location": "Test Location",
+            "category": "SOCIAL",
         }
         response = self.client.post(url, data)
 
