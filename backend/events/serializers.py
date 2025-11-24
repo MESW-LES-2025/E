@@ -1,6 +1,10 @@
+from django.contrib.auth import get_user_model
+from djoser.serializers import UserSerializer as BaseUserSerializer
 from rest_framework import serializers
 
 from .models import Event
+
+User = get_user_model()
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -93,3 +97,11 @@ class EventSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "organization": {"required": True},
         }
+
+
+class UserSerializer(BaseUserSerializer):
+    role = serializers.CharField(source="profile.role", read_only=True)
+
+    class Meta(BaseUserSerializer.Meta):
+        model = User
+        fields = ("id", "username", "email", "first_name", "last_name", "role")

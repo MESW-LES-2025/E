@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Event
-from .serializers import EventSerializer
+from .serializers import EventSerializer, UserSerializer
 
 
 class EventListCreateView(generics.ListCreateAPIView):
@@ -491,3 +491,29 @@ class MyOrganizedEventsView(generics.ListAPIView):
             .select_related("organization", "organizer")
             .order_by("organization__name", "date")
         )
+
+
+class EventParticipantsView(generics.ListAPIView):
+    """
+    Get participants for a specific event.
+    Only accessible by the organization owner or a collaborator.
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        event_pk = self.kwargs.get("pk")
+        event = get_object_or_404(Event, pk=event_pk)
+        user = self.request.user
+
+        # Check permissions
+        is_owner = event.organization.owner == user
+        is_collaborator = event.organization.collaborators.filter(pk=user.pk).exists()
+
+        if not (is_owner or is_collaborator):
+            raise PermissionDenied(
+                "You do not have permission to view participants for this event."
+            )
+
+        return event.participants.all().order_by("first_name", "last_name")

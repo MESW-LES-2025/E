@@ -20,6 +20,13 @@ export interface Event {
   category: string;
 }
 
+interface Participant {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+}
+
 export async function cancelEventRequest(eventId: number) {
   return fetchWithAuth(`${API_BASE}/events/${eventId}/cancel/`, {
     method: "POST",
@@ -40,6 +47,25 @@ export async function getMyOrganizedEvents(): Promise<Event[]> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error?.detail || "Failed to fetch organized events");
+  }
+
+  const data = await response.json();
+  return data.results || data;
+}
+
+export async function getEventParticipants(
+  eventId: number,
+): Promise<Participant[]> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/events/${eventId}/participants/`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to fetch event participants");
   }
 
   const data = await response.json();
