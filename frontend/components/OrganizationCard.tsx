@@ -67,7 +67,7 @@ export default function OrganizationCard({
   // Update following state when organization prop changes
   useEffect(() => {
     setIsFollowing(organization.is_following || false);
-  }, [organization.is_following]);
+  }, [organization.id, organization.is_following]);
 
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.preventDefault();

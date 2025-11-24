@@ -77,9 +77,23 @@ export interface OrganizationEvent {
   participants?: number[];
 }
 
-// List all organizations (public endpoint, no auth required)
+// List all organizations (public endpoint, but uses auth if available for is_following)
 export async function listOrganizations(): Promise<PublicOrganization[]> {
-  const response = await fetch(`${API_BASE}/accounts/organizations/`);
+  // Try authenticated request first to get is_following field
+  // Fall back to public request if not authenticated
+  let response;
+  try {
+    response = await fetchWithAuth(`${API_BASE}/accounts/organizations/`, {
+      method: "GET",
+    });
+    // If 401/403, try public fetch
+    if (response.status === 401 || response.status === 403) {
+      response = await fetch(`${API_BASE}/accounts/organizations/`);
+    }
+  } catch {
+    // If fetchWithAuth fails, try public fetch
+    response = await fetch(`${API_BASE}/accounts/organizations/`);
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
