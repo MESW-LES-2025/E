@@ -32,6 +32,8 @@ export interface PublicOrganization {
   established_date: string | null;
   owner_name: string;
   event_count: number;
+  is_following?: boolean;
+  is_collaborator?: boolean;
   created_at: string;
 }
 
@@ -75,9 +77,23 @@ export interface OrganizationEvent {
   participants?: number[];
 }
 
-// List all organizations (public endpoint, no auth required)
+// List all organizations (public endpoint, but uses auth if available for is_following)
 export async function listOrganizations(): Promise<PublicOrganization[]> {
-  const response = await fetch(`${API_BASE}/accounts/organizations/`);
+  // Try authenticated request first to get is_following field
+  // Fall back to public request if not authenticated
+  let response;
+  try {
+    response = await fetchWithAuth(`${API_BASE}/accounts/organizations/`, {
+      method: "GET",
+    });
+    // If 401/403, try public fetch
+    if (response.status === 401 || response.status === 403) {
+      response = await fetch(`${API_BASE}/accounts/organizations/`);
+    }
+  } catch {
+    // If fetchWithAuth fails, try public fetch
+    response = await fetch(`${API_BASE}/accounts/organizations/`);
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -317,4 +333,57 @@ export async function removeCollaborator(
     const error = await response.json().catch(() => ({}));
     throw new Error(error?.detail || "Failed to remove collaborator");
   }
+}
+
+// Follow an organization
+export async function followOrganization(
+  organizationId: number,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/accounts/organizations/${organizationId}/follow/`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to follow organization");
+  }
+}
+
+// Unfollow an organization
+export async function unfollowOrganization(
+  organizationId: number,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/accounts/organizations/${organizationId}/follow/`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to unfollow organization");
+  }
+}
+
+// Get all organizations the current user is following
+export async function getFollowedOrganizations(): Promise<
+  PublicOrganization[]
+> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/accounts/organizations/followed/`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to fetch followed organizations");
+  }
+
+  return response.json();
 }

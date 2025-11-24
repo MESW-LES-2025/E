@@ -10,7 +10,14 @@ import {
   getEventParticipants,
   uncancelEventRequest,
 } from "@/lib/events";
-import { getOrganization } from "@/lib/organizations";
+import {
+  getOrganization,
+  followOrganization,
+  unfollowOrganization,
+} from "@/lib/organizations";
+import { isAuthenticated as checkAuth } from "@/lib/auth";
+import { getProfile } from "@/lib/profiles";
+import { useRouter } from "next/navigation";
 
 type Props = {
   id: string | null;
@@ -69,6 +76,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function EventModal({ id, onClose }: Props) {
+  const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +88,9 @@ export default function EventModal({ id, onClose }: Props) {
   );
   const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -169,18 +180,31 @@ export default function EventModal({ id, onClose }: Props) {
         .catch(() => {
           // silently fail
         });
+
+      // Fetch user profile to check role
+      getProfile()
+        .then((profile) => {
+          if (profile) {
+            setUserRole(profile.role);
+          }
+        })
+        .catch(() => {
+          // Silently fail
+        });
     }
   }, [isAuthenticated]);
 
-  // Fetch organization data to check if user is owner
+  // Fetch organization data to check if user is owner and following status
   useEffect(() => {
-    if (event?.organization_id && isAuthenticated && user) {
+    if (event?.organization_id) {
       getOrganization(event.organization_id)
         .then((orgData) => {
           // Check if user is owner (has owner_id field means it's the full serializer)
-          if ("owner_id" in orgData) {
+          if (isAuthenticated && user && "owner_id" in orgData) {
             setIsOwner(orgData.owner_id === user.id);
           }
+          // Check if user is following
+          setIsFollowing(orgData.is_following || false);
         })
         .catch(() => {
           // Silently fail - organization might not be accessible
@@ -273,6 +297,38 @@ export default function EventModal({ id, onClose }: Props) {
     }
   };
 
+  const handleFollowToggle = async () => {
+    if (!event?.organization_id) return;
+
+    // Check if user is authenticated
+    if (!checkAuth()) {
+      // Store current pathname to return after login
+      sessionStorage.setItem("login_redirect", window.location.pathname);
+      router.push("/profile/login");
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+      if (isFollowing) {
+        await unfollowOrganization(event.organization_id);
+        setIsFollowing(false);
+      } else {
+        await followOrganization(event.organization_id);
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      console.error("Failed to toggle follow:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to update follow status. Please try again.",
+      );
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
@@ -358,25 +414,51 @@ export default function EventModal({ id, onClose }: Props) {
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
                       Organization
                     </label>
-                    <Link
-                      href={`/organizations/${event.organization_id}`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-colors duration-200 group"
-                      onClick={() => {
-                        // Store referrer before navigation
-                        sessionStorage.setItem(
-                          "org_detail_referrer",
-                          window.location.pathname,
-                        );
-                      }}
-                    >
-                      <span className="text-lg">🏢</span>
-                      <span className="group-hover:underline">
-                        {event.organization_name}
-                      </span>
-                      <span className="text-blue-500 group-hover:translate-x-1 transition-transform duration-200">
-                        →
-                      </span>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/organizations/${event.organization_id}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-colors duration-200 group flex-1"
+                        onClick={() => {
+                          // Store referrer before navigation
+                          sessionStorage.setItem(
+                            "org_detail_referrer",
+                            window.location.pathname,
+                          );
+                        }}
+                      >
+                        <span className="text-lg">🏢</span>
+                        <span className="group-hover:underline">
+                          {event.organization_name}
+                        </span>
+                        <span className="text-blue-500 group-hover:translate-x-1 transition-transform duration-200">
+                          →
+                        </span>
+                      </Link>
+                      {userRole === "ATTENDEE" && (
+                        <Button
+                          variant={isFollowing ? "outline" : "default"}
+                          size="sm"
+                          onClick={handleFollowToggle}
+                          disabled={followLoading}
+                          className="whitespace-nowrap group relative"
+                        >
+                          <span
+                            className={isFollowing ? "group-hover:hidden" : ""}
+                          >
+                            {followLoading
+                              ? "Loading..."
+                              : isFollowing
+                                ? "Following"
+                                : "Follow"}
+                          </span>
+                          {isFollowing && !followLoading && (
+                            <span className="hidden group-hover:inline">
+                              Unfollow
+                            </span>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
 

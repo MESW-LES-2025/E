@@ -10,6 +10,40 @@ import "@testing-library/jest-dom";
 import EventModal from "../../components/EventModal";
 import { cancelEventRequest, uncancelEventRequest } from "../../lib/events";
 
+// Mock next/navigation
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockBack = jest.fn();
+const mockPathname = "/";
+const mockQuery = {};
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: mockBack,
+    pathname: mockPathname,
+    query: mockQuery,
+  }),
+  usePathname: () => mockPathname,
+  useParams: () => mockQuery,
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock getProfile
+jest.mock("../../lib/profiles", () => ({
+  getProfile: jest.fn().mockResolvedValue({ role: "ATTENDEE" }),
+}));
+
+// Mock getOrganization
+jest.mock("../../lib/organizations", () => ({
+  getOrganization: jest.fn().mockResolvedValue({
+    id: 1,
+    name: "Test Organization",
+    is_following: false,
+  }),
+}));
+
 // Relative path
 jest.mock("../../lib/events", () => ({
   cancelEventRequest: jest.fn(),
@@ -21,6 +55,7 @@ jest.mock("../../lib/events", () => ({
 jest.mock("../../lib/auth", () => ({
   fetchWithAuth: (url: string, options?: RequestInit) =>
     global.fetch(url, options),
+  isAuthenticated: jest.fn().mockReturnValue(false),
 }));
 
 const mockEventActive = {

@@ -153,17 +153,21 @@ class UpcomingEventsListView(generics.ListAPIView):
 
     def get_queryset(self):
         now = timezone.now()
-        queryset = Event.objects.filter(date__gte=now).order_by("date")
-
-        categories = self.request.query_params.getlist("category", [])
-        if categories:
-            queryset = queryset.filter(category__in=categories)
-
         date_filter = self.request.query_params.get("date_filter", None)
+
+        # Base filters
+        base_filters = {
+            "organization__isnull": False,
+            "status": "Active",
+        }
+
+        # Handle date filtering
         if date_filter == "today":
             start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
             end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-            queryset = queryset.filter(date__gte=start_of_day, date__lte=end_of_day)
+            # For today, we want events that are today AND in the future
+            base_filters["date__gte"] = now
+            base_filters["date__lte"] = end_of_day
         elif date_filter == "tomorrow":
             tomorrow_start = (now + timedelta(days=1)).replace(
                 hour=0, minute=0, second=0, microsecond=0
@@ -171,14 +175,29 @@ class UpcomingEventsListView(generics.ListAPIView):
             tomorrow_end = tomorrow_start.replace(
                 hour=23, minute=59, second=59, microsecond=999999
             )
-            queryset = queryset.filter(date__gte=tomorrow_start, date__lte=tomorrow_end)
+            base_filters["date__gte"] = tomorrow_start
+            base_filters["date__lte"] = tomorrow_end
         elif date_filter == "this_week":
             start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
             days_until_sunday = (6 - now.weekday()) % 7
             end_of_week = (now + timedelta(days=days_until_sunday)).replace(
                 hour=23, minute=59, second=59, microsecond=999999
             )
-            queryset = queryset.filter(date__gte=start_of_day, date__lte=end_of_week)
+            base_filters["date__gte"] = start_of_day
+            base_filters["date__lte"] = end_of_week
+        else:
+            # Default: only future events
+            base_filters["date__gte"] = now
+
+        queryset = (
+            Event.objects.filter(**base_filters)
+            .select_related("organization", "organizer")
+            .order_by("date")
+        )
+
+        categories = self.request.query_params.getlist("category", [])
+        if categories:
+            queryset = queryset.filter(category__in=categories)
 
         date_from = self.request.query_params.get("date_from", None)
         date_to = self.request.query_params.get("date_to", None)

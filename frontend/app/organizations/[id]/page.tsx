@@ -11,12 +11,16 @@ import {
   getCollaborators,
   addCollaborator,
   removeCollaborator,
+  followOrganization,
+  unfollowOrganization,
   type Organization,
   type PublicOrganization,
   type OrganizationEvent,
   type UserSearchResult,
   type Collaborator,
 } from "@/lib/organizations";
+import { isAuthenticated } from "@/lib/auth";
+import { getProfile } from "@/lib/profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EventModal from "@/components/EventModal";
@@ -65,6 +69,9 @@ export default function OrganizationDetailPage() {
   const [collaboratorError, setCollaboratorError] = useState<string | null>(
     null,
   );
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -75,6 +82,19 @@ export default function OrganizationDetailPage() {
       setReferrer(storedReferrer);
       // Don't remove it here - only remove when back button is clicked
       // This allows it to persist if we navigate back to this page after creating an event
+    }
+
+    // Fetch user profile to check role
+    if (isAuthenticated()) {
+      getProfile()
+        .then((profile) => {
+          if (profile) {
+            setUserRole(profile.role);
+          }
+        })
+        .catch(() => {
+          // Silently fail
+        });
     }
   }, []);
 
@@ -103,6 +123,8 @@ export default function OrganizationDetailPage() {
         setIsOwner("owner_id" in orgData);
         // Check if user is a collaborator
         setIsCollaborator(orgData.is_collaborator || false);
+        // Check if user is following
+        setIsFollowing(orgData.is_following || false);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load organization",
@@ -165,7 +187,9 @@ export default function OrganizationDetailPage() {
         const results = await searchUsers(searchQuery);
         // Filter out users who are already collaborators or the owner
         const ownerId =
-          "owner_id" in organization ? organization.owner_id : null;
+          organization && "owner_id" in organization
+            ? organization.owner_id
+            : null;
         const filteredResults = results.filter(
           (user) =>
             user.id !== ownerId &&
@@ -230,6 +254,45 @@ export default function OrganizationDetailPage() {
     return typeMap[type] || type;
   };
 
+  const handleFollowToggle = async () => {
+    // Check if user is authenticated
+    if (!isAuthenticated()) {
+      // Store current pathname to return after login
+      sessionStorage.setItem("login_redirect", window.location.pathname);
+      router.push("/profile/login");
+      return;
+    }
+
+    try {
+      setFollowLoading(true);
+      if (isFollowing) {
+        await unfollowOrganization(id);
+        setIsFollowing(false);
+        // Update organization state
+        if (organization) {
+          setOrganization({ ...organization, is_following: false });
+        }
+      } else {
+        await followOrganization(id);
+        setIsFollowing(true);
+        // Update organization state
+        if (organization) {
+          setOrganization({ ...organization, is_following: true });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle follow:", err);
+      // Show error to user (could add toast notification here)
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to update follow status. Please try again.",
+      );
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   if (!mounted || loading) {
     return (
       <div className="container mx-auto p-8 max-w-4xl">
@@ -287,20 +350,41 @@ export default function OrganizationDetailPage() {
         >
           ← Back
         </Button>
-        {isOwner && (
-          <Button asChild>
-            <Link
-              href={`/organizations/${id}/edit`}
-              onClick={() => {
-                if (referrer) {
-                  sessionStorage.setItem("org_edit_referrer", referrer);
-                }
-              }}
+        <div className="flex gap-2">
+          {userRole === "ATTENDEE" && (
+            <Button
+              variant={isFollowing ? "outline" : "default"}
+              onClick={handleFollowToggle}
+              disabled={followLoading}
+              className="group relative"
             >
-              Edit Organization
-            </Link>
-          </Button>
-        )}
+              <span className={isFollowing ? "group-hover:hidden" : ""}>
+                {followLoading
+                  ? "Loading..."
+                  : isFollowing
+                    ? "Following"
+                    : "Follow Organization"}
+              </span>
+              {isFollowing && !followLoading && (
+                <span className="hidden group-hover:inline">Unfollow</span>
+              )}
+            </Button>
+          )}
+          {isOwner && (
+            <Button asChild>
+              <Link
+                href={`/organizations/${id}/edit`}
+                onClick={() => {
+                  if (referrer) {
+                    sessionStorage.setItem("org_edit_referrer", referrer);
+                  }
+                }}
+              >
+                Edit Organization
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="mb-6">
