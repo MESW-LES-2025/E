@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchWithAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cancelEventRequest, uncancelEventRequest } from "@/lib/events";
 import { getOrganization } from "@/lib/organizations";
 
@@ -29,6 +30,7 @@ interface Event {
   is_participating: boolean;
   capacity: number | null;
   is_full: boolean;
+  category: string;
 }
 
 interface User {
@@ -39,6 +41,21 @@ interface User {
   last_name: string;
   role: string;
 }
+
+const CATEGORY_COLORS: Record<string, string> = {
+  SOCIAL: "bg-blue-500 text-white",
+  ACADEMIC: "bg-green-500 text-white",
+  TRAVEL: "bg-yellow-500 text-black",
+  SPORTS: "bg-red-500 text-white",
+  CULTURAL: "bg-purple-500 text-white",
+  VOLUNTEERING: "bg-teal-500 text-white",
+  NIGHTLIFE: "bg-pink-500 text-white",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  Active: "bg-green-500 text-white",
+  Cancelled: "bg-red-500 text-white",
+};
 
 export default function EventModal({ id, onClose }: Props) {
   const [event, setEvent] = useState<Event | null>(null);
@@ -246,17 +263,27 @@ export default function EventModal({ id, onClose }: Props) {
               >
                 {event.name}
               </h2>
-              {event.status && (
-                <div className="mb-8">
-                  <span
-                    className={`px-3 py-1 text-sm font-semibold text-white rounded-full ${
-                      event.status === "Active" ? "bg-green-500" : "bg-red-500"
-                    }`}
+              <div className="flex items-center gap-2 mb-8">
+                {event.category && (
+                  <Badge
+                    className={
+                      CATEGORY_COLORS[event.category] ||
+                      "bg-gray-500 text-white"
+                    }
+                  >
+                    {event.category}
+                  </Badge>
+                )}
+                {event.status && (
+                  <Badge
+                    className={
+                      STATUS_COLORS[event.status] || "bg-gray-500 text-white"
+                    }
                   >
                     {event.status}
-                  </span>
-                </div>
-              )}
+                  </Badge>
+                )}
+              </div>
 
               <div className="space-y-6">
                 <div>

@@ -166,6 +166,7 @@ class EventSerializerTest(TestCase):
             "location",
             "description",
             "capacity",
+            "category",
             "organizer",
             "organizer_name",
             "organization",
@@ -328,6 +329,7 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
 
 class UpcomingEventsListViewTest(APITestCase):
     def setUp(self):
+        Event.objects.all().delete()
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="pass123")
         self.user.profile.role = Profile.Role.ORGANIZER
@@ -338,6 +340,10 @@ class UpcomingEventsListViewTest(APITestCase):
         )
 
         self.url = reverse("upcoming-events")
+
+    def tearDown(self):
+        Event.objects.all().delete()
+        User.objects.filter(username="testuser").delete()
 
     def test_list_upcoming_events(self):
         """Test listing only upcoming events"""
@@ -385,6 +391,352 @@ class UpcomingEventsListViewTest(APITestCase):
         self.assertEqual(response.data[0]["name"], "Event 1 Day")
         self.assertEqual(response.data[1]["name"], "Event 3 Days")
 
+    def test_filter_by_single_category(self):
+        """Test filtering events by single category"""
+        Event.objects.create(
+            name="Social Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="SOCIAL",
+        )
+        Event.objects.create(
+            name="Sports Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="SPORTS",
+        )
+
+        response = self.client.get(self.url, {"category": "SOCIAL"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["category"], "SOCIAL")
+
+    def test_filter_by_multiple_categories(self):
+        """Test filtering events by multiple categories"""
+        Event.objects.create(
+            name="Social Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="SOCIAL",
+        )
+        Event.objects.create(
+            name="Sports Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="SPORTS",
+        )
+        Event.objects.create(
+            name="Academic Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="ACADEMIC",
+        )
+
+        response = self.client.get(self.url, {"category": ["SOCIAL", "SPORTS"]})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_filter_by_today(self):
+        """Test filtering events happening today"""
+        now = timezone.now()
+        today_event_time = now.replace(hour=now.hour) + timedelta(hours=2)
+        Event.objects.create(
+            name="Today Event",
+            date=today_event_time,
+            organizer=self.user,
+            organization=self.organization,
+        )
+        tomorrow_event_time = (now + timedelta(days=1)).replace(
+            hour=12, minute=0, second=0, microsecond=0
+        )
+        Event.objects.create(
+            name="Tomorrow Event",
+            date=tomorrow_event_time,
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"date_filter": "today"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "Today Event")
+
+    def test_filter_by_tomorrow(self):
+        """Test filtering events happening tomorrow"""
+        now = timezone.now()
+        today_event_time = now + timedelta(hours=2)
+        Event.objects.create(
+            name="Today Event",
+            date=today_event_time,
+            organizer=self.user,
+            organization=self.organization,
+        )
+        tomorrow_event_time = (now + timedelta(days=1)).replace(
+            hour=12, minute=0, second=0, microsecond=0
+        )
+        Event.objects.create(
+            name="Tomorrow Event",
+            date=tomorrow_event_time,
+            organizer=self.user,
+            organization=self.organization,
+        )
+        day_after_event_time = (now + timedelta(days=2)).replace(
+            hour=12, minute=0, second=0, microsecond=0
+        )
+        Event.objects.create(
+            name="Day After Event",
+            date=day_after_event_time,
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"date_filter": "tomorrow"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "Tomorrow Event")
+
+    def test_filter_by_this_week(self):
+        """Test filtering events happening this week"""
+        now = timezone.now()
+        this_week_event_time = (now + timedelta(days=2)).replace(
+            hour=12, minute=0, second=0, microsecond=0
+        )
+        Event.objects.create(
+            name="This Week Event",
+            date=this_week_event_time,
+            organizer=self.user,
+            organization=self.organization,
+        )
+        next_week_event_time = (now + timedelta(days=8)).replace(
+            hour=12, minute=0, second=0, microsecond=0
+        )
+        Event.objects.create(
+            name="Next Week Event",
+            date=next_week_event_time,
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"date_filter": "this_week"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event_names = [event["name"] for event in response.data]
+        self.assertIn("This Week Event", event_names)
+        self.assertNotIn("Next Week Event", event_names)
+
+    def test_filter_by_date_from(self):
+        """Test filtering events from a specific date"""
+        now = timezone.now()
+        target_date = (now + timedelta(days=5)).date()
+
+        Event.objects.create(
+            name="Before Target",
+            date=now + timedelta(days=2),
+            organizer=self.user,
+            organization=self.organization,
+        )
+        Event.objects.create(
+            name="After Target",
+            date=now + timedelta(days=7),
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"date_from": target_date.isoformat()})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "After Target")
+
+    def test_filter_by_date_to(self):
+        """Test filtering events up to a specific date"""
+        now = timezone.now()
+        target_date = (now + timedelta(days=5)).date()
+
+        Event.objects.create(
+            name="Before Target",
+            date=now + timedelta(days=2),
+            organizer=self.user,
+            organization=self.organization,
+        )
+        Event.objects.create(
+            name="After Target",
+            date=now + timedelta(days=7),
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"date_to": target_date.isoformat()})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "Before Target")
+
+    def test_filter_by_date_range(self):
+        """Test filtering events within a date range"""
+        now = timezone.now()
+        date_from = (now + timedelta(days=3)).date()
+        date_to = (now + timedelta(days=7)).date()
+
+        Event.objects.create(
+            name="Before Range",
+            date=now + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+        )
+        Event.objects.create(
+            name="In Range",
+            date=now + timedelta(days=5),
+            organizer=self.user,
+            organization=self.organization,
+        )
+        Event.objects.create(
+            name="After Range",
+            date=now + timedelta(days=10),
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(
+            self.url,
+            {"date_from": date_from.isoformat(), "date_to": date_to.isoformat()},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "In Range")
+
+    def test_search_by_name(self):
+        """Test searching events by name"""
+        Event.objects.create(
+            name="Python Workshop",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+        )
+        Event.objects.create(
+            name="Java Meetup",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"search": "Python"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "Python Workshop")
+
+    def test_search_by_description(self):
+        """Test searching events by description"""
+        Event.objects.create(
+            name="Event 1",
+            description="Learn about machine learning",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+        )
+        Event.objects.create(
+            name="Event 2",
+            description="Web development basics",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"search": "machine learning"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_search_by_category(self):
+        """Test searching events by category"""
+        Event.objects.create(
+            name="Social Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="SOCIAL",
+        )
+        Event.objects.create(
+            name="Sports Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="SPORTS",
+        )
+
+        response = self.client.get(self.url, {"search": "social"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_search_case_insensitive(self):
+        """Test search is case insensitive"""
+        Event.objects.create(
+            name="Python Workshop",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+        )
+
+        response = self.client.get(self.url, {"search": "python"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+        response = self.client.get(self.url, {"search": "PYTHON"})
+        self.assertEqual(len(response.data), 1)
+
+    def test_combined_filters(self):
+        """Test combining multiple filters"""
+        now = timezone.now()
+        Event.objects.create(
+            name="Social Workshop",
+            description="Learn socializing",
+            date=now + timedelta(days=2),
+            organizer=self.user,
+            organization=self.organization,
+            category="SOCIAL",
+        )
+        Event.objects.create(
+            name="Sports Workshop",
+            date=now + timedelta(days=2),
+            organizer=self.user,
+            organization=self.organization,
+            category="SPORTS",
+        )
+        Event.objects.create(
+            name="Social Meetup",
+            date=now + timedelta(days=10),
+            organizer=self.user,
+            organization=self.organization,
+            category="SOCIAL",
+        )
+
+        response = self.client.get(
+            self.url,
+            {
+                "category": "SOCIAL",
+                "search": "Workshop",
+                "date_to": (now + timedelta(days=5)).date().isoformat(),
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["name"], "Social Workshop")
+
+    def test_no_results(self):
+        """Test filters return empty list when no matches"""
+        Event.objects.create(
+            name="Social Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
+            category="SOCIAL",
+        )
+
+        response = self.client.get(self.url, {"search": "NonexistentKeyword"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
 
 class CreateEventViewTest(APITestCase):
     def setUp(self):
@@ -406,6 +758,7 @@ class CreateEventViewTest(APITestCase):
             "name": "New Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
             "location": "Test Location",
+            "category": "SOCIAL",
             "organization": self.organization.id,
         }
         response = self.client.post(self.url, data)

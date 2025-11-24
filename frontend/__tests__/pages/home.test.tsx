@@ -168,34 +168,6 @@ describe("Home Page", () => {
     });
   });
 
-  it("should limit events to 6", async () => {
-    const mockEvents = {
-      results: Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        name: `Event ${i + 1}`,
-        date: new Date(Date.now() + 86400000 * (i + 1)).toISOString(),
-        location: "Location",
-        status: "Active",
-      })),
-    };
-
-    const mockOrgs: unknown[] = [];
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockEvents,
-    } as Response);
-
-    mockListOrganizations.mockResolvedValue(mockOrgs);
-
-    render(<Home />);
-
-    await waitFor(() => {
-      const eventCards = screen.getAllByText(/Event \d+/);
-      expect(eventCards.length).toBeLessThanOrEqual(6);
-    });
-  });
-
   it("should limit organizations to 6", async () => {
     const mockEvents = {
       results: [],

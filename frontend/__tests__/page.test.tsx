@@ -18,7 +18,7 @@ describe("Home Page", () => {
     mockListOrganizations.mockResolvedValue([]);
   });
 
-  it("shows 'No upcoming events' when no events exist", async () => {
+  it("shows 'No events found matching your filters' when no events exist", async () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
@@ -29,7 +29,7 @@ describe("Home Page", () => {
     render(<Home />);
     await waitFor(() => {
       expect(
-        screen.getByText("No events are available at the moment."),
+        screen.getByText("No events found matching your filters"),
       ).toBeInTheDocument();
     });
   });
@@ -75,7 +75,7 @@ describe("Home Page", () => {
 
       render(<Home />);
       await waitFor(() => {
-        expect(screen.getByText(/Error/)).toBeInTheDocument();
+        expect(screen.getByText(/Could not load events/)).toBeInTheDocument();
       });
     } finally {
       consoleSpy.mockRestore();

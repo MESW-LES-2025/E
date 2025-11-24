@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
@@ -150,13 +153,49 @@ class UpcomingEventsListView(generics.ListAPIView):
 
     def get_queryset(self):
         now = timezone.now()
-        return (
-            Event.objects.filter(
-                date__gte=now, status="Active", organization__isnull=False
+        queryset = Event.objects.filter(date__gte=now).order_by("date")
+
+        categories = self.request.query_params.getlist("category", [])
+        if categories:
+            queryset = queryset.filter(category__in=categories)
+
+        date_filter = self.request.query_params.get("date_filter", None)
+        if date_filter == "today":
+            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            queryset = queryset.filter(date__gte=start_of_day, date__lte=end_of_day)
+        elif date_filter == "tomorrow":
+            tomorrow_start = (now + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
             )
-            .select_related("organization", "organizer")
-            .order_by("date")
-        )
+            tomorrow_end = tomorrow_start.replace(
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+            queryset = queryset.filter(date__gte=tomorrow_start, date__lte=tomorrow_end)
+        elif date_filter == "this_week":
+            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            days_until_sunday = (6 - now.weekday()) % 7
+            end_of_week = (now + timedelta(days=days_until_sunday)).replace(
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+            queryset = queryset.filter(date__gte=start_of_day, date__lte=end_of_week)
+
+        date_from = self.request.query_params.get("date_from", None)
+        date_to = self.request.query_params.get("date_to", None)
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date__lte=f"{date_to} 23:59:59")
+
+        search = self.request.query_params.get("search", None)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(description__icontains=search)
+                | Q(category__icontains=search)
+            )
+
+        return queryset
 
 
 class PastEventsListView(generics.ListAPIView):

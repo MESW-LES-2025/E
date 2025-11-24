@@ -40,6 +40,16 @@ type OrganizedEventsByOrg = {
   [organizationName: string]: Event[];
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  SOCIAL: "bg-blue-500 text-white",
+  ACADEMIC: "bg-green-500 text-white",
+  TRAVEL: "bg-yellow-500 text-black",
+  SPORTS: "bg-red-500 text-white",
+  CULTURAL: "bg-purple-500 text-white",
+  VOLUNTEERING: "bg-teal-500 text-white",
+  NIGHTLIFE: "bg-pink-500 text-white",
+};
+
 export default function MyEventsPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -68,6 +78,7 @@ export default function MyEventsPage() {
     location: "",
     description: "",
     capacity: "",
+    category: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formSubmitError, setFormSubmitError] = useState<string>("");
@@ -223,19 +234,28 @@ export default function MyEventsPage() {
       key={event.id}
       className="hover:shadow-lg transition-shadow relative flex flex-col"
     >
-      {event.status && (
+      <div className="absolute top-2 right-2 flex items-center gap-2 z-10">
         <span
-          className={`absolute top-2 right-2 text-white text-xs px-2 py-1 rounded-md z-10 font-semibold ${
-            event.status === "Active"
-              ? "bg-green-500"
-              : event.status === "Cancelled" || event.status === "Canceled"
-                ? "bg-red-500"
-                : "bg-gray-500"
+          className={`px-2 py-1 text-xs font-semibold rounded-md ${
+            CATEGORY_COLORS[event.category] || "bg-gray-500 text-white"
           }`}
         >
-          {event.status}
+          {event.category}
         </span>
-      )}
+        {event.status && (
+          <span
+            className={`text-white text-xs px-2 py-1 rounded-md font-semibold ${
+              event.status === "Active"
+                ? "bg-green-500"
+                : event.status === "Cancelled" || event.status === "Canceled"
+                  ? "bg-red-500"
+                  : "bg-gray-500"
+            }`}
+          >
+            {event.status}
+          </span>
+        )}
+      </div>
 
       <CardHeader>
         <CardTitle className="line-clamp-2">{event.name}</CardTitle>
@@ -415,6 +435,7 @@ export default function MyEventsPage() {
         location: "",
         description: "",
         capacity: "",
+        category: "",
       });
       setFormErrors({});
       setFormSubmitError("");
@@ -499,116 +520,161 @@ export default function MyEventsPage() {
                       </FieldContent>
                     </Field>
 
-                    <Field className="mb-4">
-                      <FieldLabel>
-                        Name <span className="text-destructive">*</span>
-                      </FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => {
-                            setFormData({ ...formData, name: e.target.value });
-                            setFormErrors({ ...formErrors, name: "" });
-                            setFormSubmitError("");
-                          }}
-                        />
-                      </FieldContent>
-                      {formErrors.name && (
-                        <FieldError>{formErrors.name}</FieldError>
-                      )}
-                    </Field>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                      <Field>
+                        <FieldLabel>
+                          Name <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                name: e.target.value,
+                              });
+                              setFormErrors({ ...formErrors, name: "" });
+                              setFormSubmitError("");
+                            }}
+                          />
+                        </FieldContent>
+                        {formErrors.name && (
+                          <FieldError>{formErrors.name}</FieldError>
+                        )}
+                      </Field>
 
-                    <Field className="mb-4">
-                      <FieldLabel>
-                        Date and Time{" "}
-                        <span className="text-destructive">*</span>
-                      </FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="datetime-local"
-                          value={formData.date}
-                          onChange={(e) => {
-                            setFormData({ ...formData, date: e.target.value });
-                            setFormErrors({ ...formErrors, date: "" });
-                            setFormSubmitError("");
-                          }}
-                        />
-                      </FieldContent>
-                      {formErrors.date && (
-                        <FieldError>{formErrors.date}</FieldError>
-                      )}
-                    </Field>
+                      <Field>
+                        <FieldLabel>
+                          Date and Time{" "}
+                          <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="datetime-local"
+                            value={formData.date}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                date: e.target.value,
+                              });
+                              setFormErrors({ ...formErrors, date: "" });
+                              setFormSubmitError("");
+                            }}
+                          />
+                        </FieldContent>
+                        {formErrors.date && (
+                          <FieldError>{formErrors.date}</FieldError>
+                        )}
+                      </Field>
 
-                    <Field className="mb-4">
-                      <FieldLabel>
-                        Location <span className="text-destructive">*</span>
-                      </FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="text"
-                          value={formData.location}
-                          onChange={(e) => {
-                            setFormData({
-                              ...formData,
-                              location: e.target.value,
-                            });
-                            setFormErrors({ ...formErrors, location: "" });
-                            setFormSubmitError("");
-                          }}
-                        />
-                      </FieldContent>
-                      {formErrors.location && (
-                        <FieldError>{formErrors.location}</FieldError>
-                      )}
-                    </Field>
+                      <Field>
+                        <FieldLabel>
+                          Location <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="text"
+                            value={formData.location}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                location: e.target.value,
+                              });
+                              setFormErrors({ ...formErrors, location: "" });
+                              setFormSubmitError("");
+                            }}
+                          />
+                        </FieldContent>
+                        {formErrors.location && (
+                          <FieldError>{formErrors.location}</FieldError>
+                        )}
+                      </Field>
 
-                    <Field className="mb-4">
-                      <FieldLabel>Maximum Capacity</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="number"
-                          placeholder="Unlimited if blank"
-                          value={formData.capacity}
-                          onChange={(e) => {
-                            setFormData({
-                              ...formData,
-                              capacity: e.target.value,
-                            });
-                            setFormErrors({ ...formErrors, capacity: "" });
-                            setFormSubmitError("");
-                          }}
-                        />
-                      </FieldContent>
-                      {formErrors.capacity && (
-                        <FieldError>{formErrors.capacity}</FieldError>
-                      )}
-                    </Field>
+                      <Field>
+                        <FieldLabel>
+                          Category <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <FieldContent>
+                          <Select
+                            value={formData.category}
+                            onValueChange={(value) => {
+                              setFormData({ ...formData, category: value });
+                              setFormErrors({ ...formErrors, category: "" });
+                              setFormSubmitError("");
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="SOCIAL">Social</SelectItem>
+                              <SelectItem value="ACADEMIC">Academic</SelectItem>
+                              <SelectItem value="TRAVEL">Travel</SelectItem>
+                              <SelectItem value="SPORTS">Sports</SelectItem>
+                              <SelectItem value="CULTURAL">Cultural</SelectItem>
+                              <SelectItem value="VOLUNTEERING">
+                                Volunteering
+                              </SelectItem>
+                              <SelectItem value="NIGHTLIFE">
+                                Nightlife
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FieldContent>
+                        {formErrors.category && (
+                          <FieldError>{formErrors.category}</FieldError>
+                        )}
+                      </Field>
 
-                    <Field className="mb-4">
-                      <FieldLabel>
-                        Description <span className="text-destructive">*</span>
-                      </FieldLabel>
-                      <FieldContent>
-                        <textarea
-                          className="w-full p-2 border rounded"
-                          value={formData.description}
-                          onChange={(e) => {
-                            setFormData({
-                              ...formData,
-                              description: e.target.value,
-                            });
-                            setFormErrors({ ...formErrors, description: "" });
-                            setFormSubmitError("");
-                          }}
-                        />
-                      </FieldContent>
-                      {formErrors.description && (
-                        <FieldError>{formErrors.description}</FieldError>
-                      )}
-                    </Field>
+                      <Field>
+                        <FieldLabel>Maximum Capacity</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="number"
+                            placeholder="Unlimited if blank"
+                            value={formData.capacity}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                capacity: e.target.value,
+                              });
+                              setFormErrors({ ...formErrors, capacity: "" });
+                              setFormSubmitError("");
+                            }}
+                          />
+                        </FieldContent>
+                        {formErrors.capacity && (
+                          <FieldError>{formErrors.capacity}</FieldError>
+                        )}
+                      </Field>
 
-                    <div className="flex gap-4">
+                      <Field className="md:col-span-2">
+                        <FieldLabel>
+                          Description{" "}
+                          <span className="text-destructive">*</span>
+                        </FieldLabel>
+                        <FieldContent>
+                          <textarea
+                            className="w-full p-2 border rounded min-h-[100px]"
+                            value={formData.description}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                description: e.target.value,
+                              });
+                              setFormErrors({ ...formErrors, description: "" });
+                              setFormSubmitError("");
+                            }}
+                          />
+                        </FieldContent>
+                        {formErrors.description && (
+                          <FieldError>{formErrors.description}</FieldError>
+                        )}
+                      </Field>
+                    </div>
+
+                    <div className="flex gap-4 mt-6">
                       <Button type="submit" disabled={formSubmitting}>
                         {formSubmitting ? "Creating..." : "Create Event"}
                       </Button>
@@ -623,6 +689,7 @@ export default function MyEventsPage() {
                             location: "",
                             description: "",
                             capacity: "",
+                            category: "",
                           });
                           setFormErrors({});
                           setFormSubmitError("");

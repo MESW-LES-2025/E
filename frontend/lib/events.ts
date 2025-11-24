@@ -17,6 +17,7 @@ export interface Event {
   created_by?: string;
   organization_id?: number;
   organization_name?: string;
+  category: string;
 }
 
 export async function cancelEventRequest(eventId: number) {

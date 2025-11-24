@@ -19,10 +19,21 @@ class Event(models.Model):
         ("Cancelled", "Cancelled"),
     ]
 
+    CATEGORY_CHOICES = [
+        ("SOCIAL", "Social"),
+        ("ACADEMIC", "Academic"),
+        ("TRAVEL", "Travel"),
+        ("SPORTS", "Sports"),
+        ("CULTURAL", "Cultural"),
+        ("VOLUNTEERING", "Volunteering"),
+        ("NIGHTLIFE", "Nightlife"),
+    ]
+
     name = models.CharField(max_length=100)
     date = models.DateTimeField()
     location = models.CharField(max_length=300, blank=True, null=True)
     description = models.CharField(max_length=300, blank=True, null=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     organizer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
