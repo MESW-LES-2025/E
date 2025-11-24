@@ -267,3 +267,52 @@ class OrganizationViewSet(ModelViewSet):
         collaborators = organization.collaborators.all()
         serializer = UserSerializer(collaborators, many=True)
         return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        permission_classes=[IsAuthenticated],
+        url_path="follow",
+    )
+    def manage_follow(self, request, pk=None):
+        """Follow or unfollow an organization"""
+        organization = self.get_object()
+
+        if request.method == "POST":
+            # Follow organization
+            if organization.followers.filter(pk=request.user.pk).exists():
+                return Response(
+                    {"detail": "You are already following this organization"},
+                    status=400,
+                )
+            organization.followers.add(request.user)
+            return Response(
+                {"detail": "Organization followed successfully"}, status=200
+            )
+        else:  # DELETE
+            # Unfollow organization
+            if not organization.followers.filter(pk=request.user.pk).exists():
+                return Response(
+                    {"detail": "You are not following this organization"}, status=400
+                )
+            organization.followers.remove(request.user)
+            return Response(
+                {"detail": "Organization unfollowed successfully"}, status=200
+            )
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsAuthenticated],
+        url_path="followed",
+    )
+    def followed(self, request):
+        """Get all organizations the current user is following"""
+        followed_organizations = Organization.objects.filter(
+            followers=request.user
+        ).select_related("owner")
+
+        serializer = PublicOrganizationSerializer(
+            followed_organizations, many=True, context={"request": request}
+        )
+        return Response(serializer.data)
