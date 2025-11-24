@@ -356,12 +356,18 @@ export default function OrganizationDetailPage() {
               variant={isFollowing ? "outline" : "default"}
               onClick={handleFollowToggle}
               disabled={followLoading}
+              className="group relative"
             >
-              {followLoading
-                ? "Loading..."
-                : isFollowing
-                  ? "Following"
-                  : "Follow Organization"}
+              <span className={isFollowing ? "group-hover:hidden" : ""}>
+                {followLoading
+                  ? "Loading..."
+                  : isFollowing
+                    ? "Following"
+                    : "Follow Organization"}
+              </span>
+              {isFollowing && !followLoading && (
+                <span className="hidden group-hover:inline">Unfollow</span>
+              )}
             </Button>
           )}
           {isOwner && (

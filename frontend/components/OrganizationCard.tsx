@@ -153,13 +153,18 @@ export default function OrganizationCard({
             size="sm"
             onClick={handleFollowToggle}
             disabled={followLoading}
-            className="w-full"
+            className="w-full group relative"
           >
-            {followLoading
-              ? "Loading..."
-              : isFollowing
-                ? "Following"
-                : "Follow"}
+            <span className={isFollowing ? "group-hover:hidden" : ""}>
+              {followLoading
+                ? "Loading..."
+                : isFollowing
+                  ? "Following"
+                  : "Follow"}
+            </span>
+            {isFollowing && !followLoading && (
+              <span className="hidden group-hover:inline">Unfollow</span>
+            )}
           </Button>
         )}
       </CardFooter>

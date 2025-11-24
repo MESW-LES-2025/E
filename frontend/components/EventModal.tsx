@@ -440,13 +440,22 @@ export default function EventModal({ id, onClose }: Props) {
                           size="sm"
                           onClick={handleFollowToggle}
                           disabled={followLoading}
-                          className="whitespace-nowrap"
+                          className="whitespace-nowrap group relative"
                         >
-                          {followLoading
-                            ? "Loading..."
-                            : isFollowing
-                              ? "Following"
-                              : "Follow"}
+                          <span
+                            className={isFollowing ? "group-hover:hidden" : ""}
+                          >
+                            {followLoading
+                              ? "Loading..."
+                              : isFollowing
+                                ? "Following"
+                                : "Follow"}
+                          </span>
+                          {isFollowing && !followLoading && (
+                            <span className="hidden group-hover:inline">
+                              Unfollow
+                            </span>
+                          )}
                         </Button>
                       )}
                     </div>
