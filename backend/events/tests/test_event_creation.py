@@ -444,12 +444,36 @@ class UpcomingEventsListViewTest(APITestCase):
     def test_filter_by_today(self):
         """Test filtering events happening today"""
         now = timezone.now()
-        today_event_time = now.replace(hour=now.hour) + timedelta(hours=2)
+        # Ensure event is today and in the future
+        # Use noon today if it's still in the future, otherwise use a time later today
+        noon_today = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        # Choose a time that's definitely today and in the future
+        if noon_today > now:
+            today_event_time = noon_today
+        elif now.hour < 20:
+            # If before 20:00, use now + 1 hour (should still be today)
+            today_event_time = now + timedelta(hours=1)
+            # If that pushes to tomorrow, use 20:00 today
+            if today_event_time.date() > now.date():
+                today_event_time = now.replace(
+                    hour=20, minute=0, second=0, microsecond=0
+                )
+        else:
+            # If 20:00 or later, use end of day minus 30 minutes
+            today_event_time = end_of_day - timedelta(minutes=30)
+
+        # Ensure it's in the future
+        if today_event_time <= now:
+            today_event_time = now + timedelta(minutes=5)
+
         Event.objects.create(
             name="Today Event",
             date=today_event_time,
             organizer=self.user,
             organization=self.organization,
+            category="SOCIAL",
         )
         tomorrow_event_time = (now + timedelta(days=1)).replace(
             hour=12, minute=0, second=0, microsecond=0
@@ -459,6 +483,7 @@ class UpcomingEventsListViewTest(APITestCase):
             date=tomorrow_event_time,
             organizer=self.user,
             organization=self.organization,
+            category="SOCIAL",
         )
 
         response = self.client.get(self.url, {"date_filter": "today"})
@@ -469,12 +494,27 @@ class UpcomingEventsListViewTest(APITestCase):
     def test_filter_by_tomorrow(self):
         """Test filtering events happening tomorrow"""
         now = timezone.now()
-        today_event_time = now + timedelta(hours=2)
+        # Create today event that's definitely today (use noon if late in day)
+        if now.hour >= 22:
+            today_event_time = now.replace(hour=14, minute=0, second=0, microsecond=0)
+            if today_event_time <= now:
+                today_event_time = now + timedelta(hours=1)
+                if today_event_time.date() > now.date():
+                    today_event_time = now.replace(
+                        hour=now.hour - 1, minute=0, second=0, microsecond=0
+                    )
+        else:
+            today_event_time = now + timedelta(hours=2)
+            if today_event_time.date() > now.date():
+                today_event_time = now.replace(
+                    hour=14, minute=0, second=0, microsecond=0
+                )
         Event.objects.create(
             name="Today Event",
             date=today_event_time,
             organizer=self.user,
             organization=self.organization,
+            category="SOCIAL",
         )
         tomorrow_event_time = (now + timedelta(days=1)).replace(
             hour=12, minute=0, second=0, microsecond=0
@@ -484,6 +524,7 @@ class UpcomingEventsListViewTest(APITestCase):
             date=tomorrow_event_time,
             organizer=self.user,
             organization=self.organization,
+            category="SOCIAL",
         )
         day_after_event_time = (now + timedelta(days=2)).replace(
             hour=12, minute=0, second=0, microsecond=0
@@ -493,6 +534,7 @@ class UpcomingEventsListViewTest(APITestCase):
             date=day_after_event_time,
             organizer=self.user,
             organization=self.organization,
+            category="SOCIAL",
         )
 
         response = self.client.get(self.url, {"date_filter": "tomorrow"})
