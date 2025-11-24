@@ -40,6 +40,12 @@ class Event(models.Model):
         related_name="organized_events",
         default=get_default_organizer,
     )
+    organization = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="events",
+        null=False,
+    )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
     capacity = models.IntegerField(blank=True, null=True)
 

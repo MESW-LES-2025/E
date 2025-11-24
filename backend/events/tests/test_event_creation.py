@@ -7,6 +7,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+from accounts.models import Organization, Profile
+
 from ..models import Event
 from ..serializers import EventSerializer
 
@@ -22,21 +24,32 @@ class EventModelTest(TestCase):
             "default_admin", "admin@example.com", "password"
         )
         cls.user = User.objects.create_user(username="testuser", password="password123")
+        cls.user.profile.role = Profile.Role.ORGANIZER
+        cls.user.profile.save()
+
+        cls.organization = Organization.objects.create(
+            name="Test Organization", owner=cls.user
+        )
 
     def test_event_creation(self):
         event = Event.objects.create(
-            name="Test Event", date="2024-01-01T10:00:00Z", organizer=self.user
+            name="Test Event",
+            date="2024-01-01T10:00:00Z",
+            organizer=self.user,
+            organization=self.organization,
         )
         self.assertEqual(event.name, "Test Event")
         self.assertEqual(str(event), "Test Event")
         self.assertEqual(event.organizer, self.user)
         self.assertEqual(event.status, "Active")
 
-    # Remove test after implement that only organizers can create events
     def test_event_default_organizer(self):
         """Test that default organizer is set to superuser"""
+        org = Organization.objects.create(name="Super Org", owner=self.superuser)
         event = Event.objects.create(
-            name="Event Without Organizer", date=timezone.now() + timedelta(days=1)
+            name="Event Without Organizer",
+            date=timezone.now() + timedelta(days=1),
+            organization=org,
         )
         self.assertEqual(event.organizer, self.superuser)
 
@@ -47,6 +60,7 @@ class EventModelTest(TestCase):
             name="Cancelled Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             status="Cancelled",
         )
         self.assertEqual(event_cancelled.status, "Cancelled")
@@ -56,6 +70,7 @@ class EventModelTest(TestCase):
             name="Active Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             status="Active",
         )
         self.assertEqual(event_active.status, "Active")
@@ -66,6 +81,7 @@ class EventModelTest(TestCase):
             name="Unlimited Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             capacity=0,
         )
         self.assertIsNone(event.capacity)
@@ -76,6 +92,7 @@ class EventModelTest(TestCase):
             name="Limited Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             capacity=10,
         )
         self.assertEqual(event.capacity, 10)
@@ -86,6 +103,7 @@ class EventModelTest(TestCase):
             name="Participant Test",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         user1 = User.objects.create_user(
             username="participant1",
@@ -109,6 +127,7 @@ class EventModelTest(TestCase):
             name="Minimal Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         self.assertIsNone(event.location)
         self.assertIsNone(event.description)
@@ -120,10 +139,18 @@ class EventSerializerTest(TestCase):
         self.user = User.objects.create_user(
             username="testuser", password="password123"
         )
+        self.user.profile.role = Profile.Role.ORGANIZER
+        self.user.profile.save()
+
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.user
+        )
+
         self.event = Event.objects.create(
             name="TestEvent",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
             capacity=5,
         )
 
@@ -142,12 +169,16 @@ class EventSerializerTest(TestCase):
             "category",
             "organizer",
             "organizer_name",
+            "organization",
+            "organization_id",
+            "organization_name",
             "status",
             "participant_count",
             "interested_users",
             "is_participating",
             "is_interested",
             "is_full",
+            "created_by",
         ]
         self.assertEqual(set(data.keys()), set(expected_fields))
 
@@ -228,15 +259,28 @@ class EventListCreateViewTest(APITestCase):
         Event.objects.all().delete()
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="pass123")
+        self.user.profile.role = Profile.Role.ORGANIZER
+        self.user.profile.save()
+
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.user
+        )
+
         self.url = reverse("all-events")
 
     def test_list_events(self):
         """Test listing all events"""
         Event.objects.create(
-            name="Event 1", date=timezone.now() + timedelta(days=1), organizer=self.user
+            name="Event 1",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
-            name="Event 2", date=timezone.now() + timedelta(days=1), organizer=self.user
+            name="Event 2",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url)
@@ -255,10 +299,18 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
         Event.objects.all().delete()
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="pass123")
+        self.user.profile.role = Profile.Role.ORGANIZER
+        self.user.profile.save()
+
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.user
+        )
+
         self.event = Event.objects.create(
             name="Test Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         self.url = reverse("event-detail", kwargs={"pk": self.event.pk})
 
@@ -280,6 +332,13 @@ class UpcomingEventsListViewTest(APITestCase):
         Event.objects.all().delete()
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="pass123")
+        self.user.profile.role = Profile.Role.ORGANIZER
+        self.user.profile.save()
+
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.user
+        )
+
         self.url = reverse("upcoming-events")
 
     def tearDown(self):
@@ -293,17 +352,20 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Past Event",
             date=timezone.now() - timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         # Future events
         Event.objects.create(
             name="Future Event 1",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="Future Event 2",
             date=timezone.now() + timedelta(days=2),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url)
@@ -316,11 +378,13 @@ class UpcomingEventsListViewTest(APITestCase):
             name="Event 3 Days",
             date=timezone.now() + timedelta(days=3),
             organizer=self.user,
+            organization=self.organization,
         )
         Event.objects.create(
             name="Event 1 Day",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
+            organization=self.organization,
         )
 
         response = self.client.get(self.url)
@@ -648,6 +712,13 @@ class CreateEventViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(username="testuser", password="pass123")
+        self.user.profile.role = Profile.Role.ORGANIZER
+        self.user.profile.save()
+
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.user
+        )
+
         self.url = reverse("create_event")
 
     def test_create_event_authenticated(self):
@@ -658,6 +729,7 @@ class CreateEventViewTest(APITestCase):
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
             "location": "Test Location",
             "category": "SOCIAL",
+            "organization": self.organization.id,
         }
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -681,10 +753,18 @@ class ParticipateEventViewTest(APITestCase):
         self.organizer = User.objects.create_user(
             username="organizer", email="organizer@example.com", password="pass123"
         )
+        self.organizer.profile.role = Profile.Role.ORGANIZER
+        self.organizer.profile.save()
+
+        self.organization = Organization.objects.create(
+            name="Test Organization", owner=self.organizer
+        )
+
         self.event = Event.objects.create(
             name="Test Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.organizer,
+            organization=self.organization,
             capacity=2,
         )
         self.url = reverse("event-participate", kwargs={"pk": self.event.pk})

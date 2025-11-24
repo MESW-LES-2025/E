@@ -17,6 +17,7 @@ jest.mock("../../lib/events", () => ({
 }));
 
 // Mock fetchWithAuth (relative path)
+// Note: @testing-library/user-event is not needed for this test
 jest.mock("../../lib/auth", () => ({
   fetchWithAuth: (url: string, options?: RequestInit) =>
     global.fetch(url, options),
@@ -97,7 +98,8 @@ describe("EventModal Cancel/Reactivate Functionality", () => {
     const cancelBtn = await screen.findByRole("button", {
       name: /Cancel Event/i,
     });
-    await userEvent.click(cancelBtn);
+    const user = userEvent.setup();
+    await user.click(cancelBtn);
 
     const reactivateBtn = await screen.findByRole("button", {
       name: /Reactivate Event/i,
@@ -121,12 +123,13 @@ describe("EventModal Cancel/Reactivate Functionality", () => {
     const cancelBtn = await screen.findByRole("button", {
       name: /Cancel Event/i,
     });
-    await userEvent.click(cancelBtn);
+    const user = userEvent.setup();
+    await user.click(cancelBtn);
 
     const reactivateBtn = await screen.findByRole("button", {
       name: /Reactivate Event/i,
     });
-    await userEvent.click(reactivateBtn);
+    await user.click(reactivateBtn);
 
     const cancelBtnAfter = await screen.findByRole("button", {
       name: /Cancel Event/i,
