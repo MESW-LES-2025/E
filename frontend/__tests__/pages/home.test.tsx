@@ -3,9 +3,41 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import Home from "../../app/page";
 import { listOrganizations } from "../../lib/organizations";
 
+// Mock next/navigation
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockBack = jest.fn();
+const mockPathname = "/";
+const mockQuery = {};
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: mockBack,
+    pathname: mockPathname,
+    query: mockQuery,
+  }),
+  usePathname: () => mockPathname,
+  useParams: () => mockQuery,
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock getProfile for OrganizationCard
+jest.mock("../../lib/profiles", () => ({
+  getProfile: jest.fn().mockResolvedValue({ role: "ATTENDEE" }),
+}));
+
 // Mock organizations library
 jest.mock("../../lib/organizations", () => ({
   listOrganizations: jest.fn(),
+  followOrganization: jest.fn().mockResolvedValue(undefined),
+  unfollowOrganization: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock isAuthenticated for OrganizationCard
+jest.mock("../../lib/auth", () => ({
+  isAuthenticated: jest.fn().mockReturnValue(false),
 }));
 
 // Mock EventModal
