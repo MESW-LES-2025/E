@@ -33,6 +33,7 @@ export interface PublicOrganization {
   owner_name: string;
   event_count: number;
   is_following?: boolean;
+  is_collaborator?: boolean;
   created_at: string;
 }
 
