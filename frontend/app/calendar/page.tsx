@@ -5,11 +5,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/utils";
 import { ErasmusEvent } from "@/lib/types";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { isAuthenticated } from "@/lib/auth";
 import { fetchWithAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import EventModal from "@/components/EventModal";
+import EventCard from "@/components/EventCard";
 
 const EVENTS_ENDPOINT_BASE = "events";
 
@@ -230,33 +230,15 @@ export default function EventsCalendar() {
             </p>
             <div className="flex flex-wrap justify-center gap-4 max-h-[calc(100vh-13.5rem)] overflow-y-auto">
               {eventsForSelectedDay.map((event) => (
-                <Card
-                  key={event.id}
-                  className="shadow hover:shadow-lg transition w-full max-w-sm"
-                >
-                  <CardContent>
-                    <h3 className="text-xl font-semibold">{event.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      {new Date(event.date).toLocaleString()}
-                    </p>
-                    {event.location && (
-                      <p className="text-sm text-gray-700 mt-1">
-                        📍 {event.location}
-                      </p>
-                    )}
-                  </CardContent>
-                  <CardFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedEventId(String(event.id));
-                        setModalOpen(true);
-                      }}
-                    >
-                      View Details
-                    </Button>
-                  </CardFooter>
-                </Card>
+                <div key={event.id} className="w-full max-w-sm">
+                  <EventCard
+                    event={event}
+                    onViewDetails={(eventId) => {
+                      setSelectedEventId(eventId);
+                      setModalOpen(true);
+                    }}
+                  />
+                </div>
               ))}
             </div>
           </>

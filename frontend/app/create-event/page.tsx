@@ -9,6 +9,13 @@ import {
   FieldContent,
   FieldError,
 } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiRequest } from "@/lib/utils";
 import { isAuthenticated } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -33,6 +40,7 @@ export default function CreateEvent() {
     location: "",
     description: "",
     capacity: "",
+    category: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string>("");
@@ -88,6 +96,7 @@ export default function CreateEvent() {
         location: "",
         description: "",
         capacity: "",
+        category: "",
       });
       // Clear any previous errors
       setErrors({});
@@ -104,96 +113,129 @@ export default function CreateEvent() {
       <h1 className="text-2xl font-bold mb-6">Create New Event</h1>
 
       <form onSubmit={handleSubmit}>
-        <Field className="mb-4">
-          <FieldLabel>Name</FieldLabel>
-          <FieldContent>
-            <Input
-              type="text"
-              value={formData.name}
-              onChange={(e) => {
-                setFormData({ ...formData, name: e.target.value });
-                setErrors({ ...errors, name: "" });
-                setSubmitError("");
-                setSuccessMessage("");
-              }}
-            />
-          </FieldContent>
-          {errors.name && <FieldError>{errors.name}</FieldError>}
-        </Field>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <Field>
+            <FieldLabel>Name</FieldLabel>
+            <FieldContent>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  setErrors({ ...errors, name: "" });
+                  setSubmitError("");
+                  setSuccessMessage("");
+                }}
+              />
+            </FieldContent>
+            {errors.name && <FieldError>{errors.name}</FieldError>}
+          </Field>
 
-        <Field className="mb-4">
-          <FieldLabel>Date and Time</FieldLabel>
-          <FieldContent>
-            <Input
-              type="datetime-local"
-              value={formData.date}
-              onChange={(e) => {
-                setFormData({ ...formData, date: e.target.value });
-                setErrors({ ...errors, date: "" });
-                setSubmitError("");
-                setSuccessMessage("");
-              }}
-            />
-          </FieldContent>
-          {errors.date && <FieldError>{errors.date}</FieldError>}
-        </Field>
+          <Field>
+            <FieldLabel>Date and Time</FieldLabel>
+            <FieldContent>
+              <Input
+                type="datetime-local"
+                value={formData.date}
+                onChange={(e) => {
+                  setFormData({ ...formData, date: e.target.value });
+                  setErrors({ ...errors, date: "" });
+                  setSubmitError("");
+                  setSuccessMessage("");
+                }}
+              />
+            </FieldContent>
+            {errors.date && <FieldError>{errors.date}</FieldError>}
+          </Field>
 
-        <Field className="mb-4">
-          <FieldLabel>Location</FieldLabel>
-          <FieldContent>
-            <Input
-              type="text"
-              value={formData.location}
-              onChange={(e) => {
-                setFormData({ ...formData, location: e.target.value });
-                setErrors({ ...errors, location: "" });
-                setSubmitError("");
-                setSuccessMessage("");
-              }}
-            />
-          </FieldContent>
-          {errors.location && <FieldError>{errors.location}</FieldError>}
-        </Field>
+          <Field>
+            <FieldLabel>Location</FieldLabel>
+            <FieldContent>
+              <Input
+                type="text"
+                value={formData.location}
+                onChange={(e) => {
+                  setFormData({ ...formData, location: e.target.value });
+                  setErrors({ ...errors, location: "" });
+                  setSubmitError("");
+                  setSuccessMessage("");
+                }}
+              />
+            </FieldContent>
+            {errors.location && <FieldError>{errors.location}</FieldError>}
+          </Field>
 
-        <Field>
-          <FieldLabel>Maximum Capacity</FieldLabel>
-          <FieldContent>
-            <Input
-              className="mb-4"
-              type="number"
-              placeholder="Unlimited if blank"
-              value={formData.capacity}
-              onChange={(e) => {
-                setFormData({ ...formData, capacity: e.target.value });
-                setErrors({ ...errors, capacity: "" });
-                setSubmitError("");
-                setSuccessMessage("");
-              }}
-            />
-          </FieldContent>
-          {errors.capacity && <FieldError>{errors.capacity}</FieldError>}
-        </Field>
+          <Field>
+            <FieldLabel>Category</FieldLabel>
+            <FieldContent>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, category: value });
+                  setErrors({ ...errors, category: "" });
+                  setSubmitError("");
+                  setSuccessMessage("");
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent position="popper" side="bottom">
+                  <SelectItem value="SOCIAL">Social</SelectItem>
+                  <SelectItem value="ACADEMIC">Academic</SelectItem>
+                  <SelectItem value="TRAVEL">Travel</SelectItem>
+                  <SelectItem value="SPORTS">Sports</SelectItem>
+                  <SelectItem value="CULTURAL">Cultural</SelectItem>
+                  <SelectItem value="VOLUNTEERING">Volunteering</SelectItem>
+                  <SelectItem value="NIGHTLIFE">Nightlife</SelectItem>
+                </SelectContent>
+              </Select>
+            </FieldContent>
+            {errors.category && <FieldError>{errors.category}</FieldError>}
+          </Field>
 
-        <Field className="mb-4">
-          <FieldLabel>Description</FieldLabel>
-          <FieldContent>
-            <textarea
-              className="w-full p-2 border rounded"
-              value={formData.description}
-              onChange={(e) => {
-                setFormData({ ...formData, description: e.target.value });
-                setErrors({ ...errors, description: "" });
-                setSubmitError("");
-                setSuccessMessage("");
-              }}
-            />
-          </FieldContent>
-          {errors.description && <FieldError>{errors.description}</FieldError>}
-        </Field>
+          <Field>
+            <FieldLabel>Maximum Capacity</FieldLabel>
+            <FieldContent>
+              <Input
+                type="number"
+                placeholder="Unlimited if blank"
+                value={formData.capacity}
+                onChange={(e) => {
+                  setFormData({ ...formData, capacity: e.target.value });
+                  setErrors({ ...errors, capacity: "" });
+                  setSubmitError("");
+                  setSuccessMessage("");
+                }}
+              />
+            </FieldContent>
+            {errors.capacity && <FieldError>{errors.capacity}</FieldError>}
+          </Field>
 
-        <Button type="submit">Create Event</Button>
+          <Field className="md:col-span-2">
+            <FieldLabel>Description</FieldLabel>
+            <FieldContent>
+              <textarea
+                className="w-full p-2 border rounded min-h-[100px]"
+                value={formData.description}
+                onChange={(e) => {
+                  setFormData({ ...formData, description: e.target.value });
+                  setErrors({ ...errors, description: "" });
+                  setSubmitError("");
+                  setSuccessMessage("");
+                }}
+              />
+            </FieldContent>
+            {errors.description && (
+              <FieldError>{errors.description}</FieldError>
+            )}
+          </Field>
+        </div>
 
-        {/* Messages container */}
+        <Button type="submit" className="mt-6">
+          Create Event
+        </Button>
+
         <div className="mt-4">
           {submitError && <FieldError>{submitError}</FieldError>}
           {successMessage && <FieldSuccess>{successMessage}</FieldSuccess>}
@@ -209,6 +251,7 @@ export const createEvent = async (eventData: {
   location: string;
   description: string;
   capacity: string | number;
+  category: string;
 }) => {
   const response = await apiRequest("events/create/", "POST", eventData);
 

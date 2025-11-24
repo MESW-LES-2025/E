@@ -47,6 +47,7 @@ class EventSerializer(serializers.ModelSerializer):
             "location",
             "description",
             "capacity",
+            "category",
             "organizer",
             "organizer_name",
             "status",

@@ -7,4 +7,5 @@ export type ErasmusEvent = {
   organizerId: string;
   registeredUsersIds: string[];
   interestedUsersIds: string[];
+  category: string;
 };
