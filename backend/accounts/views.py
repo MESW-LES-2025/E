@@ -275,8 +275,23 @@ class OrganizationViewSet(ModelViewSet):
         url_path="follow",
     )
     def manage_follow(self, request, pk=None):
-        """Follow or unfollow an organization"""
+        """Follow or unfollow an organization (only for attendees)"""
         organization = self.get_object()
+
+        # Only attendees can follow organizations
+        try:
+            profile = request.user.profile
+            if profile.role != Profile.Role.ATTENDEE:
+                from rest_framework.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    "Only attendees can follow organizations. "
+                    "Organizers cannot follow organizations."
+                )
+        except Profile.DoesNotExist:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("User profile not found")
 
         if request.method == "POST":
             # Follow organization
@@ -307,7 +322,22 @@ class OrganizationViewSet(ModelViewSet):
         url_path="followed",
     )
     def followed(self, request):
-        """Get all organizations the current user is following"""
+        """Get all organizations the current user is following (only for attendees)"""
+        # Only attendees can view followed organizations
+        try:
+            profile = request.user.profile
+            if profile.role != Profile.Role.ATTENDEE:
+                from rest_framework.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    "Only attendees can view followed organizations. "
+                    "Organizers cannot follow organizations."
+                )
+        except Profile.DoesNotExist:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("User profile not found")
+
         followed_organizations = Organization.objects.filter(
             followers=request.user
         ).select_related("owner")

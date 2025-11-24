@@ -16,6 +16,7 @@ import {
   unfollowOrganization,
 } from "@/lib/organizations";
 import { isAuthenticated as checkAuth } from "@/lib/auth";
+import { getProfile } from "@/lib/profiles";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -89,6 +90,7 @@ export default function EventModal({ id, onClose }: Props) {
   const [isOwner, setIsOwner] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -177,6 +179,17 @@ export default function EventModal({ id, onClose }: Props) {
         })
         .catch(() => {
           // silently fail
+        });
+
+      // Fetch user profile to check role
+      getProfile()
+        .then((profile) => {
+          if (profile) {
+            setUserRole(profile.role);
+          }
+        })
+        .catch(() => {
+          // Silently fail
         });
     }
   }, [isAuthenticated]);
@@ -421,19 +434,21 @@ export default function EventModal({ id, onClose }: Props) {
                           →
                         </span>
                       </Link>
-                      <Button
-                        variant={isFollowing ? "outline" : "default"}
-                        size="sm"
-                        onClick={handleFollowToggle}
-                        disabled={followLoading}
-                        className="whitespace-nowrap"
-                      >
-                        {followLoading
-                          ? "Loading..."
-                          : isFollowing
-                            ? "Following"
-                            : "Follow"}
-                      </Button>
+                      {userRole === "ATTENDEE" && (
+                        <Button
+                          variant={isFollowing ? "outline" : "default"}
+                          size="sm"
+                          onClick={handleFollowToggle}
+                          disabled={followLoading}
+                          className="whitespace-nowrap"
+                        >
+                          {followLoading
+                            ? "Loading..."
+                            : isFollowing
+                              ? "Following"
+                              : "Follow"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}

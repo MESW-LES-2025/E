@@ -20,6 +20,7 @@ import {
   type Collaborator,
 } from "@/lib/organizations";
 import { isAuthenticated } from "@/lib/auth";
+import { getProfile } from "@/lib/profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EventModal from "@/components/EventModal";
@@ -70,6 +71,7 @@ export default function OrganizationDetailPage() {
   );
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -80,6 +82,19 @@ export default function OrganizationDetailPage() {
       setReferrer(storedReferrer);
       // Don't remove it here - only remove when back button is clicked
       // This allows it to persist if we navigate back to this page after creating an event
+    }
+
+    // Fetch user profile to check role
+    if (isAuthenticated()) {
+      getProfile()
+        .then((profile) => {
+          if (profile) {
+            setUserRole(profile.role);
+          }
+        })
+        .catch(() => {
+          // Silently fail
+        });
     }
   }, []);
 
@@ -336,17 +351,19 @@ export default function OrganizationDetailPage() {
           ← Back
         </Button>
         <div className="flex gap-2">
-          <Button
-            variant={isFollowing ? "outline" : "default"}
-            onClick={handleFollowToggle}
-            disabled={followLoading}
-          >
-            {followLoading
-              ? "Loading..."
-              : isFollowing
-                ? "Following"
-                : "Follow Organization"}
-          </Button>
+          {userRole === "ATTENDEE" && (
+            <Button
+              variant={isFollowing ? "outline" : "default"}
+              onClick={handleFollowToggle}
+              disabled={followLoading}
+            >
+              {followLoading
+                ? "Loading..."
+                : isFollowing
+                  ? "Following"
+                  : "Follow Organization"}
+            </Button>
+          )}
           {isOwner && (
             <Button asChild>
               <Link
