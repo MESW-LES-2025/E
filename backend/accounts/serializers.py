@@ -98,6 +98,7 @@ class PublicOrganizationSerializer(serializers.ModelSerializer):
 
     owner_name = serializers.SerializerMethodField()
     event_count = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
 
     def get_owner_name(self, obj):
         """Return owner's full name instead of ID for privacy"""
@@ -108,6 +109,13 @@ class PublicOrganizationSerializer(serializers.ModelSerializer):
         from events.models import Event
 
         return Event.objects.filter(organization=obj, status="Active").count()
+
+    def get_is_following(self, obj):
+        """Check if the current user is following this organization"""
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            return obj.followers.filter(pk=request.user.pk).exists()
+        return False
 
     class Meta:
         model = Organization
@@ -131,9 +139,16 @@ class PublicOrganizationSerializer(serializers.ModelSerializer):
             "established_date",
             "owner_name",
             "event_count",
+            "is_following",
             "created_at",
         ]
-        read_only_fields = ["id", "owner_name", "event_count", "created_at"]
+        read_only_fields = [
+            "id",
+            "owner_name",
+            "event_count",
+            "is_following",
+            "created_at",
+        ]
 
 
 class CollaboratorOrganizationSerializer(PublicOrganizationSerializer):
@@ -163,6 +178,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
     event_count = serializers.SerializerMethodField()
     collaborators = serializers.SerializerMethodField()
     is_collaborator = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
 
     def get_owner_name(self, obj):
         """Return owner's full name"""
@@ -194,6 +210,13 @@ class OrganizationSerializer(serializers.ModelSerializer):
             return obj.collaborators.filter(pk=request.user.pk).exists()
         return False
 
+    def get_is_following(self, obj):
+        """Check if the current user is following this organization"""
+        request = self.context.get("request")
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            return obj.followers.filter(pk=request.user.pk).exists()
+        return False
+
     class Meta:
         model = Organization
         fields = [
@@ -219,6 +242,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "event_count",
             "collaborators",
             "is_collaborator",
+            "is_following",
             "created_at",
             "updated_at",
         ]
@@ -229,6 +253,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "event_count",
             "collaborators",
             "is_collaborator",
+            "is_following",
             "created_at",
             "updated_at",
         ]
