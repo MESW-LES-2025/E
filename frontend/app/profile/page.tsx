@@ -6,6 +6,7 @@ import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { getProfile, updateProfile, type Profile } from "@/lib/profiles";
 import {
+  unfollowOrganization,
   getFollowedOrganizations,
   type PublicOrganization,
 } from "@/lib/organizations";
@@ -51,6 +52,7 @@ export default function ProfilePage() {
   const [followedOrgsError, setFollowedOrgsError] = useState<string | null>(
     null,
   );
+  const [unfollowingIds, setUnfollowingIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     // Set mounted to true after component mounts (client-side only)
@@ -110,6 +112,28 @@ export default function ProfilePage() {
       fetchFollowedOrgs();
     }
   }, [activeTab, authed]);
+
+  const handleUnfollow = async (orgId: number) => {
+    try {
+      setUnfollowingIds((prev) => new Set(prev).add(orgId));
+      await unfollowOrganization(orgId);
+      // Remove the organization from the list
+      setFollowedOrgs((prev) => prev.filter((org) => org.id !== orgId));
+    } catch (err) {
+      console.error("Failed to unfollow organization:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to unfollow organization. Please try again.",
+      );
+    } finally {
+      setUnfollowingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(orgId);
+        return newSet;
+      });
+    }
+  };
 
   // Don't render anything until after hydration to prevent mismatch
   if (!mounted) {
@@ -384,7 +408,7 @@ export default function ProfilePage() {
                 {followedOrgs.map((org) => (
                   <Card key={org.id} className="border">
                     <CardContent className="pt-6">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <Link
                             href={`/organizations/${org.id}`}
@@ -417,6 +441,17 @@ export default function ProfilePage() {
                             )}
                           </div>
                         </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUnfollow(org.id)}
+                          disabled={unfollowingIds.has(org.id)}
+                          className="flex-shrink-0"
+                        >
+                          {unfollowingIds.has(org.id)
+                            ? "Unfollowing..."
+                            : "Unfollow"}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
