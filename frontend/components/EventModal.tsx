@@ -105,6 +105,12 @@ export default function EventModal({
   const [participantsError, setParticipantsError] = useState<string | null>(
     null,
   );
+  const [isInterestedUsersOpen, setIsInterestedUsersOpen] = useState(false);
+  const [interestedUsers, setInterestedUsers] = useState<Participant[]>([]);
+  const [interestedUsersLoading, setInterestedUsersLoading] = useState(false);
+  const [interestedUsersError, setInterestedUsersError] = useState<
+    string | null
+  >(null);
   const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
