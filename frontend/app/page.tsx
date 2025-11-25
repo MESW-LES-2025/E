@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EventModal from "@/components/EventModal";
 import EventCard from "@/components/EventCard";
@@ -18,6 +11,7 @@ import {
   listOrganizations,
   type PublicOrganization,
 } from "@/lib/organizations";
+import OrganizationCard from "@/components/OrganizationCard";
 
 interface Event {
   id: number;
@@ -29,6 +23,7 @@ interface Event {
   organizer_name: string;
   status: string;
   participant_count: number;
+  interest_count?: number;
   is_participating: boolean;
   capacity: number | null;
   is_full: boolean;
@@ -111,17 +106,40 @@ export default function Home() {
     setModalOpen(true);
   };
 
-  const getOrganizationTypeLabel = (type: string | null) => {
-    if (!type) return "Not specified";
-    const typeMap: Record<string, string> = {
-      COMPANY: "Company",
-      NON_PROFIT: "Non-profit",
-      COMMUNITY: "Community",
-      EDUCATIONAL: "Educational",
-      GOVERNMENT: "Government",
-      OTHER: "Other",
-    };
-    return typeMap[type] || type;
+  const handleInterestChange = (
+    eventId: number,
+    isInterested: boolean,
+    interestCount: number,
+  ) => {
+    // Update the event in the events array
+    setEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? { ...e, interest_count: interestCount, is_interested: isInterested }
+          : e,
+      ),
+    );
+  };
+
+  const handleParticipationChange = (
+    eventId: number,
+    isParticipating: boolean,
+    participantCount: number,
+    isFull: boolean,
+  ) => {
+    // Update the event in the events array
+    setEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              participant_count: participantCount,
+              is_participating: isParticipating,
+              is_full: isFull,
+            }
+          : e,
+      ),
+    );
   };
 
   return (
@@ -201,59 +219,23 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {organizations.map((org) => (
-                <Card
+                <OrganizationCard
                   key={org.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
-                >
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2">{org.name}</CardTitle>
-                    <CardDescription>
-                      {getOrganizationTypeLabel(org.organization_type)}
-                      {org.event_count > 0 && (
-                        <span className="ml-2">
-                          • {org.event_count} event
-                          {org.event_count !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    {org.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
-                        {org.description}
-                      </p>
-                    )}
-                    {org.city && org.country && (
-                      <p className="text-sm text-muted-foreground">
-                        📍 {org.city}, {org.country}
-                      </p>
-                    )}
-                    {org.owner_name && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        By {org.owner_name}
-                      </p>
-                    )}
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link
-                        href={`/organizations/${org.id}`}
-                        onClick={() =>
-                          sessionStorage.setItem("org_detail_referrer", "/")
-                        }
-                      >
-                        View Details
-                      </Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
+                  organization={org}
+                  referrer="/"
+                />
               ))}
             </div>
           )}
         </section>
 
         {modalOpen && selectedEventId && (
-          <EventModal id={selectedEventId} onClose={handleCloseModal} />
+          <EventModal
+            id={selectedEventId}
+            onClose={handleCloseModal}
+            onInterestChange={handleInterestChange}
+            onParticipationChange={handleParticipationChange}
+          />
         )}
       </div>
     </div>

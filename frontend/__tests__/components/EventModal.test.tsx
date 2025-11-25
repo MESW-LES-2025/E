@@ -8,9 +8,44 @@ import {
   uncancelEventRequest,
 } from "../../lib/events";
 
+// Mock next/navigation
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockBack = jest.fn();
+const mockPathname = "/";
+const mockQuery = {};
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: mockBack,
+    pathname: mockPathname,
+    query: mockQuery,
+  }),
+  usePathname: () => mockPathname,
+  useParams: () => mockQuery,
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock getProfile
+jest.mock("../../lib/profiles", () => ({
+  getProfile: jest.fn().mockResolvedValue({ role: "ATTENDEE" }),
+}));
+
+// Mock getOrganization
+jest.mock("../../lib/organizations", () => ({
+  getOrganization: jest.fn().mockResolvedValue({
+    id: 1,
+    name: "Test Organization",
+    is_following: false,
+  }),
+}));
+
 // Mock auth module
 jest.mock("../../lib/auth", () => ({
   fetchWithAuth: jest.fn(),
+  isAuthenticated: jest.fn().mockReturnValue(false),
 }));
 jest.mock("../../lib/events", () => ({
   getEventParticipants: jest.fn(),
@@ -583,7 +618,7 @@ describe("EventModal", () => {
   });
 
   describe("Button Links", () => {
-    it("should show only the Login button when user is not authenticated", async () => {
+    it("should show Participate and Interested buttons when user is not authenticated", async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockEvent,
@@ -592,14 +627,13 @@ describe("EventModal", () => {
       render(<EventModal id="1" onClose={mockOnClose} />);
       await screen.findByText(mockEvent.name);
 
-      const loginButton = screen.getByText("Login");
-      expect(loginButton).toBeInTheDocument();
-      expect(loginButton.closest("a")).toHaveAttribute(
-        "href",
-        "/profile/login",
-      );
-      expect(screen.queryByText("Participate")).not.toBeInTheDocument();
-      expect(screen.queryByText("Interested")).not.toBeInTheDocument();
+      // Unauthenticated users should see Participate and Interested buttons
+      const participateButton = screen.getByText("Participate");
+      const interestedButton = screen.getByText("Interested");
+      expect(participateButton).toBeInTheDocument();
+      expect(interestedButton).toBeInTheDocument();
+
+      // Should not show organizer buttons
       expect(screen.queryByText("Edit")).not.toBeInTheDocument();
       expect(screen.queryByText("Cancel Event")).not.toBeInTheDocument();
     });

@@ -18,6 +18,8 @@ type Event = {
   date: string;
   status: string;
   location?: string;
+  participant_count?: number;
+  interest_count?: number;
 };
 
 export default function EventsPage() {
@@ -28,6 +30,57 @@ export default function EventsPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  const handleInterestChange = (
+    eventId: number,
+    isInterested: boolean,
+    interestCount: number,
+  ) => {
+    // Update the event in both upcoming and past events arrays
+    setUpcomingEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId ? { ...e, interest_count: interestCount } : e,
+      ),
+    );
+    setPastEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId ? { ...e, interest_count: interestCount } : e,
+      ),
+    );
+  };
+
+  const handleParticipationChange = (
+    eventId: number,
+    isParticipating: boolean,
+    participantCount: number,
+    isFull: boolean,
+  ) => {
+    // Update the event in both upcoming and past events arrays
+    setUpcomingEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              participant_count: participantCount,
+              is_participating: isParticipating,
+              is_full: isFull,
+            }
+          : e,
+      ),
+    );
+    setPastEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              participant_count: participantCount,
+              is_participating: isParticipating,
+              is_full: isFull,
+            }
+          : e,
+      ),
+    );
+  };
 
   const base =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
@@ -113,6 +166,17 @@ export default function EventsPage() {
             &nbsp;
           </p>
         )}
+        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+          {event.participant_count !== undefined && (
+            <span>
+              👥 {event.participant_count}
+              {event.participant_count > 0 && " participants"}
+            </span>
+          )}
+          {event.interest_count !== undefined && event.interest_count > 0 && (
+            <span>❤️ {event.interest_count} interested</span>
+          )}
+        </div>
       </CardContent>
 
       <CardFooter>
@@ -181,6 +245,8 @@ export default function EventsPage() {
             setModalOpen(false);
             setSelectedEventId(null);
           }}
+          onInterestChange={handleInterestChange}
+          onParticipationChange={handleParticipationChange}
         />
       )}
     </div>

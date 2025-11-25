@@ -3,6 +3,7 @@ import "@testing-library/jest-dom";
 import EventsCalendar from "../../app/calendar/page";
 import * as auth from "@/lib/auth";
 import * as utils from "@/lib/utils";
+import * as events from "@/lib/events";
 import { ErasmusEvent } from "@/lib/types";
 
 const mockPush = jest.fn();
@@ -18,6 +19,10 @@ const mockedFetchWithAuth = auth.fetchWithAuth as jest.Mock;
 
 jest.mock("@/lib/utils");
 const mockedFetchWrapped = utils.apiRequest as jest.Mock;
+
+jest.mock("@/lib/events");
+const mockedGetInterestedEvents = events.getInterestedEvents as jest.Mock;
+const mockedGetMyOrganizedEvents = events.getMyOrganizedEvents as jest.Mock;
 
 const mockEvents: ErasmusEvent[] = [
   {
@@ -51,6 +56,9 @@ describe("EventsCalendar", () => {
           role: "ATTENDEE",
         }),
     });
+    // Mock the new event functions
+    mockedGetInterestedEvents.mockResolvedValue([]);
+    mockedGetMyOrganizedEvents.mockResolvedValue([]);
   });
 
   it("redirects to login if not authenticated", () => {
@@ -112,7 +120,7 @@ describe("EventsCalendar", () => {
     fireEvent.click(screen.getByText("Interested"));
 
     await waitFor(() => {
-      expect(mockedFetchWrapped).toHaveBeenCalledWith("events/interested/");
+      expect(mockedGetInterestedEvents).toHaveBeenCalled();
     });
 
     fireEvent.click(screen.getByText("All Events"));

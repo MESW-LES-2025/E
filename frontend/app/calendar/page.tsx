@@ -10,6 +10,7 @@ import { fetchWithAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import EventModal from "@/components/EventModal";
 import EventCard from "@/components/EventCard";
+import { getInterestedEvents, getMyOrganizedEvents } from "@/lib/events";
 
 const EVENTS_ENDPOINT_BASE = "events";
 
@@ -89,15 +90,58 @@ export default function EventsCalendar() {
   const fetchEvents = useCallback(async (filter: EndpointType) => {
     setLoading(true);
 
-    const endpoint = ENDPOINT_CONFIG[filter].endpoint;
-
     try {
-      const response = await apiRequest(endpoint);
-      if (!response.ok) {
-        throw new Error("Failed to fetch events");
+      let data: ErasmusEvent[];
+
+      // Use dedicated functions for consistency when available
+      if (filter === EndpointType.INTERESTED) {
+        const events = await getInterestedEvents();
+        // Convert Event[] to ErasmusEvent[] format
+        data = events.map((event) => ({
+          id: event.id,
+          name: event.name,
+          date: event.date,
+          location: event.location || "",
+          description: event.description || "",
+          organizerId: String(event.organizer_name || ""),
+          registeredUsersIds: [],
+          interestedUsersIds: [],
+          category: event.category,
+          participant_count: event.participant_count,
+          interest_count: event.interest_count,
+          is_participating: event.is_participating,
+          is_interested: event.is_interested,
+          is_full: event.is_full,
+        }));
+      } else if (filter === EndpointType.ORGANIZED) {
+        const events = await getMyOrganizedEvents();
+        // Convert Event[] to ErasmusEvent[] format
+        data = events.map((event) => ({
+          id: event.id,
+          name: event.name,
+          date: event.date,
+          location: event.location || "",
+          description: event.description || "",
+          organizerId: String(event.organizer_name || ""),
+          registeredUsersIds: [],
+          interestedUsersIds: [],
+          category: event.category,
+          participant_count: event.participant_count,
+          interest_count: event.interest_count,
+          is_participating: event.is_participating,
+          is_interested: event.is_interested,
+          is_full: event.is_full,
+        }));
+      } else {
+        // For ALL and PARTICIPATING, use apiRequest as before
+        const endpoint = ENDPOINT_CONFIG[filter].endpoint;
+        const response = await apiRequest(endpoint);
+        if (!response.ok) {
+          throw new Error("Failed to fetch events");
+        }
+        data = await response.json();
       }
 
-      const data: ErasmusEvent[] = await response.json();
       setEvents(data);
     } catch (err) {
       console.error(err);
@@ -251,6 +295,40 @@ export default function EventsCalendar() {
           onClose={() => {
             setModalOpen(false);
             setSelectedEventId(null);
+          }}
+          onInterestChange={(eventId, isInterested, interestCount) => {
+            // Update the event in the events array
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId
+                  ? {
+                      ...e,
+                      interest_count: interestCount,
+                      is_interested: isInterested,
+                    }
+                  : e,
+              ),
+            );
+          }}
+          onParticipationChange={(
+            eventId,
+            isParticipating,
+            participantCount,
+            isFull,
+          ) => {
+            // Update the event in the events array
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId
+                  ? {
+                      ...e,
+                      participant_count: participantCount,
+                      is_participating: isParticipating,
+                      is_full: isFull,
+                    }
+                  : e,
+              ),
+            );
           }}
         />
       )}

@@ -2,6 +2,47 @@ import "@testing-library/jest-dom";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import EventModal from "@/components/EventModal";
 
+// Mock next/navigation
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockBack = jest.fn();
+const mockPathname = "/";
+const mockQuery = {};
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: mockBack,
+    pathname: mockPathname,
+    query: mockQuery,
+  }),
+  usePathname: () => mockPathname,
+  useParams: () => mockQuery,
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock getProfile
+jest.mock("@/lib/profiles", () => ({
+  getProfile: jest.fn().mockResolvedValue({ role: "ATTENDEE" }),
+}));
+
+// Mock getOrganization
+jest.mock("@/lib/organizations", () => ({
+  getOrganization: jest.fn().mockResolvedValue({
+    id: 1,
+    name: "Test Organization",
+    is_following: false,
+  }),
+}));
+
+// Mock fetchWithAuth and isAuthenticated
+const mockFetchWithAuth = jest.fn();
+jest.mock("@/lib/auth", () => ({
+  fetchWithAuth: (...args: unknown[]) => mockFetchWithAuth(...args),
+  isAuthenticated: jest.fn().mockReturnValue(false),
+}));
+
 // Mock global fetch
 global.fetch = jest.fn() as jest.Mock;
 
@@ -72,6 +113,14 @@ describe("EventModal - Organization Link", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     sessionStorageMock.clear();
+    mockPush.mockClear();
+    mockReplace.mockClear();
+    mockBack.mockClear();
+    mockFetchWithAuth.mockClear();
+    // Mock fetchWithAuth to return the same as regular fetch for these tests
+    mockFetchWithAuth.mockImplementation((url: string) => {
+      return mockFetch(url);
+    });
   });
 
   it("should display organization name as link instead of organizer", async () => {

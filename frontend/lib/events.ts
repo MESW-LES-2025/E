@@ -12,7 +12,9 @@ export interface Event {
   description?: string;
   capacity?: number;
   participant_count?: number;
+  interest_count?: number;
   is_participating?: boolean;
+  is_interested?: boolean;
   organizer_name?: string;
   created_by?: string;
   organization_id?: number;
@@ -66,6 +68,75 @@ export async function getEventParticipants(
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error?.detail || "Failed to fetch event participants");
+  }
+
+  const data = await response.json();
+  return data.results || data;
+}
+
+export async function getEventInterestedUsers(
+  eventId: number,
+): Promise<Participant[]> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/events/${eventId}/interested-users/`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to fetch interested users");
+  }
+
+  const data = await response.json();
+  return data.results || data;
+}
+
+export async function markEventAsInterested(
+  eventId: number,
+): Promise<{ interest_count: number; is_interested: boolean }> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/events/${eventId}/interested/`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to mark event as interested");
+  }
+
+  return response.json();
+}
+
+export async function unmarkEventAsInterested(
+  eventId: number,
+): Promise<{ interest_count: number; is_interested: boolean }> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/events/${eventId}/interested/`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to unmark event as interested");
+  }
+
+  return response.json();
+}
+
+export async function getInterestedEvents(): Promise<Event[]> {
+  const response = await fetchWithAuth(`${API_BASE}/events/interested/`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to fetch interested events");
   }
 
   const data = await response.json();

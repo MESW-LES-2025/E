@@ -13,6 +13,7 @@ class EventSerializer(serializers.ModelSerializer):
     organization_name = serializers.SerializerMethodField()
     organization_id = serializers.SerializerMethodField()
     participant_count = serializers.SerializerMethodField()
+    interest_count = serializers.SerializerMethodField()
     is_participating = serializers.SerializerMethodField()
     is_interested = serializers.SerializerMethodField()
     is_full = serializers.SerializerMethodField()
@@ -29,6 +30,9 @@ class EventSerializer(serializers.ModelSerializer):
 
     def get_participant_count(self, obj):
         return obj.participants.count()
+
+    def get_interest_count(self, obj):
+        return obj.interested_users.count()
 
     def get_is_participating(self, obj):
         request = self.context.get("request")
@@ -79,6 +83,7 @@ class EventSerializer(serializers.ModelSerializer):
             "organization_name",
             "status",
             "participant_count",
+            "interest_count",
             "interested_users",
             "is_participating",
             "is_interested",
@@ -91,7 +96,9 @@ class EventSerializer(serializers.ModelSerializer):
             "organization_name",
             "organization_id",
             "participant_count",
+            "interest_count",
             "is_participating",
+            "is_interested",
             "is_full",
         ]
         extra_kwargs = {

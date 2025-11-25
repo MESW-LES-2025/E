@@ -10,6 +10,8 @@ interface EventCardProps {
     location?: string;
     status?: string;
     category: string;
+    interest_count?: number;
+    participant_count?: number;
   };
   onViewDetails: (eventId: string) => void;
 }
@@ -50,6 +52,14 @@ export default function EventCard({ event, onViewDetails }: EventCardProps) {
         {event.location && (
           <p className="text-sm text-gray-700 mt-1">📍 {event.location}</p>
         )}
+        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+          {event.participant_count !== undefined && (
+            <span>👥 {event.participant_count} participants</span>
+          )}
+          {event.interest_count !== undefined && (
+            <span>❤️ {event.interest_count} interested</span>
+          )}
+        </div>
       </CardContent>
 
       <CardFooter>

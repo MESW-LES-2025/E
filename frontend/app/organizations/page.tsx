@@ -13,10 +13,10 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import OrganizationCard from "@/components/OrganizationCard";
 
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<PublicOrganization[]>([]);
@@ -86,19 +86,6 @@ export default function OrganizationsPage() {
     );
   }
 
-  const getOrganizationTypeLabel = (type: string | null) => {
-    if (!type) return "Not specified";
-    const typeMap: Record<string, string> = {
-      COMPANY: "Company",
-      NON_PROFIT: "Non-profit",
-      COMMUNITY: "Community",
-      EDUCATIONAL: "Educational",
-      GOVERNMENT: "Government",
-      OTHER: "Other",
-    };
-    return typeMap[type] || type;
-  };
-
   const isOrganizer = profile?.role === "ORGANIZER";
 
   return (
@@ -130,55 +117,11 @@ export default function OrganizationsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {organizations.map((org) => (
-            <Card
+            <OrganizationCard
               key={org.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer"
-            >
-              <CardHeader>
-                <CardTitle className="line-clamp-2">{org.name}</CardTitle>
-                <CardDescription>
-                  {getOrganizationTypeLabel(org.organization_type)}
-                  {org.event_count > 0 && (
-                    <span className="ml-2">
-                      • {org.event_count} event
-                      {org.event_count !== 1 ? "s" : ""}
-                    </span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {org.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
-                    {org.description}
-                  </p>
-                )}
-                {org.city && org.country && (
-                  <p className="text-sm text-muted-foreground">
-                    📍 {org.city}, {org.country}
-                  </p>
-                )}
-                {org.owner_name && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    By {org.owner_name}
-                  </p>
-                )}
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link
-                    href={`/organizations/${org.id}`}
-                    onClick={() =>
-                      sessionStorage.setItem(
-                        "org_detail_referrer",
-                        "/organizations",
-                      )
-                    }
-                  >
-                    View Details
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+              organization={org}
+              referrer="/organizations"
+            />
           ))}
         </div>
       )}

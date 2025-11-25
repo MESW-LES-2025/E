@@ -153,17 +153,21 @@ class UpcomingEventsListView(generics.ListAPIView):
 
     def get_queryset(self):
         now = timezone.now()
-        queryset = Event.objects.filter(date__gte=now).order_by("date")
-
-        categories = self.request.query_params.getlist("category", [])
-        if categories:
-            queryset = queryset.filter(category__in=categories)
-
         date_filter = self.request.query_params.get("date_filter", None)
+
+        # Base filters
+        base_filters = {
+            "organization__isnull": False,
+            "status": "Active",
+        }
+
+        # Handle date filtering
         if date_filter == "today":
             start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
             end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-            queryset = queryset.filter(date__gte=start_of_day, date__lte=end_of_day)
+            # For today, we want events that are today AND in the future
+            base_filters["date__gte"] = now
+            base_filters["date__lte"] = end_of_day
         elif date_filter == "tomorrow":
             tomorrow_start = (now + timedelta(days=1)).replace(
                 hour=0, minute=0, second=0, microsecond=0
@@ -171,14 +175,29 @@ class UpcomingEventsListView(generics.ListAPIView):
             tomorrow_end = tomorrow_start.replace(
                 hour=23, minute=59, second=59, microsecond=999999
             )
-            queryset = queryset.filter(date__gte=tomorrow_start, date__lte=tomorrow_end)
+            base_filters["date__gte"] = tomorrow_start
+            base_filters["date__lte"] = tomorrow_end
         elif date_filter == "this_week":
             start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
             days_until_sunday = (6 - now.weekday()) % 7
             end_of_week = (now + timedelta(days=days_until_sunday)).replace(
                 hour=23, minute=59, second=59, microsecond=999999
             )
-            queryset = queryset.filter(date__gte=start_of_day, date__lte=end_of_week)
+            base_filters["date__gte"] = start_of_day
+            base_filters["date__lte"] = end_of_week
+        else:
+            # Default: only future events
+            base_filters["date__gte"] = now
+
+        queryset = (
+            Event.objects.filter(**base_filters)
+            .select_related("organization", "organizer")
+            .order_by("date")
+        )
+
+        categories = self.request.query_params.getlist("category", [])
+        if categories:
+            queryset = queryset.filter(category__in=categories)
 
         date_from = self.request.query_params.get("date_from", None)
         date_to = self.request.query_params.get("date_to", None)
@@ -446,6 +465,60 @@ class ParticipateEventView(APIView):
         )
 
 
+class InterestEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        """Mark event as interested"""
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if event.interested_users.filter(pk=user.pk).exists():
+            return Response(
+                {
+                    "detail": "Already marked as interested.",
+                    "interest_count": event.interested_users.count(),
+                    "is_interested": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        event.interested_users.add(user)
+        return Response(
+            {
+                "detail": "Marked as interested.",
+                "interest_count": event.interested_users.count(),
+                "is_interested": True,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def delete(self, request, pk):
+        """Remove interest from event"""
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if not event.interested_users.filter(pk=user.pk).exists():
+            return Response(
+                {
+                    "detail": "You are not interested in this event.",
+                    "interest_count": event.interested_users.count(),
+                    "is_interested": False,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        event.interested_users.remove(user)
+        return Response(
+            {
+                "detail": "Interest removed.",
+                "interest_count": event.interested_users.count(),
+                "is_interested": False,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class MyOrganizedEventsView(generics.ListAPIView):
     """
     Get events organized by the current user:
@@ -517,3 +590,29 @@ class EventParticipantsView(generics.ListAPIView):
             )
 
         return event.participants.all().order_by("first_name", "last_name")
+
+
+class EventInterestedUsersView(generics.ListAPIView):
+    """
+    Get interested users for a specific event.
+    Only accessible by the organization owner or a collaborator.
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        event_pk = self.kwargs.get("pk")
+        event = get_object_or_404(Event, pk=event_pk)
+        user = self.request.user
+
+        # Check permissions
+        is_owner = event.organization.owner == user
+        is_collaborator = event.organization.collaborators.filter(pk=user.pk).exists()
+
+        if not (is_owner or is_collaborator):
+            raise PermissionDenied(
+                "You do not have permission to view interested users for this event."
+            )
+
+        return event.interested_users.all().order_by("first_name", "last_name")
