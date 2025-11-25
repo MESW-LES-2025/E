@@ -23,6 +23,7 @@ interface Event {
   organizer_name: string;
   status: string;
   participant_count: number;
+  interest_count?: number;
   is_participating: boolean;
   capacity: number | null;
   is_full: boolean;

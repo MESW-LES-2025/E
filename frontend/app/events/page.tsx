@@ -18,6 +18,8 @@ type Event = {
   date: string;
   status: string;
   location?: string;
+  participant_count?: number;
+  interest_count?: number;
 };
 
 export default function EventsPage() {
@@ -113,6 +115,17 @@ export default function EventsPage() {
             &nbsp;
           </p>
         )}
+        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+          {event.participant_count !== undefined && (
+            <span>
+              👥 {event.participant_count}
+              {event.participant_count > 0 && " participants"}
+            </span>
+          )}
+          {event.interest_count !== undefined && event.interest_count > 0 && (
+            <span>❤️ {event.interest_count} interested</span>
+          )}
+        </div>
       </CardContent>
 
       <CardFooter>
