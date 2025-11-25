@@ -590,3 +590,29 @@ class EventParticipantsView(generics.ListAPIView):
             )
 
         return event.participants.all().order_by("first_name", "last_name")
+
+
+class EventInterestedUsersView(generics.ListAPIView):
+    """
+    Get interested users for a specific event.
+    Only accessible by the organization owner or a collaborator.
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        event_pk = self.kwargs.get("pk")
+        event = get_object_or_404(Event, pk=event_pk)
+        user = self.request.user
+
+        # Check permissions
+        is_owner = event.organization.owner == user
+        is_collaborator = event.organization.collaborators.filter(pk=user.pk).exists()
+
+        if not (is_owner or is_collaborator):
+            raise PermissionDenied(
+                "You do not have permission to view interested users for this event."
+            )
+
+        return event.interested_users.all().order_by("first_name", "last_name")
