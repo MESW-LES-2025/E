@@ -74,6 +74,25 @@ export async function getEventParticipants(
   return data.results || data;
 }
 
+export async function getEventInterestedUsers(
+  eventId: number,
+): Promise<Participant[]> {
+  const response = await fetchWithAuth(
+    `${API_BASE}/events/${eventId}/interested-users/`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error?.detail || "Failed to fetch interested users");
+  }
+
+  const data = await response.json();
+  return data.results || data;
+}
+
 export async function markEventAsInterested(
   eventId: number,
 ): Promise<{ interest_count: number; is_interested: boolean }> {
