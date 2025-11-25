@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { fetchWithAuth } from "@/lib/auth";
+import { fetchWithAuth, login, isAuthenticated as checkAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Field,
+  FieldLabel,
+  FieldContent,
+  FieldError,
+} from "@/components/ui/field";
 import {
   cancelEventRequest,
   getEventInterestedUsers,
@@ -16,7 +24,6 @@ import {
   followOrganization,
   unfollowOrganization,
 } from "@/lib/organizations";
-import { isAuthenticated as checkAuth } from "@/lib/auth";
 import { getProfile } from "@/lib/profiles";
 import { useRouter } from "next/navigation";
 
@@ -111,6 +118,15 @@ export default function EventModal({
   const [interestedUsersError, setInterestedUsersError] = useState<
     string | null
   >(null);
+  // Login overlay state
+  const [showLoginOverlay, setShowLoginOverlay] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "participate" | "interested" | null
+  >(null);
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -292,6 +308,14 @@ export default function EventModal({
 
   const toggleParticipation = async () => {
     if (!event) return;
+
+    // If not authenticated, show login overlay
+    if (!isAuthenticated) {
+      setPendingAction("participate");
+      setShowLoginOverlay(true);
+      return;
+    }
+
     const base =
       process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
     const method = event.is_participating ? "DELETE" : "POST";
@@ -328,7 +352,15 @@ export default function EventModal({
   };
 
   const toggleInterest = async () => {
-    if (!event || !isAuthenticated) return;
+    if (!event) return;
+
+    // If not authenticated, show login overlay
+    if (!isAuthenticated) {
+      setPendingAction("interested");
+      setShowLoginOverlay(true);
+      return;
+    }
+
     const base =
       process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
     const method = event.is_interested ? "DELETE" : "POST";
@@ -355,6 +387,105 @@ export default function EventModal({
       }
     } catch {
       // Silently fail
+    }
+  };
+
+  const handleLoginSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError(null);
+
+    try {
+      await login(loginUsername, loginPassword);
+      // Update authentication state
+      setIsAuthenticated(true);
+
+      // Fetch user profile after login
+      try {
+        const profileData = await getProfile();
+        setUser(profileData);
+      } catch {
+        // Silently fail - user will be fetched on next render
+      }
+
+      // Perform the pending action directly
+      const action = pendingAction;
+      setPendingAction(null);
+      setShowLoginOverlay(false);
+      setLoginUsername("");
+      setLoginPassword("");
+
+      if (!event) return;
+
+      const base =
+        process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+
+      if (action === "participate") {
+        const method = event.is_participating ? "DELETE" : "POST";
+        try {
+          const res = await fetchWithAuth(
+            `${base}/events/${event.id}/participate/`,
+            { method },
+          );
+          const data = await res.json();
+          if (res.ok) {
+            setEvent((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    participant_count: data.participant_count,
+                    is_participating: data.is_participating,
+                    is_full: data.is_full,
+                  }
+                : prev,
+            );
+            if (onParticipationChange) {
+              onParticipationChange(
+                event.id,
+                data.is_participating,
+                data.participant_count,
+                data.is_full,
+              );
+            }
+          }
+        } catch {
+          // Silently fail
+        }
+      } else if (action === "interested") {
+        const method = event.is_interested ? "DELETE" : "POST";
+        try {
+          const res = await fetchWithAuth(
+            `${base}/events/${event.id}/interested/`,
+            { method },
+          );
+          const data = await res.json();
+          if (res.ok) {
+            setEvent((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    interest_count: data.interest_count,
+                    is_interested: data.is_interested,
+                  }
+                : prev,
+            );
+            if (onInterestChange) {
+              onInterestChange(
+                event.id,
+                data.is_interested,
+                data.interest_count,
+              );
+            }
+          }
+        } catch {
+          // Silently fail
+        }
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Login failed";
+      setLoginError(message);
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -425,282 +556,379 @@ export default function EventModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-3xl max-w-2xl w-full mx-4 p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          aria-label="Close modal"
-          onClick={onClose}
-          className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 text-3xl leading-none"
+    <>
+      {/* Login Overlay */}
+      {showLoginOverlay && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            setShowLoginOverlay(false);
+            setPendingAction(null);
+            setLoginError(null);
+          }}
         >
-          ×
-        </button>
+          <div
+            className="bg-white rounded-lg max-w-sm w-full mx-4 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-semibold mb-4">Sign in</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Please sign in to{" "}
+              {pendingAction === "participate"
+                ? "participate in"
+                : "mark interest in"}{" "}
+              this event.
+            </p>
+            <form onSubmit={handleLoginSubmit} className="space-y-3" noValidate>
+              <Field>
+                <FieldLabel htmlFor="login-username">Username</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="login-username"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    autoComplete="username"
+                    required
+                  />
+                </FieldContent>
+              </Field>
 
-        <div className="pr-8">
-          {loading && <p className="text-lg">Loading...</p>}
-          {error && <p className="text-red-600 text-lg">Error: {error}</p>}
-          {!loading && !error && event && (
-            <>
-              <h2
-                className={`text-3xl font-bold ${event.status ? "mb-2" : "mb-8"}`}
+              <Field>
+                <FieldLabel htmlFor="login-password">Password</FieldLabel>
+                <FieldContent>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                </FieldContent>
+              </Field>
+
+              {loginError && <FieldError>{loginError}</FieldError>}
+
+              <Button type="submit" disabled={loginLoading} className="w-full">
+                {loginLoading ? "Entering..." : "Enter"}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-sm text-gray-600 text-center">
+              <span>Don&apos;t have an account? </span>
+              <Link
+                href="/profile/register"
+                className="text-blue-600 hover:underline"
+                onClick={() => {
+                  setShowLoginOverlay(false);
+                  setPendingAction(null);
+                }}
               >
-                {event.name}
-              </h2>
-              <div className="flex items-center gap-2 mb-8">
-                {event.category && (
-                  <Badge
-                    className={
-                      CATEGORY_COLORS[event.category] ||
-                      "bg-gray-500 text-white"
-                    }
-                  >
-                    {event.category}
-                  </Badge>
-                )}
-                {event.status && (
-                  <Badge
-                    className={
-                      STATUS_COLORS[event.status] || "bg-gray-500 text-white"
-                    }
-                  >
-                    {event.status}
-                  </Badge>
-                )}
-              </div>
+                Register now
+              </Link>
+            </div>
 
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                    Date
-                  </label>
-                  <div className="text-base text-gray-800">
-                    {event.date
-                      ? new Date(event.date).toLocaleString("en-GB", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "N/A"}
-                  </div>
+            <div className="my-4">
+              <Separator />
+            </div>
+
+            <div className="mt-2 text-md text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLoginOverlay(false);
+                  setPendingAction(null);
+                  setLoginError(null);
+                }}
+                className="text-blue-600 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Modal */}
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white rounded-3xl max-w-2xl w-full mx-4 p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            aria-label="Close modal"
+            onClick={onClose}
+            className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 text-3xl leading-none"
+          >
+            ×
+          </button>
+
+          <div className="pr-8">
+            {loading && <p className="text-lg">Loading...</p>}
+            {error && <p className="text-red-600 text-lg">Error: {error}</p>}
+            {!loading && !error && event && (
+              <>
+                <h2
+                  className={`text-3xl font-bold ${event.status ? "mb-2" : "mb-8"}`}
+                >
+                  {event.name}
+                </h2>
+                <div className="flex items-center gap-2 mb-8">
+                  {event.category && (
+                    <Badge
+                      className={
+                        CATEGORY_COLORS[event.category] ||
+                        "bg-gray-500 text-white"
+                      }
+                    >
+                      {event.category}
+                    </Badge>
+                  )}
+                  {event.status && (
+                    <Badge
+                      className={
+                        STATUS_COLORS[event.status] || "bg-gray-500 text-white"
+                      }
+                    >
+                      {event.status}
+                    </Badge>
+                  )}
                 </div>
 
-                {event.location && (
+                <div className="space-y-6">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                      Location
+                      Date
                     </label>
                     <div className="text-base text-gray-800">
-                      {event.location}
+                      {event.date
+                        ? new Date(event.date).toLocaleString("en-GB", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "N/A"}
                     </div>
                   </div>
-                )}
 
-                {event.organization_name && event.organization_id && (
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                      Organization
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/organizations/${event.organization_id}`}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-colors duration-200 group flex-1"
-                        onClick={() => {
-                          // Store referrer before navigation
-                          sessionStorage.setItem(
-                            "org_detail_referrer",
-                            window.location.pathname,
-                          );
-                        }}
-                      >
-                        <span className="text-lg">🏢</span>
-                        <span className="group-hover:underline">
-                          {event.organization_name}
-                        </span>
-                        <span className="text-blue-500 group-hover:translate-x-1 transition-transform duration-200">
-                          →
-                        </span>
-                      </Link>
-                      {userRole === "ATTENDEE" && (
-                        <Button
-                          variant={isFollowing ? "outline" : "default"}
-                          size="sm"
-                          onClick={handleFollowToggle}
-                          disabled={followLoading}
-                          className="whitespace-nowrap group relative"
-                        >
-                          <span
-                            className={isFollowing ? "group-hover:hidden" : ""}
-                          >
-                            {followLoading
-                              ? "Loading..."
-                              : isFollowing
-                                ? "Following"
-                                : "Follow"}
-                          </span>
-                          {isFollowing && !followLoading && (
-                            <span className="hidden group-hover:inline">
-                              Unfollow
-                            </span>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Show "Created by" only when there's an organization_name (below organization link) */}
-                {event.organization_name &&
-                  (event.created_by || event.organizer_name) && (
+                  {event.location && (
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                        Created by
+                        Location
                       </label>
                       <div className="text-base text-gray-800">
-                        {event.created_by || event.organizer_name}
+                        {event.location}
                       </div>
                     </div>
                   )}
 
-                {event.description && (
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
-                      {event.description}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {user?.role === "ORGANIZER" &&
-                (user.id === event.organizer || isOwner) && (
-                  <div className="border-t border-gray-200 mt-6 pt-6">
-                    <button
-                      onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
-                      className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
-                      aria-expanded={isParticipantsOpen}
-                    >
-                      <span>Participants</span>
-                      <span
-                        className={`transform transition-transform duration-200 ${isParticipantsOpen ? "rotate-180" : ""}`}
-                      >
-                        ▼
-                      </span>
-                    </button>
-                    {isParticipantsOpen && (
-                      <div className="mt-4 text-gray-700">
-                        <div className="mb-4 text-sm text-gray-600">
-                          <span className="font-semibold">
-                            {event.participant_count}
+                  {event.organization_name && event.organization_id && (
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        Organization
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/organizations/${event.organization_id}`}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-colors duration-200 group flex-1"
+                          onClick={() => {
+                            // Store referrer before navigation
+                            sessionStorage.setItem(
+                              "org_detail_referrer",
+                              window.location.pathname,
+                            );
+                          }}
+                        >
+                          <span className="text-lg">🏢</span>
+                          <span className="group-hover:underline">
+                            {event.organization_name}
                           </span>
-                          {event.capacity !== null &&
-                          event.capacity !== undefined &&
-                          event.capacity > 0 ? (
-                            <span> / {event.capacity}</span>
-                          ) : (
-                            ""
-                          )}{" "}
-                          {event.capacity === null || event.capacity === 0
-                            ? " (Unlimited capacity)"
-                            : ""}
-                        </div>
-                        {participantsLoading && <p>Loading participants...</p>}
-                        {participantsError && (
-                          <p className="text-red-500">{participantsError}</p>
+                          <span className="text-blue-500 group-hover:translate-x-1 transition-transform duration-200">
+                            →
+                          </span>
+                        </Link>
+                        {userRole === "ATTENDEE" && (
+                          <Button
+                            variant={isFollowing ? "outline" : "default"}
+                            size="sm"
+                            onClick={handleFollowToggle}
+                            disabled={followLoading}
+                            className="whitespace-nowrap group relative"
+                          >
+                            <span
+                              className={
+                                isFollowing ? "group-hover:hidden" : ""
+                              }
+                            >
+                              {followLoading
+                                ? "Loading..."
+                                : isFollowing
+                                  ? "Following"
+                                  : "Follow"}
+                            </span>
+                            {isFollowing && !followLoading && (
+                              <span className="hidden group-hover:inline">
+                                Unfollow
+                              </span>
+                            )}
+                          </Button>
                         )}
-                        {!participantsLoading &&
-                          !participantsError &&
-                          (participants.length > 0 ? (
-                            <ul className="space-y-2">
-                              {participants.map((p) => (
-                                <li key={p.id} className="text-sm">
-                                  {p.first_name} {p.last_name} (@{p.username})
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p>No participants have registered yet.</p>
-                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show "Created by" only when there's an organization_name (below organization link) */}
+                  {event.organization_name &&
+                    (event.created_by || event.organizer_name) && (
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                          Created by
+                        </label>
+                        <div className="text-base text-gray-800">
+                          {event.created_by || event.organizer_name}
+                        </div>
                       </div>
                     )}
-                  </div>
-                )}
 
-              {/* Interested Users Section - Only for organizers */}
-              {user?.role === "ORGANIZER" &&
-                (user.id === event.organizer || isOwner) && (
-                  <div className="border-t border-gray-200 mt-6 pt-6">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setIsInterestedUsersOpen(!isInterestedUsersOpen)
-                      }
-                      className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
-                      aria-expanded={isInterestedUsersOpen}
-                    >
-                      <span>Interested Users</span>
-                      <span
-                        className={`transform transition-transform duration-200 ${isInterestedUsersOpen ? "rotate-180" : ""}`}
-                      >
-                        ▼
-                      </span>
-                    </button>
-                    {isInterestedUsersOpen && (
-                      <div className="mt-4 text-gray-700">
-                        <div className="mb-4 text-sm text-gray-600">
-                          <span className="font-semibold">
-                            {event.interest_count || 0}
-                          </span>{" "}
-                          user{event.interest_count !== 1 ? "s" : ""} marked as
-                          interested
-                        </div>
-                        {interestedUsersLoading && (
-                          <p>Loading interested users...</p>
-                        )}
-                        {interestedUsersError && (
-                          <p className="text-red-500">{interestedUsersError}</p>
-                        )}
-                        {!interestedUsersLoading &&
-                          !interestedUsersError &&
-                          (interestedUsers.length > 0 ? (
-                            <ul className="space-y-2">
-                              {interestedUsers.map((u) => (
-                                <li key={u.id} className="text-sm">
-                                  {u.first_name} {u.last_name} (@{u.username})
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p>
-                              No users have marked this event as interested yet.
-                            </p>
-                          ))}
+                  {event.description && (
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                        {event.description}
                       </div>
-                    )}
-                  </div>
-                )}
-
-              {!isAuthenticated ? (
-                <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                  <Link href="/profile/login" className="flex-1">
-                    <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-4 rounded-xl">
-                      Login
-                    </Button>
-                  </Link>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <>
-                  {user?.role === "ATTENDEE" && event.status !== "Canceled" && (
+
+                {user?.role === "ORGANIZER" &&
+                  (user.id === event.organizer || isOwner) && (
+                    <div className="border-t border-gray-200 mt-6 pt-6">
+                      <button
+                        onClick={() =>
+                          setIsParticipantsOpen(!isParticipantsOpen)
+                        }
+                        className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
+                        aria-expanded={isParticipantsOpen}
+                      >
+                        <span>Participants</span>
+                        <span
+                          className={`transform transition-transform duration-200 ${isParticipantsOpen ? "rotate-180" : ""}`}
+                        >
+                          ▼
+                        </span>
+                      </button>
+                      {isParticipantsOpen && (
+                        <div className="mt-4 text-gray-700">
+                          <div className="mb-4 text-sm text-gray-600">
+                            <span className="font-semibold">
+                              {event.participant_count}
+                            </span>
+                            {event.capacity !== null &&
+                            event.capacity !== undefined &&
+                            event.capacity > 0 ? (
+                              <span> / {event.capacity}</span>
+                            ) : (
+                              ""
+                            )}{" "}
+                            {event.capacity === null || event.capacity === 0
+                              ? " (Unlimited capacity)"
+                              : ""}
+                          </div>
+                          {participantsLoading && (
+                            <p>Loading participants...</p>
+                          )}
+                          {participantsError && (
+                            <p className="text-red-500">{participantsError}</p>
+                          )}
+                          {!participantsLoading &&
+                            !participantsError &&
+                            (participants.length > 0 ? (
+                              <ul className="space-y-2">
+                                {participants.map((p) => (
+                                  <li key={p.id} className="text-sm">
+                                    {p.first_name} {p.last_name} (@{p.username})
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p>No participants have registered yet.</p>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                {/* Interested Users Section - Only for organizers */}
+                {user?.role === "ORGANIZER" &&
+                  (user.id === event.organizer || isOwner) && (
+                    <div className="border-t border-gray-200 mt-6 pt-6">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIsInterestedUsersOpen(!isInterestedUsersOpen)
+                        }
+                        className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
+                        aria-expanded={isInterestedUsersOpen}
+                      >
+                        <span>Interested Users</span>
+                        <span
+                          className={`transform transition-transform duration-200 ${isInterestedUsersOpen ? "rotate-180" : ""}`}
+                        >
+                          ▼
+                        </span>
+                      </button>
+                      {isInterestedUsersOpen && (
+                        <div className="mt-4 text-gray-700">
+                          <div className="mb-4 text-sm text-gray-600">
+                            <span className="font-semibold">
+                              {event.interest_count || 0}
+                            </span>{" "}
+                            user{event.interest_count !== 1 ? "s" : ""} marked
+                            as interested
+                          </div>
+                          {interestedUsersLoading && (
+                            <p>Loading interested users...</p>
+                          )}
+                          {interestedUsersError && (
+                            <p className="text-red-500">
+                              {interestedUsersError}
+                            </p>
+                          )}
+                          {!interestedUsersLoading &&
+                            !interestedUsersError &&
+                            (interestedUsers.length > 0 ? (
+                              <ul className="space-y-2">
+                                {interestedUsers.map((u) => (
+                                  <li key={u.id} className="text-sm">
+                                    {u.first_name} {u.last_name} (@{u.username})
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p>
+                                No users have marked this event as interested
+                                yet.
+                              </p>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                {/* Show buttons for attendees (authenticated or not) */}
+                {(!user || user?.role === "ATTENDEE") &&
+                  event.status !== "Canceled" && (
                     <div className="mt-8 pt-6 border-t border-gray-200 flex flex-col gap-4">
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-gray-600">
@@ -728,25 +956,28 @@ export default function EventModal({
                       <div className="flex gap-4">
                         <Button
                           onClick={toggleParticipation}
-                          disabled={event?.is_full && !event?.is_participating}
+                          disabled={
+                            event?.is_full &&
+                            !event?.is_participating &&
+                            isAuthenticated
+                          }
                           className={
                             "flex-1 font-bold py-4 rounded-xl " +
                             (event?.is_participating
                               ? "bg-red-600 hover:bg-red-500 text-white"
-                              : event?.is_full
+                              : event?.is_full && isAuthenticated
                                 ? "bg-gray-400 cursor-not-allowed text-white"
                                 : "bg-gray-800 hover:bg-gray-600 text-white")
                           }
                         >
                           {event?.is_participating
                             ? "Cancel Participation"
-                            : event?.is_full
+                            : event?.is_full && isAuthenticated
                               ? "Event Full"
                               : "Participate"}
                         </Button>
                         <Button
                           onClick={toggleInterest}
-                          disabled={!isAuthenticated}
                           className={`flex-1 font-bold py-4 rounded-xl ${
                             event?.is_interested
                               ? "bg-red-500 hover:bg-red-600 text-white"
@@ -760,40 +991,45 @@ export default function EventModal({
                       </div>
                     </div>
                   )}
-                  {user?.role === "ORGANIZER" &&
-                    (user.id === event.organizer || isOwner) && (
-                      <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                        <Link
-                          href={`/events/edit/${event.id}`}
-                          className="flex-1"
-                        >
-                          <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
-                            Edit
-                          </Button>
-                        </Link>
-                        {event.status === "Canceled" ? (
-                          <Button
-                            onClick={handleUncancel}
-                            className="flex-1 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl"
+
+                {/* Show organizer buttons only when authenticated */}
+                {isAuthenticated && (
+                  <>
+                    {user?.role === "ORGANIZER" &&
+                      (user.id === event.organizer || isOwner) && (
+                        <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                          <Link
+                            href={`/events/edit/${event.id}`}
+                            className="flex-1"
                           >
-                            Reactivate Event
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={handleCancel}
-                            className="flex-1 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl"
-                          >
-                            Cancel Event
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                </>
-              )}
-            </>
-          )}
+                            <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                              Edit
+                            </Button>
+                          </Link>
+                          {event.status === "Canceled" ? (
+                            <Button
+                              onClick={handleUncancel}
+                              className="flex-1 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl"
+                            >
+                              Reactivate Event
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={handleCancel}
+                              className="flex-1 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl"
+                            >
+                              Cancel Event
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
