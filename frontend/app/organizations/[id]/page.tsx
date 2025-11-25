@@ -751,6 +751,14 @@ export default function OrganizationDetailPage() {
                         {event.description}
                       </p>
                     )}
+                    <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                      {event.participant_count !== undefined && (
+                        <span>👥 {event.participant_count} participants</span>
+                      )}
+                      {event.interest_count !== undefined && (
+                        <span>❤️ {event.interest_count} interested</span>
+                      )}
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
