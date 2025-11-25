@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   cancelEventRequest,
+  getEventInterestedUsers,
   getEventParticipants,
   uncancelEventRequest,
 } from "@/lib/events";
@@ -252,6 +253,36 @@ export default function EventModal({
         .finally(() => setParticipantsLoading(false));
     }
   }, [isParticipantsOpen, event?.id, isAuthenticated]);
+
+  // Fetch interested users when dropdown is opened (only for organizers)
+  useEffect(() => {
+    if (
+      isInterestedUsersOpen &&
+      event?.id &&
+      isAuthenticated &&
+      user &&
+      (user.role === "ORGANIZER" || isOwner)
+    ) {
+      setInterestedUsersLoading(true);
+      setInterestedUsersError(null);
+      getEventInterestedUsers(event.id)
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setInterestedUsers(data);
+          } else {
+            // Handle cases where the API returns an error object
+            throw new Error("Failed to load interested users.");
+          }
+        })
+        .catch((err) => {
+          setInterestedUsersError(
+            err.message || "Could not fetch interested users information.",
+          );
+        })
+        .finally(() => setInterestedUsersLoading(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInterestedUsersOpen, event?.id, isAuthenticated]);
 
   const toggleParticipation = async () => {
     if (!event) return;
@@ -593,6 +624,60 @@ export default function EventModal({
                             </ul>
                           ) : (
                             <p>No participants have registered yet.</p>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* Interested Users Section - Only for organizers */}
+              {user?.role === "ORGANIZER" &&
+                (user.id === event.organizer || isOwner) && (
+                  <div className="border-t border-gray-200 mt-6 pt-6">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsInterestedUsersOpen(!isInterestedUsersOpen)
+                      }
+                      className="w-full flex justify-between items-center text-left text-lg font-semibold text-gray-800 hover:text-gray-900"
+                      aria-expanded={isInterestedUsersOpen}
+                    >
+                      <span>Interested Users</span>
+                      <span
+                        className={`transform transition-transform duration-200 ${isInterestedUsersOpen ? "rotate-180" : ""}`}
+                      >
+                        ▼
+                      </span>
+                    </button>
+                    {isInterestedUsersOpen && (
+                      <div className="mt-4 text-gray-700">
+                        <div className="mb-4 text-sm text-gray-600">
+                          <span className="font-semibold">
+                            {event.interest_count || 0}
+                          </span>{" "}
+                          user{event.interest_count !== 1 ? "s" : ""} marked as
+                          interested
+                        </div>
+                        {interestedUsersLoading && (
+                          <p>Loading interested users...</p>
+                        )}
+                        {interestedUsersError && (
+                          <p className="text-red-500">{interestedUsersError}</p>
+                        )}
+                        {!interestedUsersLoading &&
+                          !interestedUsersError &&
+                          (interestedUsers.length > 0 ? (
+                            <ul className="space-y-2">
+                              {interestedUsers.map((u) => (
+                                <li key={u.id} className="text-sm">
+                                  {u.first_name} {u.last_name} (@{u.username})
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>
+                              No users have marked this event as interested yet.
+                            </p>
                           ))}
                       </div>
                     )}
