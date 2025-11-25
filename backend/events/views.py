@@ -465,6 +465,60 @@ class ParticipateEventView(APIView):
         )
 
 
+class InterestEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        """Mark event as interested"""
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if event.interested_users.filter(pk=user.pk).exists():
+            return Response(
+                {
+                    "detail": "Already marked as interested.",
+                    "interest_count": event.interested_users.count(),
+                    "is_interested": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        event.interested_users.add(user)
+        return Response(
+            {
+                "detail": "Marked as interested.",
+                "interest_count": event.interested_users.count(),
+                "is_interested": True,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def delete(self, request, pk):
+        """Remove interest from event"""
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if not event.interested_users.filter(pk=user.pk).exists():
+            return Response(
+                {
+                    "detail": "You are not interested in this event.",
+                    "interest_count": event.interested_users.count(),
+                    "is_interested": False,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        event.interested_users.remove(user)
+        return Response(
+            {
+                "detail": "Interest removed.",
+                "interest_count": event.interested_users.count(),
+                "is_interested": False,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class MyOrganizedEventsView(generics.ListAPIView):
     """
     Get events organized by the current user:
