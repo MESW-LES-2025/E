@@ -38,7 +38,9 @@ interface Event {
   organization_name: string;
   status: string;
   participant_count: number;
+  interest_count?: number;
   is_participating: boolean;
+  is_interested?: boolean;
   capacity: number | null;
   is_full: boolean;
   category: string;
@@ -254,6 +256,33 @@ export default function EventModal({ id, onClose }: Props) {
                 participant_count: data.participant_count,
                 is_participating: data.is_participating,
                 is_full: data.is_full,
+              }
+            : prev,
+        );
+      }
+    } catch {
+      // Silently fail
+    }
+  };
+
+  const toggleInterest = async () => {
+    if (!event || !isAuthenticated) return;
+    const base =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+    const method = event.is_interested ? "DELETE" : "POST";
+    try {
+      const res = await fetchWithAuth(
+        `${base}/events/${event.id}/interested/`,
+        { method },
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setEvent((prev) =>
+          prev
+            ? {
+                ...prev,
+                interest_count: data.interest_count,
+                is_interested: data.is_interested,
               }
             : prev,
         );
@@ -564,6 +593,12 @@ export default function EventModal({ id, onClose }: Props) {
                           {(event?.capacity === null ||
                             event?.capacity === 0) && <span> (Unlimited)</span>}
                         </span>
+                        {event?.interest_count !== undefined &&
+                          event?.interest_count > 0 && (
+                            <span className="text-gray-600">
+                              • ❤️ {event.interest_count} interested
+                            </span>
+                          )}
                         {event?.is_full && (
                           <span className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded-full">
                             Event Full
@@ -589,8 +624,18 @@ export default function EventModal({ id, onClose }: Props) {
                               ? "Event Full"
                               : "Participate"}
                         </Button>
-                        <Button className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-xl">
-                          Interested
+                        <Button
+                          onClick={toggleInterest}
+                          disabled={!isAuthenticated}
+                          className={`flex-1 font-bold py-4 rounded-xl ${
+                            event?.is_interested
+                              ? "bg-red-500 hover:bg-red-600 text-white"
+                              : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                          }`}
+                        >
+                          {event?.is_interested
+                            ? "❤️ Interested"
+                            : "Interested"}
                         </Button>
                       </div>
                     </div>
