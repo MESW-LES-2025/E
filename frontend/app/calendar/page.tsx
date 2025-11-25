@@ -107,6 +107,11 @@ export default function EventsCalendar() {
           registeredUsersIds: [],
           interestedUsersIds: [],
           category: event.category,
+          participant_count: event.participant_count,
+          interest_count: event.interest_count,
+          is_participating: event.is_participating,
+          is_interested: event.is_interested,
+          is_full: event.is_full,
         }));
       } else if (filter === EndpointType.ORGANIZED) {
         const events = await getMyOrganizedEvents();
@@ -121,6 +126,11 @@ export default function EventsCalendar() {
           registeredUsersIds: [],
           interestedUsersIds: [],
           category: event.category,
+          participant_count: event.participant_count,
+          interest_count: event.interest_count,
+          is_participating: event.is_participating,
+          is_interested: event.is_interested,
+          is_full: event.is_full,
         }));
       } else {
         // For ALL and PARTICIPATING, use apiRequest as before
@@ -285,6 +295,40 @@ export default function EventsCalendar() {
           onClose={() => {
             setModalOpen(false);
             setSelectedEventId(null);
+          }}
+          onInterestChange={(eventId, isInterested, interestCount) => {
+            // Update the event in the events array
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId
+                  ? {
+                      ...e,
+                      interest_count: interestCount,
+                      is_interested: isInterested,
+                    }
+                  : e,
+              ),
+            );
+          }}
+          onParticipationChange={(
+            eventId,
+            isParticipating,
+            participantCount,
+            isFull,
+          ) => {
+            // Update the event in the events array
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId
+                  ? {
+                      ...e,
+                      participant_count: participantCount,
+                      is_participating: isParticipating,
+                      is_full: isFull,
+                    }
+                  : e,
+              ),
+            );
           }}
         />
       )}

@@ -22,6 +22,17 @@ import { useRouter } from "next/navigation";
 type Props = {
   id: string | null;
   onClose: () => void;
+  onInterestChange?: (
+    eventId: number,
+    isInterested: boolean,
+    interestCount: number,
+  ) => void;
+  onParticipationChange?: (
+    eventId: number,
+    isParticipating: boolean,
+    participantCount: number,
+    isFull: boolean,
+  ) => void;
 };
 
 interface Event {
@@ -77,7 +88,12 @@ const STATUS_COLORS: Record<string, string> = {
   Cancelled: "bg-red-500 text-white",
 };
 
-export default function EventModal({ id, onClose }: Props) {
+export default function EventModal({
+  id,
+  onClose,
+  onInterestChange,
+  onParticipationChange,
+}: Props) {
   const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -259,6 +275,15 @@ export default function EventModal({ id, onClose }: Props) {
               }
             : prev,
         );
+        // Notify parent component about the participation change
+        if (onParticipationChange) {
+          onParticipationChange(
+            event.id,
+            data.is_participating,
+            data.participant_count,
+            data.is_full,
+          );
+        }
       }
     } catch {
       // Silently fail
@@ -286,6 +311,10 @@ export default function EventModal({ id, onClose }: Props) {
               }
             : prev,
         );
+        // Notify parent component about the interest change
+        if (onInterestChange) {
+          onInterestChange(event.id, data.is_interested, data.interest_count);
+        }
       }
     } catch {
       // Silently fail
@@ -634,7 +663,7 @@ export default function EventModal({ id, onClose }: Props) {
                           }`}
                         >
                           {event?.is_interested
-                            ? "❤️ Interested"
+                            ? "Cancel Interest"
                             : "Interested"}
                         </Button>
                       </div>

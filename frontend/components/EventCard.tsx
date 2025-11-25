@@ -56,7 +56,7 @@ export default function EventCard({ event, onViewDetails }: EventCardProps) {
           {event.participant_count !== undefined && (
             <span>👥 {event.participant_count} participants</span>
           )}
-          {event.interest_count !== undefined && event.interest_count > 0 && (
+          {event.interest_count !== undefined && (
             <span>❤️ {event.interest_count} interested</span>
           )}
         </div>

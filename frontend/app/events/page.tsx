@@ -31,6 +31,57 @@ export default function EventsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
+  const handleInterestChange = (
+    eventId: number,
+    isInterested: boolean,
+    interestCount: number,
+  ) => {
+    // Update the event in both upcoming and past events arrays
+    setUpcomingEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId ? { ...e, interest_count: interestCount } : e,
+      ),
+    );
+    setPastEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId ? { ...e, interest_count: interestCount } : e,
+      ),
+    );
+  };
+
+  const handleParticipationChange = (
+    eventId: number,
+    isParticipating: boolean,
+    participantCount: number,
+    isFull: boolean,
+  ) => {
+    // Update the event in both upcoming and past events arrays
+    setUpcomingEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              participant_count: participantCount,
+              is_participating: isParticipating,
+              is_full: isFull,
+            }
+          : e,
+      ),
+    );
+    setPastEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              participant_count: participantCount,
+              is_participating: isParticipating,
+              is_full: isFull,
+            }
+          : e,
+      ),
+    );
+  };
+
   const base =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
@@ -194,6 +245,8 @@ export default function EventsPage() {
             setModalOpen(false);
             setSelectedEventId(null);
           }}
+          onInterestChange={handleInterestChange}
+          onParticipationChange={handleParticipationChange}
         />
       )}
     </div>

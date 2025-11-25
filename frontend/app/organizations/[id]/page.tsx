@@ -779,6 +779,34 @@ export default function OrganizationDetailPage() {
             // Refresh events list to update status badges
             fetchEvents();
           }}
+          onInterestChange={(eventId, isInterested, interestCount) => {
+            // Update the event in the events array if it exists
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId ? { ...e, interest_count: interestCount } : e,
+              ),
+            );
+          }}
+          onParticipationChange={(
+            eventId,
+            isParticipating,
+            participantCount,
+            isFull,
+          ) => {
+            // Update the event in the events array if it exists
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId
+                  ? {
+                      ...e,
+                      participant_count: participantCount,
+                      is_participating: isParticipating,
+                      is_full: isFull,
+                    }
+                  : e,
+              ),
+            );
+          }}
         />
       )}
     </div>

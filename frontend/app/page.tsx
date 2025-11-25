@@ -106,6 +106,42 @@ export default function Home() {
     setModalOpen(true);
   };
 
+  const handleInterestChange = (
+    eventId: number,
+    isInterested: boolean,
+    interestCount: number,
+  ) => {
+    // Update the event in the events array
+    setEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? { ...e, interest_count: interestCount, is_interested: isInterested }
+          : e,
+      ),
+    );
+  };
+
+  const handleParticipationChange = (
+    eventId: number,
+    isParticipating: boolean,
+    participantCount: number,
+    isFull: boolean,
+  ) => {
+    // Update the event in the events array
+    setEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              participant_count: participantCount,
+              is_participating: isParticipating,
+              is_full: isFull,
+            }
+          : e,
+      ),
+    );
+  };
+
   return (
     <div className="container mx-auto p-8 max-w-7xl">
       <div className="space-y-12">
@@ -194,7 +230,12 @@ export default function Home() {
         </section>
 
         {modalOpen && selectedEventId && (
-          <EventModal id={selectedEventId} onClose={handleCloseModal} />
+          <EventModal
+            id={selectedEventId}
+            onClose={handleCloseModal}
+            onInterestChange={handleInterestChange}
+            onParticipationChange={handleParticipationChange}
+          />
         )}
       </div>
     </div>
