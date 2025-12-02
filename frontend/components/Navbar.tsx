@@ -102,6 +102,10 @@ export default function Navbar() {
               <Button variant="ghost">My Profile</Button>
             </Link>
 
+            <Link href="/notifications">
+              <Button variant="ghost">Notifications</Button>
+            </Link>
+
             <Button variant="ghost" onClick={handleLogout}>
               Logout
             </Button>
