@@ -278,6 +278,14 @@ export default function MyEventsPage() {
             Created by {event.created_by || event.organizer_name}
           </p>
         )}
+        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+          {event.participant_count !== undefined && (
+            <span>👥 {event.participant_count} participants</span>
+          )}
+          {event.interest_count !== undefined && (
+            <span>❤️ {event.interest_count} interested</span>
+          )}
+        </div>
       </CardContent>
 
       <CardFooter>

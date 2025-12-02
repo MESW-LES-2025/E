@@ -10,6 +10,11 @@ import {
   getFollowedOrganizations,
   type PublicOrganization,
 } from "@/lib/organizations";
+import {
+  getInterestedEvents,
+  unmarkEventAsInterested,
+  type Event,
+} from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,7 +45,9 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"profile" | "followed">("profile");
+  const [activeTab, setActiveTab] = useState<
+    "profile" | "followed" | "interested"
+  >("profile");
 
   // Form state
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -53,6 +60,16 @@ export default function ProfilePage() {
     null,
   );
   const [unfollowingIds, setUnfollowingIds] = useState<Set<number>>(new Set());
+
+  // Interested events state
+  const [interestedEvents, setInterestedEvents] = useState<Event[]>([]);
+  const [interestedEventsLoading, setInterestedEventsLoading] = useState(false);
+  const [interestedEventsError, setInterestedEventsError] = useState<
+    string | null
+  >(null);
+  const [uninterestedIds, setUninterestedIds] = useState<Set<number>>(
+    new Set(),
+  );
 
   useEffect(() => {
     // Set mounted to true after component mounts (client-side only)
@@ -113,6 +130,29 @@ export default function ProfilePage() {
     }
   }, [activeTab, authed]);
 
+  // Fetch interested events when tab is active
+  useEffect(() => {
+    if (activeTab === "interested" && authed && profile?.role === "ATTENDEE") {
+      const fetchInterestedEvents = async () => {
+        try {
+          setInterestedEventsLoading(true);
+          setInterestedEventsError(null);
+          const data = await getInterestedEvents();
+          setInterestedEvents(data);
+        } catch (err) {
+          setInterestedEventsError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load interested events",
+          );
+        } finally {
+          setInterestedEventsLoading(false);
+        }
+      };
+      fetchInterestedEvents();
+    }
+  }, [activeTab, authed, profile?.role]);
+
   const handleUnfollow = async (orgId: number) => {
     try {
       setUnfollowingIds((prev) => new Set(prev).add(orgId));
@@ -130,6 +170,30 @@ export default function ProfilePage() {
       setUnfollowingIds((prev) => {
         const newSet = new Set(prev);
         newSet.delete(orgId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleUninterested = async (eventId: number) => {
+    try {
+      setUninterestedIds((prev) => new Set(prev).add(eventId));
+      await unmarkEventAsInterested(eventId);
+      // Remove the event from the list
+      setInterestedEvents((prev) =>
+        prev.filter((event) => event.id !== eventId),
+      );
+    } catch (err) {
+      console.error("Failed to remove interest:", err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Failed to remove interest. Please try again.",
+      );
+    } finally {
+      setUninterestedIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(eventId);
         return newSet;
       });
     }
@@ -255,6 +319,16 @@ export default function ProfilePage() {
               }`}
             >
               Followed Organizations
+            </button>
+            <button
+              onClick={() => setActiveTab("interested")}
+              className={`pb-3 px-1 border-b-2 font-medium transition-colors ${
+                activeTab === "interested"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Interested Events
             </button>
           </nav>
         </div>
@@ -451,6 +525,119 @@ export default function ProfilePage() {
                           {unfollowingIds.has(org.id)
                             ? "Unfollowing..."
                             : "Unfollow"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Interested Events Tab */}
+      {activeTab === "interested" && profile?.role === "ATTENDEE" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Interested Events</CardTitle>
+            <CardDescription>
+              Events you&apos;ve marked as interested
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {interestedEventsLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading events...</p>
+              </div>
+            ) : interestedEventsError ? (
+              <div className="text-center py-8">
+                <p className="text-red-500">{interestedEventsError}</p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => {
+                    setInterestedEventsError(null);
+                    if (activeTab === "interested") {
+                      const fetchInterestedEvents = async () => {
+                        try {
+                          setInterestedEventsLoading(true);
+                          const data = await getInterestedEvents();
+                          setInterestedEvents(data);
+                        } catch (err) {
+                          setInterestedEventsError(
+                            err instanceof Error
+                              ? err.message
+                              : "Failed to load interested events",
+                          );
+                        } finally {
+                          setInterestedEventsLoading(false);
+                        }
+                      };
+                      fetchInterestedEvents();
+                    }
+                  }}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : interestedEvents.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">
+                  You haven&apos;t marked any events as interested yet.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Visit an event and click &quot;Interested&quot; to start
+                  tracking events you&apos;re considering.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {interestedEvents.map((event) => (
+                  <Card key={event.id} className="border">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <Link
+                            href={`/events/${event.id}`}
+                            className="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {event.name}
+                          </Link>
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                              {event.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                            <span>
+                              📅 {new Date(event.date).toLocaleString()}
+                            </span>
+                            {event.location && <span>📍 {event.location}</span>}
+                            {event.participant_count !== undefined && (
+                              <span>
+                                👥 {event.participant_count} participant
+                                {event.participant_count !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                            {event.interest_count !== undefined &&
+                              event.interest_count > 0 && (
+                                <span>
+                                  ❤️ {event.interest_count} interested
+                                </span>
+                              )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUninterested(event.id)}
+                          disabled={uninterestedIds.has(event.id)}
+                          className="flex-shrink-0"
+                        >
+                          {uninterestedIds.has(event.id)
+                            ? "Removing..."
+                            : "Remove Interest"}
                         </Button>
                       </div>
                     </CardContent>

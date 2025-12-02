@@ -23,6 +23,7 @@ interface Event {
   organizer_name: string;
   status: string;
   participant_count: number;
+  interest_count?: number;
   is_participating: boolean;
   capacity: number | null;
   is_full: boolean;
@@ -103,6 +104,42 @@ export default function Home() {
   const handleViewDetails = (eventId: string) => {
     setSelectedEventId(eventId);
     setModalOpen(true);
+  };
+
+  const handleInterestChange = (
+    eventId: number,
+    isInterested: boolean,
+    interestCount: number,
+  ) => {
+    // Update the event in the events array
+    setEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? { ...e, interest_count: interestCount, is_interested: isInterested }
+          : e,
+      ),
+    );
+  };
+
+  const handleParticipationChange = (
+    eventId: number,
+    isParticipating: boolean,
+    participantCount: number,
+    isFull: boolean,
+  ) => {
+    // Update the event in the events array
+    setEvents((prevEvents) =>
+      prevEvents.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              participant_count: participantCount,
+              is_participating: isParticipating,
+              is_full: isFull,
+            }
+          : e,
+      ),
+    );
   };
 
   return (
@@ -193,7 +230,12 @@ export default function Home() {
         </section>
 
         {modalOpen && selectedEventId && (
-          <EventModal id={selectedEventId} onClose={handleCloseModal} />
+          <EventModal
+            id={selectedEventId}
+            onClose={handleCloseModal}
+            onInterestChange={handleInterestChange}
+            onParticipationChange={handleParticipationChange}
+          />
         )}
       </div>
     </div>

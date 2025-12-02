@@ -174,6 +174,7 @@ class EventSerializerTest(TestCase):
             "organization_name",
             "status",
             "participant_count",
+            "interest_count",
             "interested_users",
             "is_participating",
             "is_interested",

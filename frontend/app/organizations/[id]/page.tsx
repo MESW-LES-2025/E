@@ -751,6 +751,14 @@ export default function OrganizationDetailPage() {
                         {event.description}
                       </p>
                     )}
+                    <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                      {event.participant_count !== undefined && (
+                        <span>👥 {event.participant_count} participants</span>
+                      )}
+                      {event.interest_count !== undefined && (
+                        <span>❤️ {event.interest_count} interested</span>
+                      )}
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
@@ -778,6 +786,34 @@ export default function OrganizationDetailPage() {
             setSelectedEventId(null);
             // Refresh events list to update status badges
             fetchEvents();
+          }}
+          onInterestChange={(eventId, isInterested, interestCount) => {
+            // Update the event in the events array if it exists
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId ? { ...e, interest_count: interestCount } : e,
+              ),
+            );
+          }}
+          onParticipationChange={(
+            eventId,
+            isParticipating,
+            participantCount,
+            isFull,
+          ) => {
+            // Update the event in the events array if it exists
+            setEvents((prevEvents) =>
+              prevEvents.map((e) =>
+                e.id === eventId
+                  ? {
+                      ...e,
+                      participant_count: participantCount,
+                      is_participating: isParticipating,
+                      is_full: isFull,
+                    }
+                  : e,
+              ),
+            );
           }}
         />
       )}

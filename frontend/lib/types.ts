@@ -8,4 +8,9 @@ export type ErasmusEvent = {
   registeredUsersIds: string[];
   interestedUsersIds: string[];
   category: string;
+  participant_count?: number;
+  interest_count?: number;
+  is_participating?: boolean;
+  is_interested?: boolean;
+  is_full?: boolean;
 };

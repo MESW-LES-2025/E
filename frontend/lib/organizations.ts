@@ -75,6 +75,10 @@ export interface OrganizationEvent {
   status: string;
   capacity?: number;
   participants?: number[];
+  participant_count?: number;
+  is_participating?: boolean;
+  is_full?: boolean;
+  interest_count?: number;
 }
 
 // List all organizations (public endpoint, but uses auth if available for is_following)
