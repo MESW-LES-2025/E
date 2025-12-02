@@ -5,9 +5,31 @@ import { listOrganizations } from "../../lib/organizations";
 import { isAuthenticated } from "../../lib/auth";
 import { getProfile } from "../../lib/profiles";
 
+// Mock next/navigation
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockBack = jest.fn();
+const mockPathname = "/organizations";
+const mockQuery = {};
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: mockBack,
+    pathname: mockPathname,
+    query: mockQuery,
+  }),
+  usePathname: () => mockPathname,
+  useParams: () => mockQuery,
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 // Mock modules
 jest.mock("../../lib/organizations", () => ({
   listOrganizations: jest.fn(),
+  followOrganization: jest.fn().mockResolvedValue(undefined),
+  unfollowOrganization: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("../../lib/auth", () => ({

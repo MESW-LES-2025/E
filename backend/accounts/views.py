@@ -58,6 +58,23 @@ class OrganizationViewSet(ModelViewSet):
 
     def get_permissions(self):
         """Different permissions for different actions"""
+        # Follow/unfollow actions only need authentication (checked in action)
+        # Check action name - DRF uses method name for custom actions
+        action = getattr(self, "action", None)
+        # The action name is the method name, not the url_path
+        if action in ["manage_follow", "followed"]:
+            return [IsAuthenticated()]
+        # Fallback: check request path and method if action name not available yet
+        if hasattr(self, "request") and self.request:
+            path = getattr(self.request, "path", "") or ""
+            method = getattr(self.request, "method", "").upper()
+            # Check if this is a follow/unfollow request
+            if (
+                "/follow" in path
+                or path.endswith("/followed/")
+                or (method in ["POST", "DELETE"] and "/follow/" in path)
+            ):
+                return [IsAuthenticated()]
         # Use IsOrganizerOrReadOnly which handles:
         # - Public read access
         # - ORGANIZER role required for create
@@ -266,4 +283,73 @@ class OrganizationViewSet(ModelViewSet):
 
         collaborators = organization.collaborators.all()
         serializer = UserSerializer(collaborators, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        url_path="follow",
+    )
+    def manage_follow(self, request, pk=None):
+        """Follow or unfollow an organization (only for attendees)"""
+        organization = self.get_object()
+
+        # Only attendees can follow organizations
+        # Use get_or_create to ensure profile exists
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.role != Profile.Role.ATTENDEE:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "Only attendees can follow organizations. "
+                "Organizers cannot follow organizations."
+            )
+
+        if request.method == "POST":
+            # Follow organization
+            if organization.followers.filter(pk=request.user.pk).exists():
+                return Response(
+                    {"detail": "You are already following this organization"},
+                    status=400,
+                )
+            organization.followers.add(request.user)
+            return Response(
+                {"detail": "Organization followed successfully"}, status=200
+            )
+        else:  # DELETE
+            # Unfollow organization
+            if not organization.followers.filter(pk=request.user.pk).exists():
+                return Response(
+                    {"detail": "You are not following this organization"}, status=400
+                )
+            organization.followers.remove(request.user)
+            return Response(
+                {"detail": "Organization unfollowed successfully"}, status=200
+            )
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="followed",
+    )
+    def followed(self, request):
+        """Get all organizations the current user is following (only for attendees)"""
+        # Only attendees can view followed organizations
+        # Use get_or_create to ensure profile exists
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.role != Profile.Role.ATTENDEE:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "Only attendees can view followed organizations. "
+                "Organizers cannot follow organizations."
+            )
+
+        followed_organizations = Organization.objects.filter(
+            followers=request.user
+        ).select_related("owner")
+
+        serializer = PublicOrganizationSerializer(
+            followed_organizations, many=True, context={"request": request}
+        )
         return Response(serializer.data)

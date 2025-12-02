@@ -70,6 +70,14 @@ class Organization(models.Model):
         ),
     )
 
+    # Followers (users who want to track this organization's events)
+    followers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="followed_organizations",
+        blank=True,
+        help_text="Users who follow this organization to track its events",
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -8,9 +8,44 @@ import {
   uncancelEventRequest,
 } from "../../lib/events";
 
+// Mock next/navigation
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockBack = jest.fn();
+const mockPathname = "/";
+const mockQuery = {};
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: mockBack,
+    pathname: mockPathname,
+    query: mockQuery,
+  }),
+  usePathname: () => mockPathname,
+  useParams: () => mockQuery,
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock getProfile
+jest.mock("../../lib/profiles", () => ({
+  getProfile: jest.fn().mockResolvedValue({ role: "ATTENDEE" }),
+}));
+
+// Mock getOrganization
+jest.mock("../../lib/organizations", () => ({
+  getOrganization: jest.fn().mockResolvedValue({
+    id: 1,
+    name: "Test Organization",
+    is_following: false,
+  }),
+}));
+
 // Mock auth module
 jest.mock("../../lib/auth", () => ({
   fetchWithAuth: jest.fn(),
+  isAuthenticated: jest.fn().mockReturnValue(false),
 }));
 jest.mock("../../lib/events", () => ({
   getEventParticipants: jest.fn(),
