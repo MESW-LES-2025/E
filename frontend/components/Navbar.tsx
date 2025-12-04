@@ -6,6 +6,7 @@ import Link from "next/link";
 import { isAuthenticated, logout } from "@/lib/auth";
 import { getProfile, type Profile } from "@/lib/profiles";
 import { Button } from "@/components/ui/button";
+import { getUnreadCount } from "@/lib/notifications";
 
 export default function Navbar() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function Navbar() {
   const [authed, setAuthed] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unread, setUnread] = useState<number>(0);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -48,9 +50,18 @@ export default function Navbar() {
             setAuthed(false);
           }
         }
+
+        // Fetch unread notifications count
+        try {
+          const count = await getUnreadCount();
+          setUnread(count);
+        } catch {
+          setUnread(0);
+        }
       } else {
         // User is not authenticated, ensure profile is null
         setProfile(null);
+        setUnread(0);
       }
 
       setLoading(false);
@@ -63,6 +74,7 @@ export default function Navbar() {
     logout();
     setAuthed(false);
     setProfile(null);
+    setUnread(0);
     router.push("/profile/login");
   };
 
@@ -102,8 +114,17 @@ export default function Navbar() {
               <Button variant="ghost">My Profile</Button>
             </Link>
 
-            <Link href="/notifications">
-              <Button variant="ghost">Notifications</Button>
+            <Link href="/notifications" className="relative">
+              <Button variant="ghost" className="relative">
+                {/* Simple bell glyph */}
+                <span className="mr-2">🔔</span>
+                Notifications
+                {unread > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-2 py-0.5">
+                    {unread}
+                  </span>
+                )}
+              </Button>
             </Link>
 
             <Button variant="ghost" onClick={handleLogout}>
