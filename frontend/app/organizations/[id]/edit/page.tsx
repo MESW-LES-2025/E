@@ -9,6 +9,7 @@ import {
   deleteOrganization,
   type Organization,
   type UpdateOrganizationPayload,
+  type OrganizationType,
 } from "@/lib/organizations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -168,7 +169,7 @@ export default function EditOrganizationPage() {
       facebook_url: facebookUrl.trim() || undefined,
       linkedin_url: linkedinUrl.trim() || undefined,
       instagram_handle: instagramHandle.trim() || undefined,
-      organization_type: organizationType || undefined,
+      organization_type: (organizationType as OrganizationType) || undefined,
       established_date: establishedDate || undefined,
     };
 
@@ -187,8 +188,9 @@ export default function EditOrganizationPage() {
       if (err && typeof err === "object") {
         // Handle validation errors from backend
         const errorMessages: Record<string, string> = {};
-        Object.keys(err).forEach((key) => {
-          const value = err[key];
+        const errRecord = err as Record<string, unknown>;
+        Object.keys(errRecord).forEach((key) => {
+          const value = errRecord[key];
           if (Array.isArray(value)) {
             errorMessages[key] = value[0];
           } else if (typeof value === "string") {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ const FieldSuccess = ({ children }: { children: React.ReactNode }) => (
   <span className="text-sm font-medium text-green-600">{children}</span>
 );
 
-export default function CreateEvent() {
+function CreateEventContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
@@ -401,6 +401,16 @@ export default function CreateEvent() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function CreateEvent() {
+  return (
+    <Suspense
+      fallback={<div className="container mx-auto p-6">Loading...</div>}
+    >
+      <CreateEventContent />
+    </Suspense>
   );
 }
 
