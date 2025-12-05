@@ -754,11 +754,6 @@ describe("EventModal", () => {
         },
         { timeout: 5000 },
       );
-      // Check that the Edit button links to the correct page
-      expect(screen.getByText("Edit").closest("a")).toHaveAttribute(
-        "href",
-        `/events/edit/${mockEvent.id}`,
-      );
     });
   });
 
@@ -1444,6 +1439,131 @@ describe("EventModal", () => {
         expect(window.alert).toHaveBeenCalledWith(
           "Could not reactivate the event",
         );
+      });
+    });
+
+    // ----------------------
+    // Edit modal tests
+    // ----------------------
+    describe("Edit Modal", () => {
+      beforeEach(() => {
+        jest.clearAllMocks();
+        localStorage.clear();
+      });
+
+      it("opens edit modal and pre-fills form", async () => {
+        // Simulate authenticated organizer
+        jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+          if (key === "auth_tokens")
+            return JSON.stringify({ access: "fake-token" });
+          return null;
+        });
+
+        // fetchWithAuth call 1: event, call 2: user
+        mockFetchWithAuth
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => mockEvent,
+          } as Response)
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ id: 1, role: "ORGANIZER" }),
+          } as Response);
+
+        render(<EventModal id="1" onClose={mockOnClose} />);
+
+        // Wait for event content
+        await screen.findByText(mockEvent.name);
+
+        // Click Edit
+        const editButton = screen.getByText("Edit");
+        fireEvent.click(editButton);
+
+        // Inputs should be prefilled
+        expect(screen.getByDisplayValue(mockEvent.name)).toBeInTheDocument();
+        // date input uses slice(0,16)
+        const expectedDateValue = mockEvent.date.slice(0, 16);
+        expect(screen.getByDisplayValue(expectedDateValue)).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue(mockEvent.location),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue(mockEvent.description),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByDisplayValue(mockEvent.capacity?.toString() ?? ""),
+        ).toBeInTheDocument();
+      });
+
+      it("shows validation errors when required fields are empty", async () => {
+        jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+          if (key === "auth_tokens")
+            return JSON.stringify({ access: "fake-token" });
+          return null;
+        });
+
+        mockFetchWithAuth
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => mockEvent,
+          } as Response)
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ id: 1, role: "ORGANIZER" }),
+          } as Response);
+
+        render(<EventModal id="1" onClose={mockOnClose} />);
+        await screen.findByText(mockEvent.name);
+
+        fireEvent.click(screen.getByText("Edit"));
+
+        // Clear the Name field
+        const nameInput = screen.getByDisplayValue(
+          mockEvent.name,
+        ) as HTMLInputElement;
+        fireEvent.change(nameInput, { target: { value: "" } });
+
+        // Click Save (calls validated save)
+        fireEvent.click(screen.getByText("Save"));
+
+        // Validation error should appear
+        await waitFor(() => {
+          expect(screen.getByText("Name is required")).toBeInTheDocument();
+        });
+      });
+
+      it("closes edit modal when Cancel is clicked", async () => {
+        jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
+          if (key === "auth_tokens")
+            return JSON.stringify({ access: "fake-token" });
+          return null;
+        });
+
+        mockFetchWithAuth
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => mockEvent,
+          } as Response)
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ id: 1, role: "ORGANIZER" }),
+          } as Response)
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ id: 1, role: "ORGANIZER" }),
+          } as Response);
+
+        render(<EventModal id="1" onClose={mockOnClose} />);
+        await screen.findByText(mockEvent.name);
+
+        fireEvent.click(screen.getByText("Edit"));
+
+        // Click Cancel inside edit modal
+        fireEvent.click(screen.getByText("Cancel"));
+
+        await waitFor(() => {
+          expect(screen.queryByText("Save")).not.toBeInTheDocument();
+        });
       });
     });
   });

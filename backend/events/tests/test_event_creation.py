@@ -302,6 +302,7 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
         self.user = User.objects.create_user(username="testuser", password="pass123")
         self.user.profile.role = Profile.Role.ORGANIZER
         self.user.profile.save()
+        self.client.force_authenticate(user=self.user)
 
         self.organization = Organization.objects.create(
             name="Test Organization", owner=self.user

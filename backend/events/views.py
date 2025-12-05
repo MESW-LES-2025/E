@@ -77,6 +77,7 @@ class AllEventsListView(generics.ListAPIView):
 
 class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Only return events that have an organization"""
@@ -85,40 +86,39 @@ class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def update(self, request, *args, **kwargs):
-        """Ensure organization cannot be removed or changed to None.
-        - Owners can edit all events in their organization
-        - Collaborators can only edit events they created"""
+        print("Event update called!")
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
 
-        # Check if user is owner of the organization
+        # Permissions
         is_owner = instance.organization.owner == request.user
-
-        # Check if user is a collaborator
         is_collaborator = instance.organization.collaborators.filter(
             pk=request.user.pk
         ).exists()
 
-        # Owners can edit all events
-        if is_owner:
-            pass  # Allow update
-        # Collaborators can only edit events they created
-        elif is_collaborator and instance.organizer == request.user:
-            pass  # Allow update
-        else:
+        if not (is_owner or (is_collaborator and instance.organizer == request.user)):
             raise PermissionDenied("You do not have permission to update this event.")
 
-        # Ensure organization is not being removed before validation
-        organization_id = request.data.get("organization")
-        if organization_id is not None and not organization_id:
+        # Prevent organization removal
+        if "organization" in request.data and not request.data["organization"]:
             return Response(
-                {"organization": ["Organization cannot be removed from an event."]},
+                {"organization": ["Organization cannot be removed."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Prevent organization change
+        if "organization" in request.data:
+            new_org_id = request.data["organization"]
+            if new_org_id != instance.organization.id:
+                return Response(
+                    {"organization": ["Cannot change the organization of an event."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
