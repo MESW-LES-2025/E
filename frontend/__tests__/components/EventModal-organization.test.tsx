@@ -234,7 +234,7 @@ describe("EventModal - Organization Link", () => {
         .getByText("Test Organization")
         .closest("a") as HTMLAnchorElement;
       expect(orgLink).toBeInTheDocument();
-      expect(orgLink.href).toContain("/organizations/1");
+      expect(orgLink.href).toContain("/organizations/detail?id=1");
     });
   });
 });

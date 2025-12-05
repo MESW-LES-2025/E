@@ -141,7 +141,7 @@ export default function OrganizationCard({
       <CardFooter className="flex flex-col gap-2">
         <Button variant="outline" className="w-full" asChild>
           <Link
-            href={`/organizations/${organization.id}`}
+            href={`/organizations/detail?id=${organization.id}`}
             onClick={handleCardClick}
           >
             View Details

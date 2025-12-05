@@ -739,7 +739,7 @@ export default function MyEventsPage() {
                         <h3 className="text-xl font-medium text-muted-foreground">
                           {organizationId ? (
                             <Link
-                              href={`/organizations/${organizationId}`}
+                              href={`/organizations/detail?id=${organizationId}`}
                               className="hover:text-foreground hover:underline transition-colors"
                               onClick={() => {
                                 sessionStorage.setItem(

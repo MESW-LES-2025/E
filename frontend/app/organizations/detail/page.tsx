@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import { Suspense, useEffect, useState, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -40,11 +40,11 @@ import {
   FieldError,
 } from "@/components/ui/field";
 
-export default function OrganizationDetailPage() {
+function OrganizationDetailContent() {
   const router = useRouter();
-  const params = useParams();
+  const searchParams = useSearchParams();
   const pathname = usePathname();
-  const id = Number(params.id);
+  const id = Number(searchParams.get("id"));
 
   const [organization, setOrganization] = useState<
     Organization | PublicOrganization | null
@@ -107,7 +107,7 @@ export default function OrganizationDetailPage() {
   }, [pathname, referrer]);
 
   useEffect(() => {
-    if (isNaN(id)) {
+    if (!id || isNaN(id)) {
       setError("Invalid organization ID");
       setLoading(false);
       return;
@@ -258,7 +258,10 @@ export default function OrganizationDetailPage() {
     // Check if user is authenticated
     if (!isAuthenticated()) {
       // Store current pathname to return after login
-      sessionStorage.setItem("login_redirect", window.location.pathname);
+      sessionStorage.setItem(
+        "login_redirect",
+        window.location.pathname + window.location.search,
+      );
       router.push("/profile/login");
       return;
     }
@@ -373,7 +376,7 @@ export default function OrganizationDetailPage() {
           {isOwner && (
             <Button asChild>
               <Link
-                href={`/organizations/${id}/edit`}
+                href={`/organizations/edit?id=${id}`}
                 onClick={() => {
                   if (referrer) {
                     sessionStorage.setItem("org_edit_referrer", referrer);
@@ -700,7 +703,7 @@ export default function OrganizationDetailPage() {
                       // Store current pathname as referrer if no referrer exists
                       sessionStorage.setItem(
                         "org_detail_referrer",
-                        window.location.pathname,
+                        window.location.pathname + window.location.search,
                       );
                     }
                   }}
@@ -818,5 +821,19 @@ export default function OrganizationDetailPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function OrganizationDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto p-8 max-w-4xl">
+          <p>Loading...</p>
+        </div>
+      }
+    >
+      <OrganizationDetailContent />
+    </Suspense>
   );
 }
