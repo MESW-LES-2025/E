@@ -212,6 +212,7 @@ class EventOrganizationViewTest(APITestCase):
         )
         self.user.profile.role = Profile.Role.ORGANIZER
         self.user.profile.save()
+        self.client.force_authenticate(user=self.user)
 
         # Give user permission to change events for update tests
         change_permission = Permission.objects.get(

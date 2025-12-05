@@ -258,7 +258,7 @@ export default function MyEventsPage() {
       </div>
 
       <CardHeader>
-        <CardTitle className="line-clamp-2">{event.name}</CardTitle>
+        <CardTitle>{event.name}</CardTitle>
         <CardDescription>
           {new Date(event.date).toLocaleString()}
         </CardDescription>
