@@ -132,6 +132,7 @@ export default function EventModal({
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -143,6 +144,104 @@ export default function EventModal({
       return false;
     }
   });
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    date: "",
+    location: "",
+    description: "",
+    capacity: "",
+  });
+
+  // Function to handle saving edits
+  const handleEditSave = async () => {
+    if (!event) return;
+
+    const base =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
+
+    const payload = {
+      name: editForm.name,
+      date: editForm.date,
+      location: editForm.location,
+      description: editForm.description,
+      capacity:
+        editForm.capacity === "" || editForm.capacity === "0"
+          ? null
+          : Number(editForm.capacity),
+    };
+
+    try {
+      const res = await fetchWithAuth(`${base}/events/${event.id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to update event");
+
+      const updatedEvent = await res.json();
+      setEvent(updatedEvent);
+      setIsEditOpen(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update event");
+    }
+  };
+
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    date?: string;
+    location?: string;
+    description?: string;
+    capacity?: string;
+  }>({});
+
+  const handleValidatedEditSave = () => {
+    const errors: typeof formErrors = {};
+    let hasErrors = false;
+
+    // Required fields
+    if (!editForm.name.trim()) {
+      errors.name = "Name is required";
+      hasErrors = true;
+    }
+    if (!editForm.date.trim()) {
+      errors.date = "Date is required";
+      hasErrors = true;
+    } else if (new Date(editForm.date) < new Date()) {
+      errors.date = "Date cannot be in the past";
+      hasErrors = true;
+    }
+    if (!editForm.location.trim()) {
+      errors.location = "Location is required";
+      hasErrors = true;
+    }
+    if (!editForm.description.trim()) {
+      errors.description = "Description is required";
+      hasErrors = true;
+    }
+
+    // Capacity validation
+    const currentParticipants = event?.participant_count;
+    const capacityNum = Number(editForm.capacity || 0);
+    if (capacityNum < 0) {
+      errors.capacity = "Capacity cannot be negative";
+      hasErrors = true;
+    } else if (
+      typeof currentParticipants === "number" &&
+      capacityNum > 0 &&
+      capacityNum < currentParticipants
+    ) {
+      errors.capacity = `Capacity cannot be less than current participants (${currentParticipants})`;
+      hasErrors = true;
+    }
+
+    setFormErrors(errors);
+
+    if (!hasErrors) {
+      handleEditSave(); // call your existing save function
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -997,31 +1096,229 @@ export default function EventModal({
                   <>
                     {user?.role === "ORGANIZER" &&
                       (user.id === event.organizer || isOwner) && (
-                        <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
-                          <Link
-                            href={`/events/edit/${event.id}`}
-                            className="flex-1"
-                          >
-                            <Button className="w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl">
+                        <>
+                          <div className="mt-8 pt-6 border-t border-gray-200 flex gap-4">
+                            <Button
+                              onClick={() => {
+                                if (!event) return;
+
+                                setEditForm({
+                                  name: event.name || "",
+                                  date: event.date?.slice(0, 16) || "", // format for datetime-local
+                                  location: event.location || "",
+                                  description: event.description || "",
+                                  capacity: event.capacity?.toString() ?? "",
+                                });
+
+                                setIsEditOpen(true);
+                              }}
+                              className="flex-1 w-full bg-gray-800 hover:bg-gray-500 text-white font-bold py-4 rounded-xl"
+                            >
                               Edit
                             </Button>
-                          </Link>
-                          {event.status === "Canceled" ? (
-                            <Button
-                              onClick={handleUncancel}
-                              className="flex-1 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl"
+
+                            {event.status === "Canceled" ? (
+                              <Button
+                                onClick={handleUncancel}
+                                className="flex-1 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl"
+                              >
+                                Reactivate Event
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={handleCancel}
+                                className="flex-1 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl"
+                              >
+                                Cancel Event
+                              </Button>
+                            )}
+                          </div>
+                          {/* Edit Event Modal */}
+                          {isEditOpen && (
+                            <div
+                              className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70"
+                              role="dialog"
+                              aria-modal="true"
+                              onClick={() => setIsEditOpen(false)}
                             >
-                              Reactivate Event
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={handleCancel}
-                              className="flex-1 w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 rounded-xl"
-                            >
-                              Cancel Event
-                            </Button>
+                              <div
+                                className="bg-white rounded-2xl max-w-xl w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <h2 className="text-2xl font-bold mb-4">
+                                  Edit Event
+                                </h2>
+
+                                <div className="space-y-4">
+                                  {/* Name */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Name{" "}
+                                      <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={editForm.name}
+                                      onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                          ...prev,
+                                          name: e.target.value,
+                                        }))
+                                      }
+                                      className={`w-full border rounded-md p-2 ${
+                                        formErrors.name
+                                          ? "border-red-500"
+                                          : "border-gray-300"
+                                      }`}
+                                    />
+                                    {formErrors.name && (
+                                      <p className="text-red-500 text-sm mt-1">
+                                        {formErrors.name}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Date */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Date{" "}
+                                      <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="datetime-local"
+                                      value={editForm.date}
+                                      onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                          ...prev,
+                                          date: e.target.value,
+                                        }))
+                                      }
+                                      className={`w-full border rounded-md p-2 ${
+                                        formErrors.date
+                                          ? "border-red-500"
+                                          : "border-gray-300"
+                                      }`}
+                                    />
+                                    {formErrors.date && (
+                                      <p className="text-red-500 text-sm mt-1">
+                                        {formErrors.date}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Location */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Location{" "}
+                                      <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={editForm.location}
+                                      onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                          ...prev,
+                                          location: e.target.value,
+                                        }))
+                                      }
+                                      className={`w-full border rounded-md p-2 ${
+                                        formErrors.location
+                                          ? "border-red-500"
+                                          : "border-gray-300"
+                                      }`}
+                                    />
+                                    {formErrors.location && (
+                                      <p className="text-red-500 text-sm mt-1">
+                                        {formErrors.location}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Description */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Description{" "}
+                                      <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                      value={editForm.description}
+                                      onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                          ...prev,
+                                          description: e.target.value,
+                                        }))
+                                      }
+                                      className={`w-full border rounded-md p-2 h-24 resize-none ${
+                                        formErrors.description
+                                          ? "border-red-500"
+                                          : "border-gray-300"
+                                      }`}
+                                    />
+                                    {formErrors.description && (
+                                      <p className="text-red-500 text-sm mt-1">
+                                        {formErrors.description}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {/* Capacity Slider */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Capacity:{" "}
+                                      {editForm.capacity === "0" ||
+                                      editForm.capacity === ""
+                                        ? "Unlimited"
+                                        : editForm.capacity}
+                                    </label>
+                                    <input
+                                      type="range"
+                                      min={0}
+                                      max={500} // adjust max as needed
+                                      value={
+                                        editForm.capacity === ""
+                                          ? 0
+                                          : Number(editForm.capacity)
+                                      }
+                                      onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                          ...prev,
+                                          capacity: e.target.value,
+                                        }))
+                                      }
+                                      className={`w-full h-2 bg-gray-200 rounded-lg accent-blue-600 ${
+                                        formErrors.capacity
+                                          ? "border-red-500"
+                                          : ""
+                                      }`}
+                                    />
+                                    {formErrors.capacity && (
+                                      <p className="text-red-500 text-sm mt-1">
+                                        {formErrors.capacity}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Buttons */}
+                                <div className="mt-6 flex gap-4">
+                                  <Button
+                                    onClick={handleValidatedEditSave}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    onClick={() => setIsEditOpen(false)}
+                                    variant="outline"
+                                    className="flex-1 py-3 rounded-lg"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
                           )}
-                        </div>
+                        </>
                       )}
                   </>
                 )}
