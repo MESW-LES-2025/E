@@ -4,6 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { isAuthenticated, logout } from "../../lib/auth";
 import { getProfile } from "../../lib/profiles";
+import { getUnreadCount } from "../../lib/notifications";
 
 // Mock Next.js navigation
 jest.mock("next/navigation", () => ({
@@ -21,6 +22,10 @@ jest.mock("../../lib/profiles", () => ({
   getProfile: jest.fn(),
 }));
 
+jest.mock("../../lib/notifications", () => ({
+  getUnreadCount: jest.fn(),
+}));
+
 const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
 const mockUsePathname = usePathname as jest.MockedFunction<typeof usePathname>;
 const mockIsAuthenticated = isAuthenticated as jest.MockedFunction<
@@ -28,6 +33,9 @@ const mockIsAuthenticated = isAuthenticated as jest.MockedFunction<
 >;
 const mockLogout = logout as jest.MockedFunction<typeof logout>;
 const mockGetProfile = getProfile as jest.MockedFunction<typeof getProfile>;
+const mockGetUnreadCount = getUnreadCount as jest.MockedFunction<
+  typeof getUnreadCount
+>;
 
 describe("Navbar Component", () => {
   const mockPush = jest.fn();
@@ -44,6 +52,7 @@ describe("Navbar Component", () => {
       prefetch: jest.fn(),
     } as ReturnType<typeof useRouter>);
     mockUsePathname.mockReturnValue("/");
+    mockGetUnreadCount.mockResolvedValue(0); // Default to 0 unread
   });
 
   describe("Unauthenticated state", () => {
@@ -230,6 +239,56 @@ describe("Navbar Component", () => {
       render(<Navbar />);
 
       expect(screen.getByText("Loading...")).toBeInTheDocument();
+    });
+  });
+
+  describe("Notifications", () => {
+    beforeEach(() => {
+      mockIsAuthenticated.mockReturnValue(true);
+      mockGetProfile.mockResolvedValue({
+        id: 1,
+        user_id: 1,
+        username: "testuser",
+        email: "test@example.com",
+        first_name: "Test",
+        last_name: "User",
+        role: "ATTENDEE",
+        phone_number: "",
+        bio: "",
+        participating_events: [],
+      });
+    });
+
+    it("should display the unread count when greater than 0", async () => {
+      mockGetUnreadCount.mockResolvedValue(5);
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        const badge = screen.getByText("5");
+        expect(badge).toBeInTheDocument();
+        expect(badge).toHaveClass("bg-red-600");
+      });
+    });
+
+    it("should not display the unread count when it is 0", async () => {
+      mockGetUnreadCount.mockResolvedValue(0);
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Notifications")).toBeInTheDocument();
+      });
+
+      // The badge with the count should not exist
+      expect(screen.queryByText("0")).not.toBeInTheDocument();
+    });
+
+    it("should handle errors when fetching unread count", async () => {
+      mockGetUnreadCount.mockRejectedValue(new Error("API Error"));
+      render(<Navbar />);
+      await waitFor(() => expect(mockGetUnreadCount).toHaveBeenCalled());
+      expect(screen.queryByText("API Error")).not.toBeInTheDocument();
     });
   });
 });
