@@ -32,7 +32,9 @@
     "out\\dev/types/**/*.ts",
     "out\\dev/types/**/*.ts",
     "out/types/**/*.ts",
-    "out/dev/types/**/*.ts"
+    "out/dev/types/**/*.ts",
+    "out/production/types/**/*.ts",
+    "out/production/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

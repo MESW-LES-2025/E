@@ -19,15 +19,32 @@ class Event(models.Model):
         ("Cancelled", "Cancelled"),
     ]
 
+    CATEGORY_CHOICES = [
+        ("SOCIAL", "Social"),
+        ("ACADEMIC", "Academic"),
+        ("TRAVEL", "Travel"),
+        ("SPORTS", "Sports"),
+        ("CULTURAL", "Cultural"),
+        ("VOLUNTEERING", "Volunteering"),
+        ("NIGHTLIFE", "Nightlife"),
+    ]
+
     name = models.CharField(max_length=100)
     date = models.DateTimeField()
     location = models.CharField(max_length=300, blank=True, null=True)
     description = models.CharField(max_length=300, blank=True, null=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     organizer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="organized_events",
         default=get_default_organizer,
+    )
+    organization = models.ForeignKey(
+        "accounts.Organization",
+        on_delete=models.CASCADE,
+        related_name="events",
+        null=False,
     )
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Active")
     capacity = models.IntegerField(blank=True, null=True)
@@ -36,6 +53,12 @@ class Event(models.Model):
         settings.AUTH_USER_MODEL,
         blank=True,
         related_name="participating_events",
+    )
+
+    interested_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="interested_events",
     )
 
     class Meta:

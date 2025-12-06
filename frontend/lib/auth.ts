@@ -31,6 +31,15 @@ export async function login(username: string, password: string): Promise<void> {
   }
 }
 
+export async function getAuthToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const tokens = localStorage.getItem(storageKey);
+    return tokens ? JSON.parse(tokens)?.access : null;
+  } catch {
+    return null;
+  }
+}
 export type RegisterRole = "ATTENDEE" | "ORGANIZER";
 
 export interface RegisterPayload {
@@ -68,6 +77,37 @@ export async function register(payload: RegisterPayload): Promise<void> {
   }
 }
 
+async function refreshToken(): Promise<string | null> {
+  const authTokens = localStorage.getItem("auth_tokens");
+  if (!authTokens) return null;
+
+  try {
+    const tokens = JSON.parse(authTokens);
+    if (!tokens.refresh) return null;
+
+    const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: tokens.refresh }),
+    });
+
+    if (!res.ok) {
+      // Refresh token is invalid, clear storage
+      localStorage.removeItem("auth_tokens");
+      return null;
+    }
+
+    const data = await res.json();
+    const newTokens = { access: data.access, refresh: tokens.refresh };
+    localStorage.setItem("auth_tokens", JSON.stringify(newTokens));
+    return data.access;
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    localStorage.removeItem("auth_tokens");
+    return null;
+  }
+}
+
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const authTokens = localStorage.getItem("auth_tokens");
   let token = null;
@@ -96,8 +136,50 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     });
   }
 
-  return fetch(url, {
+  let response = await fetch(url, {
     ...options,
     headers,
   });
+
+  // If we get a 401/403 and have a refresh token, try to refresh
+  if ((response.status === 401 || response.status === 403) && authTokens) {
+    const newToken = await refreshToken();
+    if (newToken) {
+      // Retry the request with the new token
+      headers.set("Authorization", `Bearer ${newToken}`);
+      response = await fetch(url, {
+        ...options,
+        headers,
+      });
+    } else {
+      // Refresh failed, user needs to log in again
+      // Clear auth state
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth_tokens");
+      }
+      // Return a response that indicates authentication failed
+      // Use a Response-like object that works in both browser and Node.js test environments
+      const errorBody = JSON.stringify({
+        detail: "Session expired. Please log in again.",
+      });
+      if (typeof Response !== "undefined") {
+        return new Response(errorBody, {
+          status: 401,
+          statusText: "Unauthorized",
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        // Fallback for test environments without Response
+        return {
+          ok: false,
+          status: 401,
+          statusText: "Unauthorized",
+          json: async () => JSON.parse(errorBody),
+          text: async () => errorBody,
+        } as Response;
+      }
+    }
+  }
+
+  return response;
 }

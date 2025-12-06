@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
@@ -7,17 +10,142 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Event
-from .serializers import EventSerializer
+from .serializers import EventSerializer, UserSerializer
 
 
 class EventListCreateView(generics.ListCreateAPIView):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+    def get_queryset(self):
+        """Only return events that have an organization"""
+        return Event.objects.filter(organization__isnull=False).select_related(
+            "organization", "organizer"
+        )
+
+    def create(self, request, *args, **kwargs):
+        """Ensure organization is required and user owns it or is a collaborator"""
+        from accounts.models import Organization
+
+        organization_id = request.data.get("organization")
+        if not organization_id:
+            return Response(
+                {"organization": ["This field is required."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify the user owns the organization or is a collaborator
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except (Organization.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"organization": ["Organization not found."]},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_owner = organization.owner == request.user
+        is_collaborator = organization.collaborators.filter(pk=request.user.pk).exists()
+
+        if not is_owner and not is_collaborator:
+            return Response(
+                {
+                    "organization": [
+                        (
+                            "You do not have permission to create events "
+                            "for this organization."
+                        )
+                    ]
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(organizer=request.user, organization=organization)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
+
+
+class AllEventsListView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return Event.objects.all()
 
 
 class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Only return events that have an organization"""
+        return Event.objects.filter(organization__isnull=False).select_related(
+            "organization", "organizer"
+        )
+
+    def update(self, request, *args, **kwargs):
+        print("Event update called!")
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+
+        # Permissions
+        is_owner = instance.organization.owner == request.user
+        is_collaborator = instance.organization.collaborators.filter(
+            pk=request.user.pk
+        ).exists()
+
+        if not (is_owner or (is_collaborator and instance.organizer == request.user)):
+            raise PermissionDenied("You do not have permission to update this event.")
+
+        # Prevent organization removal
+        if "organization" in request.data and not request.data["organization"]:
+            return Response(
+                {"organization": ["Organization cannot be removed."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Prevent organization change
+        if "organization" in request.data:
+            new_org_id = request.data["organization"]
+            if new_org_id != instance.organization.id:
+                return Response(
+                    {"organization": ["Cannot change the organization of an event."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete event.
+        - Owners can delete all events in their organization
+        - Collaborators can only delete events they created"""
+        instance = self.get_object()
+
+        # Check if user is owner of the organization
+        is_owner = instance.organization.owner == request.user
+
+        # Check if user is a collaborator
+        is_collaborator = instance.organization.collaborators.filter(
+            pk=request.user.pk
+        ).exists()
+
+        # Owners can delete all events
+        if is_owner:
+            pass  # Allow delete
+        # Collaborators can only delete events they created
+        elif is_collaborator and instance.organizer == request.user:
+            pass  # Allow delete
+        else:
+            raise PermissionDenied("You do not have permission to delete this event.")
+
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UpcomingEventsListView(generics.ListAPIView):
@@ -25,7 +153,82 @@ class UpcomingEventsListView(generics.ListAPIView):
 
     def get_queryset(self):
         now = timezone.now()
-        return Event.objects.filter(date__gte=now).order_by("date")
+        date_filter = self.request.query_params.get("date_filter", None)
+
+        # Base filters
+        base_filters = {
+            "organization__isnull": False,
+            "status": "Active",
+        }
+
+        # Handle date filtering
+        if date_filter == "today":
+            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            # For today, we want events that are today AND in the future
+            base_filters["date__gte"] = now
+            base_filters["date__lte"] = end_of_day
+        elif date_filter == "tomorrow":
+            tomorrow_start = (now + timedelta(days=1)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            tomorrow_end = tomorrow_start.replace(
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+            base_filters["date__gte"] = tomorrow_start
+            base_filters["date__lte"] = tomorrow_end
+        elif date_filter == "this_week":
+            start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            days_until_sunday = (6 - now.weekday()) % 7
+            end_of_week = (now + timedelta(days=days_until_sunday)).replace(
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+            base_filters["date__gte"] = start_of_day
+            base_filters["date__lte"] = end_of_week
+        else:
+            # Default: only future events
+            base_filters["date__gte"] = now
+
+        queryset = (
+            Event.objects.filter(**base_filters)
+            .select_related("organization", "organizer")
+            .order_by("date")
+        )
+
+        categories = self.request.query_params.getlist("category", [])
+        if categories:
+            queryset = queryset.filter(category__in=categories)
+
+        date_from = self.request.query_params.get("date_from", None)
+        date_to = self.request.query_params.get("date_to", None)
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(date__lte=f"{date_to} 23:59:59")
+
+        search = self.request.query_params.get("search", None)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(description__icontains=search)
+                | Q(category__icontains=search)
+            )
+
+        return queryset
+
+
+class PastEventsListView(generics.ListAPIView):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        now = timezone.now()
+        return (
+            Event.objects.filter(
+                date__lt=now, status="Active", organization__isnull=False
+            )
+            .select_related("organization", "organizer")
+            .order_by("-date")
+        )
 
 
 class CreateEventView(generics.CreateAPIView):
@@ -34,13 +237,73 @@ class CreateEventView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
+        from accounts.models import Organization
+
+        # Get organization from request data before validation
+        organization_id = request.data.get("organization")
+        if not organization_id:
+            return Response(
+                {"organization": ["This field is required."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify the user owns the organization or is a collaborator
+        try:
+            organization = Organization.objects.get(id=organization_id)
+        except (Organization.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"organization": ["Organization not found."]},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_owner = organization.owner == request.user
+        is_collaborator = organization.collaborators.filter(pk=request.user.pk).exists()
+
+        if not is_owner and not is_collaborator:
+            return Response(
+                {
+                    "organization": [
+                        "You can only create events for organizations "
+                        "you own or collaborate with."
+                    ]
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Now validate the serializer
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(organizer=self.request.user)
+
+        serializer.save(organizer=self.request.user, organization=organization)
         headers = self.get_success_headers(serializer.data)
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+
+class UserRegisteredEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.participating_events.all()
+
+
+class UserInterestedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return self.request.user.interested_events.all()
+
+
+class UserOrganizedEventsView(generics.ListAPIView):
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Event.objects.filter(organizer=self.request.user)
 
 
 class CancelEventView(APIView):
@@ -52,8 +315,22 @@ class CancelEventView(APIView):
         except Event.DoesNotExist:
             raise NotFound("Event not found")
 
-        if event.organizer != request.user:  # Only the organizer can cancel
-            raise PermissionDenied("Only the event organizer can cancel this event.")
+        # Check if user is owner of the organization
+        is_owner = event.organization.owner == request.user
+
+        # Check if user is a collaborator
+        is_collaborator = event.organization.collaborators.filter(
+            pk=request.user.pk
+        ).exists()
+
+        # Owners can cancel all events
+        if is_owner:
+            pass  # Allow cancel
+        # Collaborators can only cancel events they created
+        elif is_collaborator and event.organizer == request.user:
+            pass  # Allow cancel
+        else:
+            raise PermissionDenied("You do not have permission to cancel this event.")
 
         event.status = "Canceled"
         event.save()
@@ -71,8 +348,22 @@ class UncancelEventView(APIView):
         except Event.DoesNotExist:
             raise NotFound("Event not found")
 
-        if event.organizer != request.user:
-            raise PermissionDenied("Only the organizer can uncancel this event.")
+        # Check if user is owner of the organization
+        is_owner = event.organization.owner == request.user
+
+        # Check if user is a collaborator
+        is_collaborator = event.organization.collaborators.filter(
+            pk=request.user.pk
+        ).exists()
+
+        # Owners can uncancel all events
+        if is_owner:
+            pass  # Allow uncancel
+        # Collaborators can only uncancel events they created
+        elif is_collaborator and event.organizer == request.user:
+            pass  # Allow uncancel
+        else:
+            raise PermissionDenied("You do not have permission to uncancel this event.")
 
         if event.status != "Canceled":
             return Response({"error": "Event is not canceled."}, status=400)
@@ -172,3 +463,156 @@ class ParticipateEventView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class InterestEventView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        """Mark event as interested"""
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if event.interested_users.filter(pk=user.pk).exists():
+            return Response(
+                {
+                    "detail": "Already marked as interested.",
+                    "interest_count": event.interested_users.count(),
+                    "is_interested": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        event.interested_users.add(user)
+        return Response(
+            {
+                "detail": "Marked as interested.",
+                "interest_count": event.interested_users.count(),
+                "is_interested": True,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def delete(self, request, pk):
+        """Remove interest from event"""
+        event = get_object_or_404(Event, pk=pk)
+        user = request.user
+
+        if not event.interested_users.filter(pk=user.pk).exists():
+            return Response(
+                {
+                    "detail": "You are not interested in this event.",
+                    "interest_count": event.interested_users.count(),
+                    "is_interested": False,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        event.interested_users.remove(user)
+        return Response(
+            {
+                "detail": "Interest removed.",
+                "interest_count": event.interested_users.count(),
+                "is_interested": False,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class MyOrganizedEventsView(generics.ListAPIView):
+    """
+    Get events organized by the current user:
+    - For organization owners: All events for their organizations
+    - For collaborators only: Only events they personally created
+    Returns events sorted by organization name, then by date.
+    """
+
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Return events based on user role (owner vs collaborator)"""
+        from django.db.models import Q
+
+        from accounts.models import Organization
+
+        # Get all organizations owned by the user
+        owned_organizations = Organization.objects.filter(owner=self.request.user)
+
+        # Get all organizations where user is a collaborator (but not owner)
+        collaborated_organizations = Organization.objects.filter(
+            collaborators=self.request.user
+        ).exclude(owner=self.request.user)
+
+        # Build query: events for owned organizations OR
+        # events created by user in collaborated organizations
+        query = Q()
+
+        # If user owns any organizations, include all events for those organizations
+        if owned_organizations.exists():
+            query |= Q(organization__in=owned_organizations)
+
+        # If user is a collaborator (not owner), include only events they created
+        if collaborated_organizations.exists():
+            query |= Q(
+                organization__in=collaborated_organizations, organizer=self.request.user
+            )
+
+        # Return events matching the query
+        return (
+            Event.objects.filter(query & Q(organization__isnull=False))
+            .select_related("organization", "organizer")
+            .order_by("organization__name", "date")
+        )
+
+
+class EventParticipantsView(generics.ListAPIView):
+    """
+    Get participants for a specific event.
+    Only accessible by the organization owner or a collaborator.
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        event_pk = self.kwargs.get("pk")
+        event = get_object_or_404(Event, pk=event_pk)
+        user = self.request.user
+
+        # Check permissions
+        is_owner = event.organization.owner == user
+        is_collaborator = event.organization.collaborators.filter(pk=user.pk).exists()
+
+        if not (is_owner or is_collaborator):
+            raise PermissionDenied(
+                "You do not have permission to view participants for this event."
+            )
+
+        return event.participants.all().order_by("first_name", "last_name")
+
+
+class EventInterestedUsersView(generics.ListAPIView):
+    """
+    Get interested users for a specific event.
+    Only accessible by the organization owner or a collaborator.
+    """
+
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        event_pk = self.kwargs.get("pk")
+        event = get_object_or_404(Event, pk=event_pk)
+        user = self.request.user
+
+        # Check permissions
+        is_owner = event.organization.owner == user
+        is_collaborator = event.organization.collaborators.filter(pk=user.pk).exists()
+
+        if not (is_owner or is_collaborator):
+            raise PermissionDenied(
+                "You do not have permission to view interested users for this event."
+            )
+
+        return event.interested_users.all().order_by("first_name", "last_name")
