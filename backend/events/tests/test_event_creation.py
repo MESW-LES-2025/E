@@ -547,9 +547,19 @@ class UpcomingEventsListViewTest(APITestCase):
     def test_filter_by_this_week(self):
         """Test filtering events happening this week"""
         now = timezone.now()
-        this_week_event_time = (now + timedelta(days=2)).replace(
-            hour=12, minute=0, second=0, microsecond=0
-        )
+
+        # To make the test robust, we create an event for tomorrow, unless it's Sunday.
+        # If it's Sunday, an event for tomorrow would be next week,
+        # so we create one for later today.
+        if now.weekday() == 6:  # Sunday
+            this_week_event_time = now + timedelta(minutes=30)
+            # Handle edge case where adding time crosses midnight
+            if this_week_event_time.weekday() != 6:
+                this_week_event_time = now + timedelta(minutes=1)
+        else:
+            this_week_event_time = (now + timedelta(days=1)).replace(
+                hour=12, minute=0, second=0, microsecond=0
+            )
         Event.objects.create(
             name="This Week Event",
             date=this_week_event_time,
