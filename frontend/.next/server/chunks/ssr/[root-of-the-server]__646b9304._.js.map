@@ -1,1 +1,0 @@
-{"version":3,"sources":["turbopack:///[project]/app/profile/register/page.tsx"],"sourcesContent":["export default function Register() {\n  return (\n    <div>\n      <h1>Registration Page</h1>\n    </div>\n  );\n}\n"],"names":[],"mappings":"qVAAe,SAAS,IACtB,MACE,CAAA,EAAA,EAAA,GAAA,EAAC,MAAA,UACC,CAAA,EAAA,EAAA,GAAA,EAAC,KAAA,UAAG,uBAGV"}
