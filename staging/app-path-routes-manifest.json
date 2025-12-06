@@ -1,0 +1,20 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/calendar/page": "/calendar",
+  "/create-event/page": "/create-event",
+  "/event/page": "/event",
+  "/events/my/page": "/events/my",
+  "/events/page": "/events",
+  "/favicon.ico/route": "/favicon.ico",
+  "/notifications/page": "/notifications",
+  "/organizations/create/page": "/organizations/create",
+  "/organizations/detail/page": "/organizations/detail",
+  "/organizations/edit/page": "/organizations/edit",
+  "/organizations/my/page": "/organizations/my",
+  "/organizations/page": "/organizations",
+  "/page": "/",
+  "/profile/login/page": "/profile/login",
+  "/profile/page": "/profile",
+  "/profile/register/page": "/profile/register"
+}

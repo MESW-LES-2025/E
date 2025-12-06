@@ -1,0 +1,1 @@
+{"version":3,"sources":["turbopack:///[project]/app/event/page.tsx"],"sourcesContent":["export default function Event() {\n  return (\n    <div>\n      <h1>Event Page</h1>\n    </div>\n  );\n}\n"],"names":[],"mappings":"qVAAe,SAAS,IACtB,MACE,CAAA,EAAA,EAAA,GAAA,EAAC,MAAA,UACC,CAAA,EAAA,EAAA,GAAA,EAAC,KAAA,UAAG,gBAGV"}
