@@ -200,7 +200,7 @@ function CreateEventContent() {
         }
         // Use replace to remove create event page from history
         // Navigate immediately to ensure referrer is available when component mounts
-        router.replace(`/organizations/${selectedOrganizationId}`);
+        router.replace(`/organizations/detail?id=${selectedOrganizationId}`);
       }
     } catch (error) {
       setSubmitError("Failed to create event");
