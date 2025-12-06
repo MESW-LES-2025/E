@@ -218,7 +218,7 @@ export default function CreateOrganizationPage() {
       setEstablishedDate("");
       setFormErrors({});
       // Use replace instead of push to remove create page from history
-      router.replace(`/organizations/${organization.id}`);
+      router.replace(`/organizations/detail?id=${organization.id}`);
     } catch (err) {
       if (err && typeof err === "object") {
         // Handle validation errors from backend
