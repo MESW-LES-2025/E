@@ -154,7 +154,7 @@ export default function MyOrganizationsPage() {
       <CardFooter className="flex gap-2">
         <Button variant="outline" className="flex-1" asChild>
           <Link
-            href={`/organizations/${org.id}`}
+            href={`/organizations/detail?id=${org.id}`}
             onClick={() =>
               sessionStorage.setItem("org_detail_referrer", "/organizations/my")
             }
@@ -164,7 +164,7 @@ export default function MyOrganizationsPage() {
         </Button>
         {isOwner && (
           <Button variant="outline" className="flex-1" asChild>
-            <Link href={`/organizations/${org.id}/edit`}>Edit</Link>
+            <Link href={`/organizations/edit?id=${org.id}`}>Edit</Link>
           </Button>
         )}
       </CardFooter>

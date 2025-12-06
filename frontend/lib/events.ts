@@ -15,6 +15,7 @@ export interface Event {
   interest_count?: number;
   is_participating?: boolean;
   is_interested?: boolean;
+  is_full?: boolean;
   organizer_name?: string;
   created_by?: string;
   organization_id?: number;

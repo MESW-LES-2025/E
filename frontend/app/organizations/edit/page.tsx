@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import {
   getOrganization,
@@ -9,6 +9,7 @@ import {
   deleteOrganization,
   type Organization,
   type UpdateOrganizationPayload,
+  type OrganizationType,
 } from "@/lib/organizations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,10 +37,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function EditOrganizationPage() {
+function EditOrganizationContent() {
   const router = useRouter();
-  const params = useParams();
-  const id = Number(params.id);
+  const searchParams = useSearchParams();
+  const id = Number(searchParams.get("id"));
 
   const [mounted, setMounted] = useState(false);
   const [authed, setAuthed] = useState(false);
@@ -88,7 +89,7 @@ export default function EditOrganizationPage() {
       }
     }
 
-    if (isNaN(id)) {
+    if (!id || isNaN(id)) {
       setError("Invalid organization ID");
       setLoading(false);
       return;
@@ -168,7 +169,7 @@ export default function EditOrganizationPage() {
       facebook_url: facebookUrl.trim() || undefined,
       linkedin_url: linkedinUrl.trim() || undefined,
       instagram_handle: instagramHandle.trim() || undefined,
-      organization_type: organizationType || undefined,
+      organization_type: (organizationType as OrganizationType) || undefined,
       established_date: establishedDate || undefined,
     };
 
@@ -182,13 +183,14 @@ export default function EditOrganizationPage() {
         sessionStorage.setItem("org_detail_referrer", referrer);
       }
       // Use replace instead of push to remove edit page from history
-      router.replace(`/organizations/${updated.id}`);
+      router.replace(`/organizations/detail?id=${updated.id}`);
     } catch (err) {
       if (err && typeof err === "object") {
         // Handle validation errors from backend
         const errorMessages: Record<string, string> = {};
-        Object.keys(err).forEach((key) => {
-          const value = err[key];
+        const errRecord = err as Record<string, unknown>;
+        Object.keys(errRecord).forEach((key) => {
+          const value = errRecord[key];
           if (Array.isArray(value)) {
             errorMessages[key] = value[0];
           } else if (typeof value === "string") {
@@ -249,7 +251,7 @@ export default function EditOrganizationPage() {
           <CardFooter>
             <Button
               variant="outline"
-              onClick={() => router.push(`/organizations/${id}`)}
+              onClick={() => router.push(`/organizations/detail?id=${id}`)}
             >
               Back to Organization
             </Button>
@@ -667,5 +669,19 @@ export default function EditOrganizationPage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function EditOrganizationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto p-8 max-w-4xl">
+          <p>Loading...</p>
+        </div>
+      }
+    >
+      <EditOrganizationContent />
+    </Suspense>
   );
 }
