@@ -254,6 +254,42 @@ export default function EventsCalendar() {
             }
           />
         </div>
+        <Button
+          variant="outline"
+          className="mt-4 w-full max-w-[400px] mx-auto"
+          onClick={async () => {
+            try {
+              const base =
+                process.env.NEXT_PUBLIC_API_BASE_URL ||
+                "http://localhost:8000/api";
+
+              const response = await fetchWithAuth(
+                `${base}/events/export-calendar/`,
+                {
+                  method: "GET",
+                },
+              );
+              if (!response.ok) {
+                throw new Error("Failed to export calendar");
+              }
+
+              const blob = await response.blob();
+              const url = window.URL.createObjectURL(blob);
+
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "my_events.ics";
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+            } catch (err) {
+              console.error(err);
+              alert("Could not export calendar. Try again later.");
+            }
+          }}
+        >
+          Export My Events (.ics)
+        </Button>
       </div>
 
       <div className="flex-1 p-4">

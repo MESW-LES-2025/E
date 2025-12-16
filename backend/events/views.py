@@ -1,6 +1,8 @@
+import datetime
 from datetime import timedelta
 
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
@@ -299,7 +301,6 @@ class UserInterestedEventsView(generics.ListAPIView):
 
 class UserOrganizedEventsView(generics.ListAPIView):
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -616,3 +617,57 @@ class EventInterestedUsersView(generics.ListAPIView):
             )
 
         return event.interested_users.all().order_by("first_name", "last_name")
+
+
+class ExportUserCalendarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        # Get only events the user participates in
+        events = (
+            Event.objects.filter(participants=user, status="Active")
+            .select_related("organization", "organizer")
+            .order_by("date")
+        )
+
+        # ICS header
+        ics_content = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Erasmus Porto//EN",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+        ]
+
+        now = timezone.now().strftime("%Y%m%dT%H%M%SZ")
+
+        for event in events:
+            start = event.date.astimezone(datetime.timezone.utc).strftime(
+                "%Y%m%dT%H%M%SZ"
+            )
+
+            # No end date in model; use same as start
+            end = start
+
+            ics_event = [
+                "BEGIN:VEVENT",
+                f"UID:event-{event.id}@erasmus-porto",
+                f"DTSTAMP:{now}",
+                f"DTSTART:{start}",
+                f"DTEND:{end}",
+                f"SUMMARY:{event.name}",
+                f"DESCRIPTION:{event.description or ''}",
+                f"LOCATION:{event.location or ''}",
+                "END:VEVENT",
+            ]
+            ics_content.extend(ics_event)
+
+        ics_content.append("END:VCALENDAR")
+        ics_text = "\r\n".join(ics_content)
+
+        response = HttpResponse(ics_text, content_type="text/calendar")
+        response["Content-Disposition"] = 'attachment; filename="my_events.ics"'
+
+        return response
