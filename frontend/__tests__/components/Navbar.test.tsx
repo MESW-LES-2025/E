@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { isAuthenticated, logout } from "../../lib/auth";
 import { getProfile } from "../../lib/profiles";
-import { getUnreadCount } from "../../lib/notifications";
+import { getFilteredUnreadCount } from "../../lib/notifications";
 
 // Mock Next.js navigation
 jest.mock("next/navigation", () => ({
@@ -23,7 +23,8 @@ jest.mock("../../lib/profiles", () => ({
 }));
 
 jest.mock("../../lib/notifications", () => ({
-  getUnreadCount: jest.fn(),
+  getFilteredUnreadCount: jest.fn(),
+  registerNotificationRefreshCallback: jest.fn(),
 }));
 
 const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
@@ -33,9 +34,8 @@ const mockIsAuthenticated = isAuthenticated as jest.MockedFunction<
 >;
 const mockLogout = logout as jest.MockedFunction<typeof logout>;
 const mockGetProfile = getProfile as jest.MockedFunction<typeof getProfile>;
-const mockGetUnreadCount = getUnreadCount as jest.MockedFunction<
-  typeof getUnreadCount
->;
+const mockGetFilteredUnreadCount =
+  getFilteredUnreadCount as jest.MockedFunction<typeof getFilteredUnreadCount>;
 
 describe("Navbar Component", () => {
   const mockPush = jest.fn();
@@ -52,7 +52,7 @@ describe("Navbar Component", () => {
       prefetch: jest.fn(),
     } as ReturnType<typeof useRouter>);
     mockUsePathname.mockReturnValue("/");
-    mockGetUnreadCount.mockResolvedValue(0); // Default to 0 unread
+    mockGetFilteredUnreadCount.mockResolvedValue(0); // Default to 0 unread
   });
 
   describe("Unauthenticated state", () => {
@@ -260,7 +260,7 @@ describe("Navbar Component", () => {
     });
 
     it("should display the unread count when greater than 0", async () => {
-      mockGetUnreadCount.mockResolvedValue(5);
+      mockGetFilteredUnreadCount.mockResolvedValue(5);
 
       render(<Navbar />);
 
@@ -272,7 +272,7 @@ describe("Navbar Component", () => {
     });
 
     it("should not display the unread count when it is 0", async () => {
-      mockGetUnreadCount.mockResolvedValue(0);
+      mockGetFilteredUnreadCount.mockResolvedValue(0);
 
       render(<Navbar />);
 
@@ -285,9 +285,11 @@ describe("Navbar Component", () => {
     });
 
     it("should handle errors when fetching unread count", async () => {
-      mockGetUnreadCount.mockRejectedValue(new Error("API Error"));
+      mockGetFilteredUnreadCount.mockRejectedValue(new Error("API Error"));
       render(<Navbar />);
-      await waitFor(() => expect(mockGetUnreadCount).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockGetFilteredUnreadCount).toHaveBeenCalled(),
+      );
       expect(screen.queryByText("API Error")).not.toBeInTheDocument();
     });
   });

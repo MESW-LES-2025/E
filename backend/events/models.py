@@ -61,6 +61,9 @@ class Event(models.Model):
         related_name="interested_events",
     )
 
+    reminder_24h_sent = models.BooleanField(default=False)
+    reminder_1h_sent = models.BooleanField(default=False)
+
     class Meta:
         ordering = ["date", "id"]  # Order by date, then by id for consistency
 

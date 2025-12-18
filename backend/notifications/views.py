@@ -1,3 +1,5 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -66,3 +68,23 @@ class UnreadCountView(APIView):
     def get(self, request):
         count = Notification.objects.filter(user=request.user, is_read=False).count()
         return Response({"unread": count})
+
+
+class TestNotificationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        channel_layer = get_channel_layer()
+        message = {
+            "type": "send_notification",
+            "message": {
+                "type": "event_reminder",
+                "event_name": "Test Event",
+                "start_time": "2023-12-31T00:00:00Z",
+                "time_left": "1 hour",
+            },
+        }
+        async_to_sync(channel_layer.group_send)(
+            f"notifications_{request.user.id}", message
+        )
+        return Response({"status": "Notification sent"})

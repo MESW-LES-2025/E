@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated, logout } from "@/lib/auth";
 import { getProfile, type Profile } from "@/lib/profiles";
 import { Button } from "@/components/ui/button";
-import { getUnreadCount } from "@/lib/notifications";
+import {
+  getFilteredUnreadCount,
+  registerNotificationRefreshCallback,
+} from "@/lib/notifications";
 
 export default function Navbar() {
   const router = useRouter();
@@ -15,6 +18,18 @@ export default function Navbar() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [unread, setUnread] = useState<number>(0);
+  const fetchUnreadCount = useCallback(async () => {
+    const storedPreference = localStorage.getItem("remindersEnabled");
+    const currentRemindersEnabled =
+      storedPreference === null ? true : JSON.parse(storedPreference);
+
+    try {
+      const count = await getFilteredUnreadCount(currentRemindersEnabled);
+      setUnread(count);
+    } catch {
+      setUnread(0);
+    }
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -52,12 +67,9 @@ export default function Navbar() {
         }
 
         // Fetch unread notifications count
-        try {
-          const count = await getUnreadCount();
-          setUnread(count);
-        } catch {
-          setUnread(0);
-        }
+        await fetchUnreadCount();
+
+        registerNotificationRefreshCallback(fetchUnreadCount);
       } else {
         // User is not authenticated, ensure profile is null
         setProfile(null);
@@ -68,7 +80,11 @@ export default function Navbar() {
     };
 
     checkAuth();
-  }, [pathname, router]); // Re-check when route changes
+
+    return () => {
+      registerNotificationRefreshCallback(() => {});
+    };
+  }, [pathname, router, fetchUnreadCount]);
 
   const handleLogout = () => {
     logout();

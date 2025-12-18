@@ -8,21 +8,43 @@ import {
   markAsRead,
   markAsUnread,
   NotificationItem,
+  onNotificationReceivedCallback,
 } from "@/lib/notifications";
 import { useEffect, useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function NotificationsPage() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [remindersEnabled, setRemindersEnabled] = useState(true);
 
-  const load = async () => {
+  useEffect(() => {
+    const storedPreference = localStorage.getItem("remindersEnabled");
+    if (storedPreference !== null) {
+      setRemindersEnabled(JSON.parse(storedPreference));
+    }
+  }, []);
+
+  const handleReminderToggle = (enabled: boolean) => {
+    setRemindersEnabled(enabled);
+    localStorage.setItem("remindersEnabled", JSON.stringify(enabled));
+    if (onNotificationReceivedCallback) {
+      onNotificationReceivedCallback();
+    }
+  };
+
+  const load = async (remindersAllowed: boolean) => {
     try {
       setLoading(true);
       setError(null);
       const data = await listNotifications();
-      setItems(data);
+      const filteredData = remindersAllowed
+        ? data
+        : data.filter((item) => item.title !== "Event Reminder");
+      setItems(filteredData);
     } catch (e) {
       console.error(e);
       setError("Failed to load notifications");
@@ -32,8 +54,8 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    load(remindersEnabled);
+  }, [remindersEnabled]);
 
   const toggleRead = async (id: number, nextRead: boolean) => {
     try {
@@ -80,6 +102,20 @@ export default function NotificationsPage() {
         >
           Mark all as read
         </Button>
+      </div>
+
+      <div className="mb-6">
+        <h2 className="text-xl font-bold mb-2">Notification Preferences</h2>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="reminders-enabled"
+            checked={remindersEnabled}
+            onCheckedChange={handleReminderToggle}
+          />
+          <Label htmlFor="reminders-enabled">
+            Enable Upcoming Event Reminders
+          </Label>
+        </div>
       </div>
 
       {loading ? (
