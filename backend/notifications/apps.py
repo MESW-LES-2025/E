@@ -25,5 +25,3 @@ class NotificationsConfig(AppConfig):
             scheduler.add_job(send_reminders, "interval", minutes=1)
             scheduler.start()
             print("Scheduler started: send_event_reminders running every 1 minute.")
-            print("Scheduler started: send_event_reminders running every 1 minute.")
-            print("Scheduler started: send_event_reminders running every 1 minute.")

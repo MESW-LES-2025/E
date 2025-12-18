@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from accounts.models import Organization, Profile
 from events.models import Event
+from notifications.models import Notification
 
 User = get_user_model()
 
@@ -69,10 +70,20 @@ class EventReminderCommandTest(TestCase):
             event.refresh_from_db()
             self.assertTrue(event.reminder_24h_sent)
 
+            # Verify Notification created
+            self.assertEqual(Notification.objects.count(), 1)
+            notification = Notification.objects.first()
+            self.assertEqual(notification.user, self.participant)
+            self.assertEqual(notification.title, "Event Reminder")
+            self.assertIn("24 hours", notification.message)
+
             # Run again - should NOT send
             mock_sender.reset_mock()
             call_command("send_event_reminders")
             mock_sender.assert_not_called()
+
+            # Verify no new notification created
+            self.assertEqual(Notification.objects.count(), 1)
 
     @patch("notifications.management.commands.send_event_reminders.get_channel_layer")
     def test_1h_reminder_sent_exactly_once(self, mock_get_channel_layer):
@@ -112,10 +123,20 @@ class EventReminderCommandTest(TestCase):
             event.refresh_from_db()
             self.assertTrue(event.reminder_1h_sent)
 
+            # Verify Notification created
+            self.assertEqual(Notification.objects.count(), 1)
+            notification = Notification.objects.first()
+            self.assertEqual(notification.user, self.participant)
+            self.assertEqual(notification.title, "Event Reminder")
+            self.assertIn("1 hour", notification.message)
+
             # Run again - should NOT send
             mock_sender.reset_mock()
             call_command("send_event_reminders")
             mock_sender.assert_not_called()
+
+            # Verify no new notification created
+            self.assertEqual(Notification.objects.count(), 1)
 
     @patch("notifications.management.commands.send_event_reminders.get_channel_layer")
     def test_no_reminder_outside_window(self, mock_get_channel_layer):

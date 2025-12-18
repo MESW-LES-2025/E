@@ -8,6 +8,7 @@ import {
   markAsRead,
   markAsUnread,
   NotificationItem,
+  onNotificationReceivedCallback,
 } from "@/lib/notifications";
 import { useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -30,14 +31,20 @@ export default function NotificationsPage() {
   const handleReminderToggle = (enabled: boolean) => {
     setRemindersEnabled(enabled);
     localStorage.setItem("remindersEnabled", JSON.stringify(enabled));
+    if (onNotificationReceivedCallback) {
+      onNotificationReceivedCallback();
+    }
   };
 
-  const load = async () => {
+  const load = async (remindersAllowed: boolean) => {
     try {
       setLoading(true);
       setError(null);
       const data = await listNotifications();
-      setItems(data);
+      const filteredData = remindersAllowed
+        ? data
+        : data.filter((item) => item.title !== "Event Reminder");
+      setItems(filteredData);
     } catch (e) {
       console.error(e);
       setError("Failed to load notifications");
@@ -47,8 +54,8 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    load(remindersEnabled);
+  }, [remindersEnabled]);
 
   const toggleRead = async (id: number, nextRead: boolean) => {
     try {

@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from events.models import Event
+from notifications.models import Notification
 
 
 class Command(BaseCommand):
@@ -34,6 +35,13 @@ class Command(BaseCommand):
 
         for event in remind_24h_events:
             for participant in event.participants.all():
+                # Create notification in database
+                Notification.objects.create(
+                    user=participant,
+                    title="Event Reminder",
+                    message=f"Event '{event.name}' is happening in 24 hours.",
+                )
+
                 message = {
                     "type": "send_notification",
                     "message": {
@@ -59,6 +67,13 @@ class Command(BaseCommand):
 
         for event in remind_1h_events:
             for participant in event.participants.all():
+                # Create notification in database
+                Notification.objects.create(
+                    user=participant,
+                    title="Event Reminder",
+                    message=f"Event '{event.name}' is happening in 1 hour.",
+                )
+
                 message = {
                     "type": "send_notification",
                     "message": {

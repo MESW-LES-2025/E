@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { onNotificationReceivedCallback } from "./notifications";
 
 const WEBSOCKET_URL = "ws://localhost:8000/ws/notifications/";
 
@@ -24,6 +25,9 @@ export const connectWebSocket = (userId: string) => {
           `Event Reminder: ${data.event_name} is in ${data.time_left}.`,
         );
       }
+    }
+    if (onNotificationReceivedCallback) {
+      onNotificationReceivedCallback();
     }
   };
 
