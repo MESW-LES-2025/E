@@ -162,7 +162,6 @@ export default function EventModal({
 
   // Load authentication state from localStorage after mount (client-side only)
   useEffect(() => {
-    setMounted(true);
     try {
       const tokens = localStorage.getItem("auth_tokens");
       if (tokens) {

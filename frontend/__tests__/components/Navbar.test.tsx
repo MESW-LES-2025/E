@@ -100,6 +100,10 @@ describe("Navbar Component", () => {
 
       render(<Navbar />);
 
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      userButton.click();
+
       await waitFor(() => {
         expect(screen.getByText("My Events")).toBeInTheDocument();
         expect(screen.getByText("Profile")).toBeInTheDocument();
@@ -126,6 +130,10 @@ describe("Navbar Component", () => {
 
       render(<Navbar />);
 
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Org");
+      userButton.click();
+
       await waitFor(() => {
         expect(screen.getByText("My Organizations")).toBeInTheDocument();
         expect(screen.getByText("My Events")).toBeInTheDocument();
@@ -150,6 +158,12 @@ describe("Navbar Component", () => {
       });
 
       render(<Navbar />);
+
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      await act(async () => {
+        userButton.click();
+      });
 
       await waitFor(() => {
         expect(screen.getByText("Logout")).toBeInTheDocument();
@@ -264,6 +278,10 @@ describe("Navbar Component", () => {
 
       render(<Navbar />);
 
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      userButton.click();
+
       await waitFor(() => {
         const badge = screen.getByText("5");
         expect(badge).toBeInTheDocument();
@@ -275,6 +293,10 @@ describe("Navbar Component", () => {
       mockGetFilteredUnreadCount.mockResolvedValue(0);
 
       render(<Navbar />);
+
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      userButton.click();
 
       await waitFor(() => {
         expect(screen.getByText("Notifications")).toBeInTheDocument();

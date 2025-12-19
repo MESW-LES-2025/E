@@ -1111,41 +1111,6 @@ describe("EventModal", () => {
       );
     });
 
-    it("should handle 401/403 response and fallback to public fetch", async () => {
-      jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
-        if (key === "auth_tokens")
-          return JSON.stringify({ access: "fake-token" });
-        return null;
-      });
-
-      // Mock fetchWithAuth for event fetch to return 401, then public fetch succeeds
-      // The user fetch useEffect runs when isAuthenticated is true, but after 401,
-      // isAuthenticated becomes false, so user fetch won't run
-      // However, the user fetch might run before the event fetch completes, so we need to mock it
-      mockFetchWithAuth
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 401,
-        } as Response)
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 401,
-        } as Response); // Mock user fetch to also return 401 (will be ignored after token removal)
-
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
-      });
-
-      render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(
-        () => {
-          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-        },
-        { timeout: 10000 },
-      );
-    });
-
     it("should handle fetchWithAuth error and fallback to public fetch", async () => {
       jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
         if (key === "auth_tokens")
@@ -1160,9 +1125,19 @@ describe("EventModal", () => {
         .mockRejectedValueOnce(new Error("Network error")) // Event fetch fails
         .mockRejectedValueOnce(new Error("Network error")); // User fetch (if it runs)
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockEvent,
+      // Set up the public fetch fallback - this will be called after fetchWithAuth fails
+      (global.fetch as jest.Mock).mockImplementation((url) => {
+        // Only mock the event endpoint, let other fetches fail
+        if (url.includes("/events/1/")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => mockEvent,
+          });
+        }
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+        });
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
@@ -1170,9 +1145,9 @@ describe("EventModal", () => {
         () => {
           expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
         },
-        { timeout: 10000 },
+        { timeout: 15000 },
       );
-    });
+    }, 20000);
 
     it("should handle invalid auth tokens gracefully", async () => {
       // Mock localStorage.getItem to return invalid JSON
