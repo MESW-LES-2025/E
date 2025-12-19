@@ -102,7 +102,7 @@ describe("Navbar Component", () => {
 
       await waitFor(() => {
         expect(screen.getByText("My Events")).toBeInTheDocument();
-        expect(screen.getByText("My Profile")).toBeInTheDocument();
+        expect(screen.getByText("Profile")).toBeInTheDocument();
         expect(screen.getByText("Logout")).toBeInTheDocument();
       });
 
@@ -129,7 +129,7 @@ describe("Navbar Component", () => {
       await waitFor(() => {
         expect(screen.getByText("My Organizations")).toBeInTheDocument();
         expect(screen.getByText("My Events")).toBeInTheDocument();
-        expect(screen.getByText("My Profile")).toBeInTheDocument();
+        expect(screen.getByText("Profile")).toBeInTheDocument();
         expect(screen.getByText("Logout")).toBeInTheDocument();
       });
     });
@@ -267,7 +267,7 @@ describe("Navbar Component", () => {
       await waitFor(() => {
         const badge = screen.getByText("5");
         expect(badge).toBeInTheDocument();
-        expect(badge).toHaveClass("bg-red-600");
+        expect(badge).toHaveClass("bg-primary");
       });
     });
 

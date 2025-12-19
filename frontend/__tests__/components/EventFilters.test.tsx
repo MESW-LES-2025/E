@@ -178,7 +178,7 @@ describe("EventFilters", () => {
       const todayButton = screen.getByText("Today");
       await user.click(todayButton);
 
-      expect(todayButton).toHaveClass("bg-blue-400");
+      expect(todayButton).toHaveClass("bg-primary");
     });
 
     it("should apply 'Tomorrow' filter when clicked", async () => {
@@ -193,7 +193,7 @@ describe("EventFilters", () => {
       const tomorrowButton = screen.getByText("Tomorrow");
       await user.click(tomorrowButton);
 
-      expect(tomorrowButton).toHaveClass("bg-blue-400");
+      expect(tomorrowButton).toHaveClass("bg-primary");
     });
 
     it("should apply 'Current Week' filter when clicked", async () => {
@@ -208,7 +208,7 @@ describe("EventFilters", () => {
       const weekButton = screen.getByText("Current Week");
       await user.click(weekButton);
 
-      expect(weekButton).toHaveClass("bg-blue-400");
+      expect(weekButton).toHaveClass("bg-primary");
     });
 
     it("should highlight active date filter", () => {
@@ -221,7 +221,7 @@ describe("EventFilters", () => {
       );
 
       const todayButton = screen.getByText("Today");
-      expect(todayButton).toHaveClass("bg-blue-400");
+      expect(todayButton).toHaveClass("bg-primary");
     });
   });
 
@@ -388,7 +388,7 @@ describe("EventFilters", () => {
       await user.click(todayButton);
 
       expect(searchInput).toHaveValue("music");
-      expect(todayButton).toHaveClass("bg-blue-400");
+      expect(todayButton).toHaveClass("bg-primary");
     });
 
     it("should clear quick date filter when custom range is selected", async () => {
@@ -406,7 +406,7 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText("Today")).toHaveClass("bg-blue-400");
+      expect(screen.getByText("Today")).toHaveClass("bg-primary");
     });
   });
 
@@ -491,7 +491,7 @@ describe("EventFilters", () => {
       await user.click(screen.getByText("Tomorrow"));
       await user.click(screen.getByText("Current Week"));
 
-      expect(screen.getByText("Current Week")).toHaveClass("bg-blue-400");
+      expect(screen.getByText("Current Week")).toHaveClass("bg-primary");
     });
   });
 });
