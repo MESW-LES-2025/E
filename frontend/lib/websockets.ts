@@ -19,9 +19,30 @@ type NewEventMsg = {
   start_time?: string;
 };
 
+type EventUpdatedMsg = {
+  type: "event_updated";
+  event_id?: number;
+  event_name?: string;
+  change_type?: string;
+  old_value?: string;
+  new_value?: string;
+  message?: string;
+};
+
+type EventCancelledMsg = {
+  type: "event_cancelled";
+  event_id?: number;
+  event_name?: string;
+  message?: string;
+};
+
 type SendNotificationEnvelope = {
   type?: string; // "send_notification" from backend
-  message?: EventReminderMsg | NewEventMsg;
+  message?:
+    | EventReminderMsg
+    | NewEventMsg
+    | EventUpdatedMsg
+    | EventCancelledMsg;
 };
 
 function isObject(x: unknown): x is Record<string, unknown> {
@@ -32,6 +53,12 @@ function isEventReminder(x: unknown): x is EventReminderMsg {
 }
 function isNewEvent(x: unknown): x is NewEventMsg {
   return isObject(x) && x["type"] === "new_event";
+}
+function isEventUpdated(x: unknown): x is EventUpdatedMsg {
+  return isObject(x) && x["type"] === "event_updated";
+}
+function isEventCancelled(x: unknown): x is EventCancelledMsg {
+  return isObject(x) && x["type"] === "event_cancelled";
 }
 
 export const connectWebSocket = (userId: string) => {
@@ -80,6 +107,56 @@ export const connectWebSocket = (userId: string) => {
       const org = msg.organization_name ?? "Organization";
       const name = msg.event_name ?? "New Event";
       toast.info(`New Event: ${org} published "${name}".`);
+      console.debug("[ws] message type:", msg.type, msg);
+    } else if (isEventUpdated(msg)) {
+      // Gate event_updated by local preference
+      const eventChangesEnabled = localStorage.getItem("eventChangesEnabled");
+      const eventChangesAllowed =
+        eventChangesEnabled === null ||
+        (eventChangesEnabled === "true" || eventChangesEnabled === "false"
+          ? JSON.parse(eventChangesEnabled)
+          : true);
+
+      if (eventChangesAllowed) {
+        const name = msg.event_name ?? "Event";
+        const changeMsg = msg.message ?? "Event details have been updated";
+        toast.info(`Event Updated: ${name} - ${changeMsg}`, {
+          action: msg.event_id
+            ? {
+                label: "View Event",
+                onClick: () => {
+                  // Navigate to event page - using window.location for simplicity
+                  // Could be enhanced to use Next.js router if available in context
+                  window.location.href = `/event?id=${msg.event_id}`;
+                },
+              }
+            : undefined,
+        });
+      }
+      console.debug("[ws] message type:", msg.type, msg);
+    } else if (isEventCancelled(msg)) {
+      // Gate event_cancelled by local preference
+      const eventChangesEnabled = localStorage.getItem("eventChangesEnabled");
+      const eventChangesAllowed =
+        eventChangesEnabled === null ||
+        (eventChangesEnabled === "true" || eventChangesEnabled === "false"
+          ? JSON.parse(eventChangesEnabled)
+          : true);
+
+      if (eventChangesAllowed) {
+        const name = msg.event_name ?? "Event";
+        const cancelMsg = msg.message ?? "This event has been cancelled";
+        toast.warning(`Event Cancelled: ${name} - ${cancelMsg}`, {
+          action: msg.event_id
+            ? {
+                label: "View Event",
+                onClick: () => {
+                  window.location.href = `/event?id=${msg.event_id}`;
+                },
+              }
+            : undefined,
+        });
+      }
       console.debug("[ws] message type:", msg.type, msg);
     } else if (msg !== null && msg !== undefined) {
       console.debug("[ws] message (unrecognized payload):", msg);
