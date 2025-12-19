@@ -7,8 +7,7 @@ import "./globals.css";
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-background text-foreground antialiased">
-        {/* Apply theme immediately before React hydrates to prevent FOUC */}
+      <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -29,6 +28,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             `,
           }}
         />
+      </head>
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <WebSocketProvider>
           {/* Navigation */}
           <Navbar />
