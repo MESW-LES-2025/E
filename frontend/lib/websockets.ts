@@ -109,36 +109,54 @@ export const connectWebSocket = (userId: string) => {
       toast.info(`New Event: ${org} published "${name}".`);
       console.debug("[ws] message type:", msg.type, msg);
     } else if (isEventUpdated(msg)) {
-      // Show event update notifications
-      const name = msg.event_name ?? "Event";
-      const changeMsg = msg.message ?? "Event details have been updated";
-      toast.info(`Event Updated: ${name} - ${changeMsg}`, {
-        action: msg.event_id
-          ? {
-              label: "View Event",
-              onClick: () => {
-                // Navigate to event page - using window.location for simplicity
-                // Could be enhanced to use Next.js router if available in context
-                window.location.href = `/event?id=${msg.event_id}`;
-              },
-            }
-          : undefined,
-      });
+      // Gate event_updated by local preference
+      const eventChangesEnabled = localStorage.getItem("eventChangesEnabled");
+      const eventChangesAllowed =
+        eventChangesEnabled === null ||
+        (eventChangesEnabled === "true" || eventChangesEnabled === "false"
+          ? JSON.parse(eventChangesEnabled)
+          : true);
+
+      if (eventChangesAllowed) {
+        const name = msg.event_name ?? "Event";
+        const changeMsg = msg.message ?? "Event details have been updated";
+        toast.info(`Event Updated: ${name} - ${changeMsg}`, {
+          action: msg.event_id
+            ? {
+                label: "View Event",
+                onClick: () => {
+                  // Navigate to event page - using window.location for simplicity
+                  // Could be enhanced to use Next.js router if available in context
+                  window.location.href = `/event?id=${msg.event_id}`;
+                },
+              }
+            : undefined,
+        });
+      }
       console.debug("[ws] message type:", msg.type, msg);
     } else if (isEventCancelled(msg)) {
-      // Show event cancellation notifications
-      const name = msg.event_name ?? "Event";
-      const cancelMsg = msg.message ?? "This event has been cancelled";
-      toast.warning(`Event Cancelled: ${name} - ${cancelMsg}`, {
-        action: msg.event_id
-          ? {
-              label: "View Event",
-              onClick: () => {
-                window.location.href = `/event?id=${msg.event_id}`;
-              },
-            }
-          : undefined,
-      });
+      // Gate event_cancelled by local preference
+      const eventChangesEnabled = localStorage.getItem("eventChangesEnabled");
+      const eventChangesAllowed =
+        eventChangesEnabled === null ||
+        (eventChangesEnabled === "true" || eventChangesEnabled === "false"
+          ? JSON.parse(eventChangesEnabled)
+          : true);
+
+      if (eventChangesAllowed) {
+        const name = msg.event_name ?? "Event";
+        const cancelMsg = msg.message ?? "This event has been cancelled";
+        toast.warning(`Event Cancelled: ${name} - ${cancelMsg}`, {
+          action: msg.event_id
+            ? {
+                label: "View Event",
+                onClick: () => {
+                  window.location.href = `/event?id=${msg.event_id}`;
+                },
+              }
+            : undefined,
+        });
+      }
       console.debug("[ws] message type:", msg.type, msg);
     } else if (msg !== null && msg !== undefined) {
       console.debug("[ws] message (unrecognized payload):", msg);
