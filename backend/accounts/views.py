@@ -110,8 +110,27 @@ class OrganizationViewSet(ModelViewSet):
         return OrganizationSerializer
 
     def get_queryset(self):
-        """All organizations are publicly viewable"""
-        return Organization.objects.all().select_related("owner")
+        """All organizations are publicly viewable, with optional filtering"""
+        queryset = Organization.objects.all().select_related("owner")
+
+        # Filter by organization_type(s) if provided (supports multiple)
+        organization_types = self.request.query_params.getlist("organization_type")
+        if organization_types:
+            queryset = queryset.filter(organization_type__in=organization_types)
+
+        # Filter by search query if provided (search in name, description, city, country)
+        search = self.request.query_params.get("search")
+        if search:
+            from django.db.models import Q
+
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(description__icontains=search)
+                | Q(city__icontains=search)
+                | Q(country__icontains=search)
+            )
+
+        return queryset
 
     def perform_create(self, serializer):
         """Set owner when creating organization"""
