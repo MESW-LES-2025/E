@@ -6,9 +6,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CalendarIcon, Search, X } from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DateRange } from "react-day-picker";
 
 interface EventFiltersProps {
@@ -89,7 +92,6 @@ export default function EventFilters({
 }: EventFiltersProps) {
   const [localFilters, setLocalFilters] = useState<FilterValues>(filters);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>(
     getInitialDateRange(filters),
   );
@@ -154,145 +156,113 @@ export default function EventFilters({
     onFilterChange(resetFilters);
   };
 
-  const handleApply = () => {
+  // Sync localFilters when filters prop changes (e.g., from localStorage)
+  useEffect(() => {
+    setLocalFilters(filters);
+    setDate(getInitialDateRange(filters));
+  }, [filters]);
+
+  // Auto-apply filters when they change
+  useEffect(() => {
     onFilterChange(localFilters);
-  };
+  }, [localFilters, onFilterChange]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h3 className="text-xl font-bold text-gray-800 mb-6">Filters</h3>
+    <div className="space-y-4 pb-6 border-b">
+      {/* Search Bar - Full Width */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          value={localFilters.search}
+          onChange={(e) => updateLocalFilters({ search: e.target.value })}
+          placeholder="Search events by name, location, or description..."
+          className="pl-10"
+        />
+      </div>
 
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Search
-          </label>
-          <input
-            type="text"
-            value={localFilters.search}
-            onChange={(e) => updateLocalFilters({ search: e.target.value })}
-            placeholder="Search events..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Categories
-          </label>
-          <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
-            <PopoverTrigger asChild>
-              <button className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between bg-white">
-                <span className="text-sm truncate">
-                  {localFilters.category.length === 0
-                    ? "Select categories..."
-                    : `${localFilters.category.length} selected`}
-                </span>
-                <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[var(--radix-popover-trigger-width)] p-0"
-              align="start"
+      {/* Categories */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+          Categories:
+        </span>
+        {CATEGORIES.filter((c) => c.value !== "").map((cat) => {
+          const isSelected = localFilters.category.includes(cat.value);
+          return (
+            <Badge
+              key={cat.value}
+              variant={isSelected ? "default" : "outline"}
+              className={`cursor-pointer px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                isSelected
+                  ? "hover:bg-primary/90 hover:shadow-md"
+                  : "hover:bg-primary/10 hover:border-primary/50 hover:text-primary"
+              }`}
+              onClick={() => toggleCategory(cat.value)}
             >
-              <div className="max-h-60 overflow-y-auto p-1 bg-white rounded-md border shadow-sm">
-                {CATEGORIES.filter((c) => c.value !== "").map((cat) => {
-                  const isSelected = localFilters.category.includes(cat.value);
-                  return (
-                    <div
-                      key={cat.value}
-                      onClick={() => toggleCategory(cat.value)}
-                      className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-sm cursor-pointer"
-                    >
-                      <div
-                        className={`flex h-4 w-4 items-center justify-center rounded border ${
-                          isSelected
-                            ? "bg-blue-600 border-blue-600 text-white"
-                            : "border-gray-300"
-                        }`}
-                      >
-                        {isSelected && <Check className="h-3 w-3" />}
-                      </div>
-                      <span className="text-sm text-gray-700">{cat.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+              {cat.label}
+              {isSelected && <X className="h-3 w-3 ml-1.5" />}
+            </Badge>
+          );
+        })}
+      </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            When
-          </label>
-
-          <div className="flex flex-col gap-2 mb-3">
-            {DATE_FILTERS.map((df) => (
-              <button
-                key={df.value}
-                onClick={() => handleQuickDateFilter(df.value)}
-                className={`px-4 py-2 rounded-md transition-colors text-sm ${
-                  localFilters.dateFilter === df.value
-                    ? "bg-blue-400 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {df.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="pt-2">
-            <label className="block text-xs font-medium text-gray-600 mb-2">
-              Custom Range
-            </label>
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild>
-                <button className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between text-left hover:bg-gray-50 transition-colors">
-                  <span className="text-sm">
-                    {date?.from ? (
-                      date.to ? (
-                        <>
-                          {format(date.from, "MMM dd")} -{" "}
-                          {format(date.to, "MMM dd, yyyy")}
-                        </>
-                      ) : (
-                        format(date.from, "MMM dd")
-                      )
-                    ) : (
-                      <span className="text-gray-400">Pick dates</span>
-                    )}
-                  </span>
-                  <CalendarIcon className="h-4 w-4 text-gray-500" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  defaultMonth={date?.from}
-                  selected={date}
-                  onSelect={handleDateSelect}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-
-        <div className="pt-4 flex gap-3">
-          <button
+      {/* Date Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+          When:
+        </span>
+        {DATE_FILTERS.map((df) => (
+          <Button
+            key={df.value}
+            variant={
+              localFilters.dateFilter === df.value ? "default" : "outline"
+            }
+            size="sm"
+            onClick={() => handleQuickDateFilter(df.value)}
+            className="text-sm"
+          >
+            {df.label}
+          </Button>
+        ))}
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="text-sm">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date?.from ? (
+                date.to ? (
+                  <>
+                    {format(date.from, "MMM dd")} - {format(date.to, "MMM dd")}
+                  </>
+                ) : (
+                  format(date.from, "MMM dd")
+                )
+              ) : (
+                "Custom"
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              defaultMonth={date?.from}
+              selected={date}
+              onSelect={handleDateSelect}
+            />
+          </PopoverContent>
+        </Popover>
+        {(localFilters.category.length > 0 ||
+          localFilters.dateFilter ||
+          date ||
+          localFilters.search) && (
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleReset}
-            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm font-medium"
+            className="text-sm text-muted-foreground hover:text-foreground ml-auto"
           >
-            Reset
-          </button>
-          <button
-            onClick={handleApply}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            Apply Filters
-          </button>
-        </div>
+            Clear all
+          </Button>
+        )}
       </div>
     </div>
   );

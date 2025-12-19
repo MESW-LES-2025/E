@@ -81,19 +81,45 @@ interface Participant {
   last_name: string;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  SOCIAL: "bg-blue-500 text-white",
-  ACADEMIC: "bg-green-500 text-white",
-  TRAVEL: "bg-yellow-500 text-black",
-  SPORTS: "bg-red-500 text-white",
-  CULTURAL: "bg-purple-500 text-white",
-  VOLUNTEERING: "bg-teal-500 text-white",
-  NIGHTLIFE: "bg-pink-500 text-white",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  Active: "bg-green-500 text-white",
-  Cancelled: "bg-red-500 text-white",
+const CATEGORY_COLORS: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  SOCIAL: {
+    bg: "bg-primary/10 dark:bg-primary/20",
+    text: "text-primary",
+    border: "border-primary/30",
+  },
+  ACADEMIC: {
+    bg: "bg-chart-5/10 dark:bg-chart-5/20",
+    text: "text-chart-5",
+    border: "border-chart-5/30",
+  },
+  TRAVEL: {
+    bg: "bg-chart-4/10 dark:bg-chart-4/20",
+    text: "text-chart-4",
+    border: "border-chart-4/30",
+  },
+  SPORTS: {
+    bg: "bg-destructive/10 dark:bg-destructive/20",
+    text: "text-destructive",
+    border: "border-destructive/30",
+  },
+  CULTURAL: {
+    bg: "bg-secondary/10 dark:bg-secondary/20",
+    text: "text-secondary",
+    border: "border-secondary/30",
+  },
+  VOLUNTEERING: {
+    bg: "bg-chart-3/10 dark:bg-chart-3/20",
+    text: "text-chart-3",
+    border: "border-chart-3/30",
+  },
+  NIGHTLIFE: {
+    bg: "bg-pink-500/10 dark:bg-pink-500/20",
+    text: "text-pink-500",
+    border: "border-pink-500/30",
+  },
 };
 
 export default function EventModal({
@@ -132,18 +158,20 @@ export default function EventModal({
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
+  // Load authentication state from localStorage after mount (client-side only)
+  useEffect(() => {
     try {
       const tokens = localStorage.getItem("auth_tokens");
-      if (!tokens) return false;
-      const parsed = JSON.parse(tokens);
-      return !!parsed.access;
+      if (tokens) {
+        const parsed = JSON.parse(tokens);
+        setIsAuthenticated(!!parsed.access);
+      }
     } catch {
-      return false;
+      setIsAuthenticated(false);
     }
-  });
+  }, []);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -253,30 +281,43 @@ export default function EventModal({
     const fetchEvent = async () => {
       try {
         let res;
+        let shouldRetryPublic = false;
+
         if (isAuthenticated) {
           try {
             res = await fetchWithAuth(`${base}/events/${id}/`);
-            // if 401/403, expired token
+            // if 401/403, expired token or permission issue
             if (res.status === 401 || res.status === 403) {
               // remove invalid token
               localStorage.removeItem("auth_tokens");
               setIsAuthenticated(false);
-              // try public fetch
-              res = await fetch(`${base}/events/${id}/`);
+              shouldRetryPublic = true;
+            } else if (!res.ok) {
+              // Other error, try public fetch as fallback
+              shouldRetryPublic = true;
             }
           } catch {
             // if error, removes token and try public fetch
             localStorage.removeItem("auth_tokens");
             setIsAuthenticated(false);
-            res = await fetch(`${base}/events/${id}/`);
+            shouldRetryPublic = true;
           }
-        } else {
+        }
+
+        // Try public fetch if needed (either not authenticated, or auth failed)
+        if (!isAuthenticated || shouldRetryPublic) {
           res = await fetch(`${base}/events/${id}/`);
         }
 
-        if (!res.ok) throw new Error(`Status ${res.status}`);
+        if (!res.ok) {
+          throw new Error(`Status ${res.status}`);
+        }
+
         const data = await res.json();
-        if (!cancelled) setEvent(data);
+        if (!cancelled) {
+          setEvent(data);
+          setError(null); // Clear any previous errors on success
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load event");
@@ -752,19 +793,19 @@ export default function EventModal({
 
       {/* Event Modal */}
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
         role="dialog"
         aria-modal="true"
         onClick={onClose}
       >
         <div
-          className="bg-white rounded-3xl max-w-2xl w-full mx-4 p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto"
+          className="bg-card border-2 border-primary/20 rounded-2xl max-w-2xl w-full mx-4 p-8 md:p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             aria-label="Close modal"
             onClick={onClose}
-            className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 text-3xl leading-none"
+            className="absolute top-6 right-6 text-muted-foreground hover:text-foreground text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-accent transition-colors"
           >
             ×
           </button>
@@ -775,26 +816,29 @@ export default function EventModal({
             {!loading && !error && event && (
               <>
                 <h2
-                  className={`text-3xl font-bold ${event.status ? "mb-2" : "mb-8"}`}
+                  className={`text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent`}
                 >
                   {event.name}
                 </h2>
-                <div className="flex items-center gap-2 mb-8">
+                <div className="flex items-center gap-2 mb-6 flex-wrap">
                   {event.category && (
                     <Badge
-                      className={
-                        CATEGORY_COLORS[event.category] ||
-                        "bg-gray-500 text-white"
-                      }
+                      className={`${
+                        CATEGORY_COLORS[event.category]?.bg || "bg-muted"
+                      } ${
+                        CATEGORY_COLORS[event.category]?.text ||
+                        "text-muted-foreground"
+                      } border font-medium`}
                     >
                       {event.category}
                     </Badge>
                   )}
                   {event.status && (
                     <Badge
-                      className={
-                        STATUS_COLORS[event.status] || "bg-gray-500 text-white"
+                      variant={
+                        event.status === "Canceled" ? "destructive" : "default"
                       }
+                      className="font-medium"
                     >
                       {event.status}
                     </Badge>
@@ -803,10 +847,10 @@ export default function EventModal({
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                       Date
                     </label>
-                    <div className="text-base text-gray-800">
+                    <div className="text-base font-medium">
                       {event.date
                         ? new Date(event.date).toLocaleString("en-GB", {
                             day: "2-digit",
@@ -821,10 +865,10 @@ export default function EventModal({
 
                   {event.location && (
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                         Location
                       </label>
-                      <div className="text-base text-gray-800">
+                      <div className="text-base font-medium">
                         {event.location}
                       </div>
                     </div>
@@ -832,13 +876,13 @@ export default function EventModal({
 
                   {event.organization_name && event.organization_id && (
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                         Organization
                       </label>
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/organizations/detail?id=${event.organization_id}`}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-colors duration-200 group flex-1"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/10 hover:bg-secondary/20 border border-secondary/30 rounded-lg text-secondary font-medium transition-all duration-200 group flex-1"
                           onClick={() => {
                             // Store referrer before navigation
                             sessionStorage.setItem(
@@ -851,7 +895,7 @@ export default function EventModal({
                           <span className="group-hover:underline">
                             {event.organization_name}
                           </span>
-                          <span className="text-blue-500 group-hover:translate-x-1 transition-transform duration-200">
+                          <span className="text-secondary group-hover:translate-x-1 transition-transform duration-200">
                             →
                           </span>
                         </Link>
@@ -900,10 +944,10 @@ export default function EventModal({
 
                   {event.description && (
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                         Description
                       </label>
-                      <div className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                      <div className="text-base leading-relaxed whitespace-pre-wrap bg-muted/50 p-4 rounded-lg">
                         {event.description}
                       </div>
                     </div>
@@ -1061,12 +1105,12 @@ export default function EventModal({
                             isAuthenticated
                           }
                           className={
-                            "flex-1 font-bold py-4 rounded-xl " +
+                            "flex-1 font-bold py-4 rounded-xl transition-all " +
                             (event?.is_participating
-                              ? "bg-red-600 hover:bg-red-500 text-white"
+                              ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                               : event?.is_full && isAuthenticated
-                                ? "bg-gray-400 cursor-not-allowed text-white"
-                                : "bg-gray-800 hover:bg-gray-600 text-white")
+                                ? "bg-muted cursor-not-allowed text-muted-foreground"
+                                : "bg-primary hover:bg-primary/90 text-primary-foreground")
                           }
                         >
                           {event?.is_participating
@@ -1077,10 +1121,10 @@ export default function EventModal({
                         </Button>
                         <Button
                           onClick={toggleInterest}
-                          className={`flex-1 font-bold py-4 rounded-xl ${
+                          className={`flex-1 font-bold py-4 rounded-xl transition-all ${
                             event?.is_interested
-                              ? "bg-red-500 hover:bg-red-600 text-white"
-                              : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                              ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                              : "bg-secondary hover:bg-secondary/80 text-secondary-foreground"
                           }`}
                         >
                           {event?.is_interested

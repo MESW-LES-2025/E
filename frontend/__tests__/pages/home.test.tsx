@@ -97,7 +97,7 @@ describe("Home Page", () => {
     render(<Home />);
 
     await waitFor(() => {
-      expect(screen.getByText("Upcoming Events")).toBeInTheDocument();
+      expect(screen.getByText("Featured Events")).toBeInTheDocument();
       expect(screen.getByText("Test Event")).toBeInTheDocument();
     });
   });
@@ -141,10 +141,13 @@ describe("Home Page", () => {
 
     render(<Home />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Organizations")).toBeInTheDocument();
-      expect(screen.getByText("Test Organization")).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Featured Organizations")).toBeInTheDocument();
+        expect(screen.getByText("Test Organization")).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("should display View All buttons for both sections", async () => {
@@ -195,8 +198,8 @@ describe("Home Page", () => {
     render(<Home />);
 
     await waitFor(() => {
-      const viewAllButtons = screen.getAllByText("View All");
-      expect(viewAllButtons.length).toBeGreaterThan(0);
+      expect(screen.getByText("View All Events")).toBeInTheDocument();
+      expect(screen.getByText("View All Organizations")).toBeInTheDocument();
     });
   });
 
@@ -265,7 +268,7 @@ describe("Home Page", () => {
 
       await waitFor(() => {
         // Should still render the page even if organizations fail
-        expect(screen.getByText("Upcoming Events")).toBeInTheDocument();
+        expect(screen.getByText("Featured Events")).toBeInTheDocument();
       });
       consoleSpy.mockRestore();
     });
@@ -466,13 +469,10 @@ describe("Home Page", () => {
 
       await waitFor(() => {
         // Check that organization type labels are displayed correctly
-        // Only first 6 organizations are shown, so we check those
+        // Only first 3 organizations are shown on homepage, so we check those
         expect(screen.getByText("Company")).toBeInTheDocument();
         expect(screen.getByText("Non-profit")).toBeInTheDocument();
         expect(screen.getByText("Community")).toBeInTheDocument();
-        expect(screen.getByText("Educational")).toBeInTheDocument();
-        expect(screen.getByText("Government")).toBeInTheDocument();
-        expect(screen.getByText("Other")).toBeInTheDocument();
         // The getOrganizationTypeLabel function is tested through these labels
         // The fallback case (return typeMap[type] || type) is covered by UNKNOWN_TYPE
         // The null case is covered by "Not specified"

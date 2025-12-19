@@ -238,8 +238,15 @@ function CreateEventContent() {
   }
 
   return (
-    <div className="container mx-auto p-8 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Create New Event</h1>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-4xl md:text-5xl font-bold mb-2">
+          Create New Event
+        </h1>
+        <p className="text-muted-foreground text-lg">
+          Organize an amazing event for the Erasmus community
+        </p>
+      </div>
 
       <form onSubmit={handleSubmit}>
         <Field className="mb-4">
@@ -391,7 +398,7 @@ function CreateEventContent() {
           </Field>
         </div>
 
-        <Button type="submit" className="mt-6">
+        <Button type="submit" className="mt-6 font-semibold" size="lg">
           Create Event
         </Button>
 

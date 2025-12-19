@@ -27,12 +27,13 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText("Filters")).toBeInTheDocument();
       expect(
-        screen.getByPlaceholderText("Search events..."),
+        screen.getByPlaceholderText(
+          "Search events by name, location, or description...",
+        ),
       ).toBeInTheDocument();
-      expect(screen.getByText("Categories")).toBeInTheDocument();
-      expect(screen.getByText("When")).toBeInTheDocument();
+      expect(screen.getByText("Categories:")).toBeInTheDocument();
+      expect(screen.getByText("When:")).toBeInTheDocument();
     });
 
     it("should render all quick date filter buttons", () => {
@@ -48,16 +49,22 @@ describe("EventFilters", () => {
       expect(screen.getByText("Current Week")).toBeInTheDocument();
     });
 
-    it("should render reset and apply buttons", () => {
+    it("should render clear all button when filters are active", () => {
+      const filtersWithValues: FilterValues = {
+        category: ["SOCIAL"],
+        dateFilter: "",
+        dateFrom: "",
+        dateTo: "",
+        search: "test",
+      };
       render(
         <EventFilters
-          filters={defaultFilters}
+          filters={filtersWithValues}
           onFilterChange={mockOnFilterChange}
         />,
       );
 
-      expect(screen.getByText("Reset")).toBeInTheDocument();
-      expect(screen.getByText("Apply Filters")).toBeInTheDocument();
+      expect(screen.getByText("Clear all")).toBeInTheDocument();
     });
   });
 
@@ -71,7 +78,9 @@ describe("EventFilters", () => {
         />,
       );
 
-      const searchInput = screen.getByPlaceholderText("Search events...");
+      const searchInput = screen.getByPlaceholderText(
+        "Search events by name, location, or description...",
+      );
       await user.type(searchInput, "test event");
 
       expect(searchInput).toHaveValue("test event");
@@ -86,14 +95,16 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByPlaceholderText("Search events...")).toHaveValue(
-        "initial search",
-      );
+      expect(
+        screen.getByPlaceholderText(
+          "Search events by name, location, or description...",
+        ),
+      ).toHaveValue("initial search");
     });
   });
 
   describe("Category Selection", () => {
-    it("should show 'Select categories...' when no categories selected", () => {
+    it("should display all category badges", () => {
       render(
         <EventFilters
           filters={defaultFilters}
@@ -101,10 +112,16 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText("Select categories...")).toBeInTheDocument();
+      expect(screen.getByText("Social")).toBeInTheDocument();
+      expect(screen.getByText("Academic")).toBeInTheDocument();
+      expect(screen.getByText("Travel")).toBeInTheDocument();
+      expect(screen.getByText("Sports")).toBeInTheDocument();
+      expect(screen.getByText("Cultural")).toBeInTheDocument();
+      expect(screen.getByText("Volunteering")).toBeInTheDocument();
+      expect(screen.getByText("Nightlife")).toBeInTheDocument();
     });
 
-    it("should display count when categories are selected", () => {
+    it("should highlight selected categories", () => {
       const filtersWithCategories = {
         ...defaultFilters,
         category: ["SOCIAL", "ACADEMIC"],
@@ -116,30 +133,8 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText("2 selected")).toBeInTheDocument();
-    });
-
-    it("should open category dropdown when clicked", async () => {
-      const user = userEvent.setup();
-      render(
-        <EventFilters
-          filters={defaultFilters}
-          onFilterChange={mockOnFilterChange}
-        />,
-      );
-
-      const categoryButton = screen.getByText("Select categories...");
-      await user.click(categoryButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Social")).toBeInTheDocument();
-        expect(screen.getByText("Academic")).toBeInTheDocument();
-        expect(screen.getByText("Travel")).toBeInTheDocument();
-        expect(screen.getByText("Sports")).toBeInTheDocument();
-        expect(screen.getByText("Cultural")).toBeInTheDocument();
-        expect(screen.getByText("Volunteering")).toBeInTheDocument();
-        expect(screen.getByText("Nightlife")).toBeInTheDocument();
-      });
+      const socialBadge = screen.getByText("Social");
+      expect(socialBadge).toHaveClass("bg-primary");
     });
 
     it("should toggle category selection when clicked", async () => {
@@ -151,17 +146,16 @@ describe("EventFilters", () => {
         />,
       );
 
-      const categoryButton = screen.getByText("Select categories...");
-      await user.click(categoryButton);
+      const socialBadge = screen.getByText("Social");
+      await user.click(socialBadge);
 
       await waitFor(() => {
-        expect(screen.getByText("Social")).toBeInTheDocument();
+        expect(mockOnFilterChange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            category: ["SOCIAL"],
+          }),
+        );
       });
-
-      const socialOption = screen.getByText("Social");
-      await user.click(socialOption);
-
-      expect(screen.getByText("1 selected")).toBeInTheDocument();
     });
   });
 
@@ -178,7 +172,7 @@ describe("EventFilters", () => {
       const todayButton = screen.getByText("Today");
       await user.click(todayButton);
 
-      expect(todayButton).toHaveClass("bg-blue-400");
+      expect(todayButton).toHaveClass("bg-primary");
     });
 
     it("should apply 'Tomorrow' filter when clicked", async () => {
@@ -193,7 +187,7 @@ describe("EventFilters", () => {
       const tomorrowButton = screen.getByText("Tomorrow");
       await user.click(tomorrowButton);
 
-      expect(tomorrowButton).toHaveClass("bg-blue-400");
+      expect(tomorrowButton).toHaveClass("bg-primary");
     });
 
     it("should apply 'Current Week' filter when clicked", async () => {
@@ -208,7 +202,7 @@ describe("EventFilters", () => {
       const weekButton = screen.getByText("Current Week");
       await user.click(weekButton);
 
-      expect(weekButton).toHaveClass("bg-blue-400");
+      expect(weekButton).toHaveClass("bg-primary");
     });
 
     it("should highlight active date filter", () => {
@@ -221,12 +215,12 @@ describe("EventFilters", () => {
       );
 
       const todayButton = screen.getByText("Today");
-      expect(todayButton).toHaveClass("bg-blue-400");
+      expect(todayButton).toHaveClass("bg-primary");
     });
   });
 
   describe("Custom Date Range", () => {
-    it("should show 'Pick dates' placeholder when no dates selected", () => {
+    it("should show 'Custom' button when no dates selected", () => {
       render(
         <EventFilters
           filters={defaultFilters}
@@ -234,7 +228,7 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText("Pick dates")).toBeInTheDocument();
+      expect(screen.getByText("Custom")).toBeInTheDocument();
     });
 
     it("should display selected date range", () => {
@@ -250,7 +244,9 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText(/Nov 23.*Nov 25, 2025/)).toBeInTheDocument();
+      // The date format is "MMM dd - MMM dd" (e.g., "Nov 23 - Nov 25")
+      expect(screen.getByText(/Nov 23/)).toBeInTheDocument();
+      expect(screen.getByText(/Nov 25/)).toBeInTheDocument();
     });
 
     it("should open calendar when custom range button clicked", async () => {
@@ -262,7 +258,7 @@ describe("EventFilters", () => {
         />,
       );
 
-      const dateButton = screen.getByText("Pick dates");
+      const dateButton = screen.getByText("Custom");
       await user.click(dateButton);
 
       await waitFor(() => {
@@ -272,7 +268,7 @@ describe("EventFilters", () => {
     });
   });
 
-  describe("Reset Button", () => {
+  describe("Clear All Button", () => {
     it("should reset all filters when clicked", async () => {
       const user = userEvent.setup();
       const filtersWithValues: FilterValues = {
@@ -290,8 +286,8 @@ describe("EventFilters", () => {
         />,
       );
 
-      const resetButton = screen.getByText("Reset");
-      await user.click(resetButton);
+      const clearButton = screen.getByText("Clear all");
+      await user.click(clearButton);
 
       expect(mockOnFilterChange).toHaveBeenCalledWith({
         category: [],
@@ -311,17 +307,20 @@ describe("EventFilters", () => {
         />,
       );
 
-      const searchInput = screen.getByPlaceholderText("Search events...");
+      const searchInput = screen.getByPlaceholderText(
+        "Search events by name, location, or description...",
+      );
       await user.type(searchInput, "test");
 
-      const resetButton = screen.getByText("Reset");
-      await user.click(resetButton);
+      // Clear all button only appears when filters are active
+      const clearButton = screen.getByText("Clear all");
+      await user.click(clearButton);
 
       expect(searchInput).toHaveValue("");
     });
   });
 
-  describe("Apply Filters Button", () => {
+  describe("Auto-apply Filters", () => {
     it("should call onFilterChange with current filter values", async () => {
       const user = userEvent.setup();
       render(
@@ -331,16 +330,21 @@ describe("EventFilters", () => {
         />,
       );
 
-      const searchInput = screen.getByPlaceholderText("Search events...");
+      const searchInput = screen.getByPlaceholderText(
+        "Search events by name, location, or description...",
+      );
       await user.type(searchInput, "conference");
 
-      const applyButton = screen.getByText("Apply Filters");
-      await user.click(applyButton);
-
-      expect(mockOnFilterChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          search: "conference",
-        }),
+      // Filters auto-apply immediately via useEffect
+      await waitFor(
+        () => {
+          expect(mockOnFilterChange).toHaveBeenCalledWith(
+            expect.objectContaining({
+              search: "conference",
+            }),
+          );
+        },
+        { timeout: 500 },
       );
     });
 
@@ -353,20 +357,25 @@ describe("EventFilters", () => {
         />,
       );
 
-      const searchInput = screen.getByPlaceholderText("Search events...");
+      const searchInput = screen.getByPlaceholderText(
+        "Search events by name, location, or description...",
+      );
       await user.type(searchInput, "sports");
 
       const todayButton = screen.getByText("Today");
       await user.click(todayButton);
 
-      const applyButton = screen.getByText("Apply Filters");
-      await user.click(applyButton);
-
-      expect(mockOnFilterChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          search: "sports",
-          dateFilter: "today",
-        }),
+      // Filters auto-apply immediately via useEffect
+      await waitFor(
+        () => {
+          expect(mockOnFilterChange).toHaveBeenCalledWith(
+            expect.objectContaining({
+              search: "sports",
+              dateFilter: "today",
+            }),
+          );
+        },
+        { timeout: 500 },
       );
     });
   });
@@ -381,14 +390,16 @@ describe("EventFilters", () => {
         />,
       );
 
-      const searchInput = screen.getByPlaceholderText("Search events...");
+      const searchInput = screen.getByPlaceholderText(
+        "Search events by name, location, or description...",
+      );
       await user.type(searchInput, "music");
 
       const todayButton = screen.getByText("Today");
       await user.click(todayButton);
 
       expect(searchInput).toHaveValue("music");
-      expect(todayButton).toHaveClass("bg-blue-400");
+      expect(todayButton).toHaveClass("bg-primary");
     });
 
     it("should clear quick date filter when custom range is selected", async () => {
@@ -406,7 +417,7 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText("Today")).toHaveClass("bg-blue-400");
+      expect(screen.getByText("Today")).toHaveClass("bg-primary");
     });
   });
 
@@ -419,10 +430,14 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByText("Search")).toBeInTheDocument();
-      expect(screen.getByText("Categories")).toBeInTheDocument();
-      expect(screen.getByText("When")).toBeInTheDocument();
-      expect(screen.getByText("Custom Range")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText(
+          "Search events by name, location, or description...",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Categories:")).toBeInTheDocument();
+      expect(screen.getByText("When:")).toBeInTheDocument();
+      expect(screen.getByText("Custom")).toBeInTheDocument();
     });
 
     it("should be keyboard navigable", async () => {
@@ -434,7 +449,9 @@ describe("EventFilters", () => {
         />,
       );
 
-      const searchInput = screen.getByPlaceholderText("Search events...");
+      const searchInput = screen.getByPlaceholderText(
+        "Search events by name, location, or description...",
+      );
 
       await user.type(searchInput, "test");
       expect(searchInput).toHaveValue("test");
@@ -450,32 +467,14 @@ describe("EventFilters", () => {
         />,
       );
 
-      expect(screen.getByPlaceholderText("Search events...")).toHaveValue("");
-      expect(screen.getByText("Select categories...")).toBeInTheDocument();
-      expect(screen.getByText("Pick dates")).toBeInTheDocument();
-    });
-
-    it("should handle all categories being selected", async () => {
-      const user = userEvent.setup();
-      render(
-        <EventFilters
-          filters={defaultFilters}
-          onFilterChange={mockOnFilterChange}
-        />,
-      );
-
-      const categoryButton = screen.getByText("Select categories...");
-      await user.click(categoryButton);
-
-      await waitFor(() => {
-        expect(screen.getByText("Social")).toBeInTheDocument();
-      });
-
-      await user.click(screen.getByText("Social"));
-      await user.click(screen.getByText("Academic"));
-      await user.click(screen.getByText("Sports"));
-
-      expect(screen.getByText("3 selected")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText(
+          "Search events by name, location, or description...",
+        ),
+      ).toHaveValue("");
+      expect(screen.getByText("Categories:")).toBeInTheDocument();
+      expect(screen.getByText("When:")).toBeInTheDocument();
+      expect(screen.getByText("Custom")).toBeInTheDocument();
     });
 
     it("should handle rapid filter changes", async () => {
@@ -491,7 +490,7 @@ describe("EventFilters", () => {
       await user.click(screen.getByText("Tomorrow"));
       await user.click(screen.getByText("Current Week"));
 
-      expect(screen.getByText("Current Week")).toHaveClass("bg-blue-400");
+      expect(screen.getByText("Current Week")).toHaveClass("bg-primary");
     });
   });
 });

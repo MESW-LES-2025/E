@@ -36,3 +36,18 @@ console.warn = jest.fn((...args) => {
   }
   originalWarn.call(console, ...args);
 });
+
+// Mock window.matchMedia for ThemeToggle component
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: jest.fn().mockImplementation((query) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
