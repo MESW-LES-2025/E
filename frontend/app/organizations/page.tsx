@@ -67,7 +67,7 @@ const loadCategoriesFromStorage = (): OrganizationType[] => {
       if (Array.isArray(parsed)) {
         // Validate that all stored values are valid organization types
         return parsed.filter((cat) =>
-          ORGANIZATION_TYPES.some((t) => t.value === cat && t.value !== "")
+          ORGANIZATION_TYPES.some((t) => t.value === cat && t.value !== ""),
         ) as OrganizationType[];
       }
     }
@@ -88,15 +88,18 @@ const saveCategoriesToStorage = (categories: OrganizationType[]) => {
 };
 
 export default function OrganizationsPage() {
-  const [organizations, setOrganizations] = useState<PublicOrganization[]>([]);
-  const [filteredOrganizations, setFilteredOrganizations] = useState<PublicOrganization[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<
+    PublicOrganization[]
+  >([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<OrganizationType[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<
+    OrganizationType[]
+  >([]);
 
   useEffect(() => {
     setMounted(true);
@@ -126,7 +129,7 @@ export default function OrganizationsPage() {
     setSelectedCategories((prev) =>
       prev.includes(category)
         ? prev.filter((c) => c !== category)
-        : [...prev, category]
+        : [...prev, category],
     );
   };
 
@@ -141,9 +144,8 @@ export default function OrganizationsPage() {
         // Fetch organizations with search query and category filters
         const orgsData = await listOrganizations(
           searchQuery,
-          selectedCategories.length > 0 ? selectedCategories : undefined
+          selectedCategories.length > 0 ? selectedCategories : undefined,
         );
-        setOrganizations(orgsData);
         setFilteredOrganizations(orgsData);
 
         // Fetch user profile to check role (only if authenticated)
@@ -201,7 +203,9 @@ export default function OrganizationsPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-2">Organizations</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-2">
+              Organizations
+            </h1>
             <p className="text-muted-foreground text-lg">
               Connect with organizations creating amazing events
             </p>
@@ -229,9 +233,13 @@ export default function OrganizationsPage() {
 
           {/* Category Filters */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-foreground whitespace-nowrap">Type:</span>
+            <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+              Type:
+            </span>
             {ORGANIZATION_TYPES.filter((t) => t.value !== "").map((type) => {
-              const isSelected = selectedCategories.includes(type.value as OrganizationType);
+              const isSelected = selectedCategories.includes(
+                type.value as OrganizationType,
+              );
               return (
                 <Badge
                   key={type.value}

@@ -101,11 +101,15 @@ describe("NotificationsPage", () => {
     const unreadNotificationItem = await screen.findByText(
       "Unread Notification",
     );
-    const card = unreadNotificationItem.closest('[class*="Card"]') || unreadNotificationItem.parentElement?.parentElement;
+    const card =
+      unreadNotificationItem.closest('[class*="Card"]') ||
+      unreadNotificationItem.parentElement?.parentElement;
 
     // Find and click the button within that specific card
-    const markAsReadButton = card 
-      ? within(card as HTMLElement).getByRole("button", { name: "Mark as read" })
+    const markAsReadButton = card
+      ? within(card as HTMLElement).getByRole("button", {
+          name: "Mark as read",
+        })
       : screen.getByRole("button", { name: "Mark as read" });
     fireEvent.click(markAsReadButton);
 
@@ -114,8 +118,10 @@ describe("NotificationsPage", () => {
     });
 
     // Now, verify that the button *within that same card* has changed
-    const markAsUnreadButton = card 
-      ? await within(card as HTMLElement).findByRole("button", { name: "Mark as unread" })
+    const markAsUnreadButton = card
+      ? await within(card as HTMLElement).findByRole("button", {
+          name: "Mark as unread",
+        })
       : await screen.findByRole("button", { name: "Mark as unread" });
     expect(markAsUnreadButton).toBeInTheDocument();
   });
@@ -167,9 +173,13 @@ describe("NotificationsPage", () => {
     const unreadNotificationItem = await screen.findByText(
       "Unread Notification",
     );
-    const card = unreadNotificationItem.closest('[class*="Card"]') || unreadNotificationItem.parentElement?.parentElement;
-    const markAsReadButton = card 
-      ? within(card as HTMLElement).getByRole("button", { name: "Mark as read" })
+    const card =
+      unreadNotificationItem.closest('[class*="Card"]') ||
+      unreadNotificationItem.parentElement?.parentElement;
+    const markAsReadButton = card
+      ? within(card as HTMLElement).getByRole("button", {
+          name: "Mark as read",
+        })
       : screen.getByRole("button", { name: "Mark as read" });
     fireEvent.click(markAsReadButton);
 
@@ -189,9 +199,13 @@ describe("NotificationsPage", () => {
     render(<NotificationsPage />);
 
     const readNotificationItem = await screen.findByText("Read Notification");
-    const card = readNotificationItem.closest('[class*="Card"]') || readNotificationItem.parentElement?.parentElement;
-    const markAsUnreadButton = card 
-      ? within(card as HTMLElement).getByRole("button", { name: "Mark as unread" })
+    const card =
+      readNotificationItem.closest('[class*="Card"]') ||
+      readNotificationItem.parentElement?.parentElement;
+    const markAsUnreadButton = card
+      ? within(card as HTMLElement).getByRole("button", {
+          name: "Mark as unread",
+        })
       : screen.getByRole("button", { name: "Mark as unread" });
     fireEvent.click(markAsUnreadButton);
 
@@ -239,13 +253,19 @@ describe("NotificationsPage", () => {
     // Unread item: checking should call markAsRead
     // Find the checkbox within the unread notification card
     const unreadTitle = screen.getByText("Unread Notification");
-    const unreadCard = unreadTitle.closest('[class*="Card"]') || unreadTitle.closest('div[class*="border"]');
-    
+    const unreadCard =
+      unreadTitle.closest('[class*="Card"]') ||
+      unreadTitle.closest('div[class*="border"]');
+
     // Query all checkboxes and find the one in the unread card
     const allCheckboxes = screen.getAllByRole("checkbox");
-    const unreadCheckbox = unreadCard 
-      ? Array.from(allCheckboxes).find(cb => unreadCard.contains(cb)) as HTMLInputElement
-      : allCheckboxes.find(cb => (cb as HTMLInputElement).ariaLabel === "Mark as read") as HTMLInputElement;
+    const unreadCheckbox = unreadCard
+      ? (Array.from(allCheckboxes).find((cb) =>
+          unreadCard.contains(cb),
+        ) as HTMLInputElement)
+      : (allCheckboxes.find(
+          (cb) => (cb as HTMLInputElement).ariaLabel === "Mark as read",
+        ) as HTMLInputElement);
 
     expect(unreadCheckbox).toBeInTheDocument();
     expect(unreadCheckbox.checked).toBe(false);
@@ -254,12 +274,20 @@ describe("NotificationsPage", () => {
 
     // Read item: unchecking should call markAsUnread
     const readTitle = screen.getByText("Read Notification");
-    const readCard = readTitle.closest('[class*="Card"]') || readTitle.closest('div[class*="border"]');
-    
+    const readCard =
+      readTitle.closest('[class*="Card"]') ||
+      readTitle.closest('div[class*="border"]');
+
     // Query all checkboxes and find the one in the read card
-    const readCheckbox = readCard 
-      ? Array.from(screen.getAllByRole("checkbox")).find(cb => readCard.contains(cb)) as HTMLInputElement
-      : screen.getAllByRole("checkbox").find(cb => (cb as HTMLInputElement).ariaLabel === "Mark as unread") as HTMLInputElement;
+    const readCheckbox = readCard
+      ? (Array.from(screen.getAllByRole("checkbox")).find((cb) =>
+          readCard.contains(cb),
+        ) as HTMLInputElement)
+      : (screen
+          .getAllByRole("checkbox")
+          .find(
+            (cb) => (cb as HTMLInputElement).ariaLabel === "Mark as unread",
+          ) as HTMLInputElement);
 
     expect(readCheckbox).toBeInTheDocument();
     expect(readCheckbox.checked).toBe(true);

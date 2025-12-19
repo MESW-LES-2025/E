@@ -7,8 +7,21 @@ import { isAuthenticated, logout } from "@/lib/auth";
 import { getProfile, type Profile } from "@/lib/profiles";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Menu, X, Bell, User, ChevronDown, Calendar, Building2, LogOut } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Menu,
+  X,
+  Bell,
+  User,
+  ChevronDown,
+  Calendar,
+  Building2,
+  LogOut,
+} from "lucide-react";
 import {
   getFilteredUnreadCount,
   registerNotificationRefreshCallback,
@@ -120,22 +133,34 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-1">
             {/* Main Navigation Links - Always Visible */}
             <Link href="/">
-              <Button variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors">
+              <Button
+                variant="ghost"
+                className="hover:bg-primary/20 hover:text-primary transition-colors"
+              >
                 Home
               </Button>
             </Link>
             <Link href="/events">
-              <Button variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors">
+              <Button
+                variant="ghost"
+                className="hover:bg-primary/20 hover:text-primary transition-colors"
+              >
                 Events
               </Button>
             </Link>
             <Link href="/organizations">
-              <Button variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors">
+              <Button
+                variant="ghost"
+                className="hover:bg-primary/20 hover:text-primary transition-colors"
+              >
                 Organizations
               </Button>
             </Link>
             <Link href="/calendar">
-              <Button variant="ghost" className="hover:bg-primary/20 hover:text-primary transition-colors">
+              <Button
+                variant="ghost"
+                className="hover:bg-primary/20 hover:text-primary transition-colors"
+              >
                 Calendar
               </Button>
             </Link>
@@ -223,7 +248,10 @@ export default function Navbar() {
             ) : (
               <>
                 <Link href="/profile/register" className="ml-2">
-                  <Button variant="outline" className="hover:bg-primary/20 hover:text-primary transition-colors">
+                  <Button
+                    variant="outline"
+                    className="hover:bg-primary/20 hover:text-primary transition-colors"
+                  >
                     Register
                   </Button>
                 </Link>
@@ -284,9 +312,7 @@ export default function Navbar() {
             </Link>
 
             {/* User Section Separator */}
-            {!loading && authed && (
-              <div className="border-t my-2"></div>
-            )}
+            {!loading && authed && <div className="border-t my-2"></div>}
 
             {loading ? (
               <Button variant="ghost" disabled className="w-full justify-start">
@@ -295,7 +321,10 @@ export default function Navbar() {
             ) : authed ? (
               <>
                 {/* User Account Links */}
-                <Link href="/events/my" onClick={() => setMobileMenuOpen(false)}>
+                <Link
+                  href="/events/my"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   <Button variant="ghost" className="w-full justify-start">
                     <Calendar className="h-4 w-4 mr-2" />
                     My Events
@@ -323,7 +352,10 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="relative block"
                 >
-                  <Button variant="ghost" className="w-full justify-start relative">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start relative"
+                  >
                     <Bell className="h-4 w-4 mr-2" />
                     Notifications
                     {unread > 0 && (

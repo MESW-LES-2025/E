@@ -141,10 +141,13 @@ describe("Home Page", () => {
 
     render(<Home />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Featured Organizations")).toBeInTheDocument();
-      expect(screen.getByText("Test Organization")).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Featured Organizations")).toBeInTheDocument();
+        expect(screen.getByText("Test Organization")).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("should display View All buttons for both sections", async () => {

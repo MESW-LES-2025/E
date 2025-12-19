@@ -246,7 +246,9 @@ class Command(BaseCommand):
 
         # Step 7: Create relationships
         self.stdout.write("Creating relationships...")
-        self._create_relationships(students, organizations, events, min_interested, min_participating)
+        self._create_relationships(
+            students, organizations, events, min_interested, min_participating
+        )
         self.stdout.write(self.style.SUCCESS("Relationships created"))
 
         # Step 8: Create notifications
@@ -254,7 +256,9 @@ class Command(BaseCommand):
         self._create_notifications(students, events)
         self.stdout.write(self.style.SUCCESS("Notifications created"))
 
-        self.stdout.write(self.style.SUCCESS("\n✅ Seed process completed successfully!"))
+        self.stdout.write(
+            self.style.SUCCESS("\n✅ Seed process completed successfully!")
+        )
         self.stdout.write(f"   - Organizations: {len(organizations)}")
         self.stdout.write(f"   - Organizers: {len(organizers)}")
         self.stdout.write(f"   - Students: {len(students)}")
@@ -299,10 +303,9 @@ class Command(BaseCommand):
             if i < len(org_types):
                 org_type = org_types[i]
             else:
-                # After ensuring all types, use random selection with better distribution
-                # Cycle through types to ensure even distribution
+                # After ensuring all types, cycle through for even distribution
                 org_type = org_types[i % len(org_types)]
-            
+
             # Generate unique organization name
             city = "Porto"
             org_name_template = random.choice(ORG_TEMPLATES)
@@ -330,10 +333,24 @@ class Command(BaseCommand):
                 city="Porto",
                 country="Portugal",
                 twitter_handle=f"@{fake.user_name()}" if random.random() > 0.5 else "",
-                facebook_url=f"https://facebook.com/{fake.user_name()}" if random.random() > 0.5 else "",
-                instagram_handle=f"@{fake.user_name()}" if random.random() > 0.5 else "",
-                linkedin_url=f"https://linkedin.com/company/{fake.user_name()}" if random.random() > 0.5 else "",
-                established_date=fake.date_between(start_date="-10y", end_date="-1y") if random.random() > 0.3 else None,
+                facebook_url=(
+                    f"https://facebook.com/{fake.user_name()}"
+                    if random.random() > 0.5
+                    else ""
+                ),
+                instagram_handle=(
+                    f"@{fake.user_name()}" if random.random() > 0.5 else ""
+                ),
+                linkedin_url=(
+                    f"https://linkedin.com/company/{fake.user_name()}"
+                    if random.random() > 0.5
+                    else ""
+                ),
+                established_date=(
+                    fake.date_between(start_date="-10y", end_date="-1y")
+                    if random.random() > 0.3
+                    else None
+                ),
             )
 
             organizations.append(org)
@@ -424,7 +441,8 @@ class Command(BaseCommand):
                     # 10% of past events are cancelled
                     status = "Cancelled" if random.random() < 0.1 else "Active"
 
-                # Ensure at least one event of each category, then cycle through for even distribution
+                # Ensure at least one event of each category,
+                # then cycle through for even distribution
                 if event_counter < len(categories):
                     # First events: one of each category
                     category = categories[event_counter]
@@ -433,7 +451,10 @@ class Command(BaseCommand):
                     category = categories[event_counter % len(categories)]
 
                 event_name_template = random.choice(EVENT_TEMPLATES[category])
-                event_name = f"{event_name_template} - {fake.date_time_between(start_date='-1y', end_date='+1y').strftime('%B %Y')}"
+                date_str = fake.date_time_between(
+                    start_date="-1y", end_date="+1y"
+                ).strftime("%B %Y")
+                event_name = f"{event_name_template} - {date_str}"
 
                 # 50% have capacity, 50% unlimited
                 has_capacity = random.random() > 0.5
@@ -485,7 +506,9 @@ class Command(BaseCommand):
 
         return students
 
-    def _create_relationships(self, students, organizations, events, min_interested, min_participating):
+    def _create_relationships(
+        self, students, organizations, events, min_interested, min_participating
+    ):
         """Create M2M relationships: followers, interests, participations."""
         if not students or not organizations or not events:
             return
@@ -500,20 +523,28 @@ class Command(BaseCommand):
         # Students interested in 30+ events (or all events if less than min_interested)
         for student in students:
             max_interested = min(min_interested + 20, len(events))
-            num_interested = random.randint(min(min_interested, len(events)), max_interested)
+            num_interested = random.randint(
+                min(min_interested, len(events)), max_interested
+            )
             if num_interested > 0:
                 events_to_interest = random.sample(events, num_interested)
                 for event in events_to_interest:
                     event.interested_users.add(student)
 
         # Students participating in 10+ events (only future/active events)
-        future_events = [e for e in events if e.date > timezone.now() and e.status == "Active"]
+        future_events = [
+            e for e in events if e.date > timezone.now() and e.status == "Active"
+        ]
         if future_events:
             for student in students:
                 max_participating = min(min_participating + 10, len(future_events))
-                num_participating = random.randint(min(min_participating, len(future_events)), max_participating)
+                num_participating = random.randint(
+                    min(min_participating, len(future_events)), max_participating
+                )
                 if num_participating > 0:
-                    events_to_participate = random.sample(future_events, num_participating)
+                    events_to_participate = random.sample(
+                        future_events, num_participating
+                    )
 
                     for event in events_to_participate:
                         # Check capacity before adding
@@ -526,11 +557,15 @@ class Command(BaseCommand):
 
         # Some events at capacity (fill them up)
         for event in future_events:
-            if event.capacity and random.random() < 0.2:  # 20% of capacity events are full
+            if (
+                event.capacity and random.random() < 0.2
+            ):  # 20% of capacity events are full
                 current_count = event.participants.count()
                 needed = event.capacity - current_count
                 if needed > 0:
-                    available_students = [s for s in students if s not in event.participants.all()]
+                    available_students = [
+                        s for s in students if s not in event.participants.all()
+                    ]
                     if available_students:
                         to_add_count = min(needed, len(available_students))
                         to_add = random.sample(available_students, to_add_count)
@@ -564,4 +599,3 @@ class Command(BaseCommand):
                     message=message,
                     is_read=random.random() > 0.3,  # 70% read
                 )
-

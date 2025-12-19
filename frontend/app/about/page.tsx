@@ -53,10 +53,10 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-lg text-muted-foreground">
-                  Erasmus in Porto is dedicated to helping international students
-                  discover and participate in amazing events throughout the city.
-                  We believe that the best way to experience Porto is through
-                  community connections and shared experiences.
+                  Erasmus in Porto is dedicated to helping international
+                  students discover and participate in amazing events throughout
+                  the city. We believe that the best way to experience Porto is
+                  through community connections and shared experiences.
                 </p>
                 <p className="text-muted-foreground">
                   Our platform connects Erasmus students with local
@@ -148,9 +148,9 @@ export default function AboutPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Attend events, meet new people, explore Porto&apos;s culture,
-                    and create unforgettable memories during your Erasmus
-                    journey.
+                    Attend events, meet new people, explore Porto&apos;s
+                    culture, and create unforgettable memories during your
+                    Erasmus journey.
                   </p>
                 </CardContent>
               </Card>
@@ -165,9 +165,9 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-lg text-muted-foreground">
-                  Whether you&apos;re a student looking for your next adventure or
-                  an organization wanting to reach the Erasmus community, we&apos;re
-                  here to help you connect.
+                  Whether you&apos;re a student looking for your next adventure
+                  or an organization wanting to reach the Erasmus community,
+                  we&apos;re here to help you connect.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   {!loading && (
@@ -195,4 +195,3 @@ export default function AboutPage() {
     </div>
   );
 }
-

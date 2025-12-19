@@ -88,7 +88,7 @@ export default function EventsPage() {
     setMounted(true);
     const storedFilters = loadFiltersFromStorage();
     setFilters(storedFilters);
-    
+
     // Load active tab
     if (typeof window !== "undefined") {
       try {
@@ -203,7 +203,7 @@ export default function EventsPage() {
         setUpcomingEvents(
           Array.isArray(upcomingData)
             ? upcomingData
-            : upcomingData.results ?? [],
+            : (upcomingData.results ?? []),
         );
 
         // Fetch past events (no filters for past events)
@@ -212,7 +212,7 @@ export default function EventsPage() {
         const pastData = await pastResponse.json();
         // Handle both array and object with results property
         setPastEvents(
-          Array.isArray(pastData) ? pastData : pastData.results ?? [],
+          Array.isArray(pastData) ? pastData : (pastData.results ?? []),
         );
       } catch (err) {
         console.error(err);
@@ -270,9 +270,13 @@ export default function EventsPage() {
             >
               Upcoming Events
               {!loading && (
-                <span className={`ml-3 text-base font-medium ${
-                  activeTab === "upcoming" ? "text-primary" : "text-muted-foreground"
-                }`}>
+                <span
+                  className={`ml-3 text-base font-medium ${
+                    activeTab === "upcoming"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
                   ({upcomingEvents.length})
                 </span>
               )}
@@ -287,9 +291,13 @@ export default function EventsPage() {
             >
               Past Events
               {!loading && (
-                <span className={`ml-3 text-base font-medium ${
-                  activeTab === "past" ? "text-primary" : "text-muted-foreground"
-                }`}>
+                <span
+                  className={`ml-3 text-base font-medium ${
+                    activeTab === "past"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
                   ({pastEvents.length})
                 </span>
               )}

@@ -1,4 +1,9 @@
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Users, Heart } from "lucide-react";
@@ -17,7 +22,10 @@ interface EventCardProps {
   onViewDetails: (eventId: string) => void;
 }
 
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+const CATEGORY_COLORS: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
   SOCIAL: {
     bg: "bg-primary/10 dark:bg-primary/20",
     text: "text-primary",
@@ -66,10 +74,7 @@ export default function EventCard({ event, onViewDetails }: EventCardProps) {
     <Card className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col">
       {event.status === "Canceled" && (
         <div className="absolute top-3 right-3 z-10">
-          <Badge
-            variant="destructive"
-            className="font-semibold shadow-lg"
-          >
+          <Badge variant="destructive" className="font-semibold shadow-lg">
             Canceled
           </Badge>
         </div>

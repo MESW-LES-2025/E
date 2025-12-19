@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Check, ChevronsUpDown, Search, X } from "lucide-react";
+import { CalendarIcon, Search, X } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
 import { DateRange } from "react-day-picker";
@@ -92,7 +92,6 @@ export default function EventFilters({
 }: EventFiltersProps) {
   const [localFilters, setLocalFilters] = useState<FilterValues>(filters);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>(
     getInitialDateRange(filters),
   );
@@ -157,10 +156,6 @@ export default function EventFilters({
     onFilterChange(resetFilters);
   };
 
-  const handleApply = () => {
-    onFilterChange(localFilters);
-  };
-
   // Sync localFilters when filters prop changes (e.g., from localStorage)
   useEffect(() => {
     setLocalFilters(filters);
@@ -188,7 +183,9 @@ export default function EventFilters({
 
       {/* Categories */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-foreground whitespace-nowrap">Categories:</span>
+        <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+          Categories:
+        </span>
         {CATEGORIES.filter((c) => c.value !== "").map((cat) => {
           const isSelected = localFilters.category.includes(cat.value);
           return (
@@ -211,11 +208,15 @@ export default function EventFilters({
 
       {/* Date Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-semibold text-foreground whitespace-nowrap">When:</span>
+        <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+          When:
+        </span>
         {DATE_FILTERS.map((df) => (
           <Button
             key={df.value}
-            variant={localFilters.dateFilter === df.value ? "default" : "outline"}
+            variant={
+              localFilters.dateFilter === df.value ? "default" : "outline"
+            }
             size="sm"
             onClick={() => handleQuickDateFilter(df.value)}
             className="text-sm"
@@ -225,11 +226,7 @@ export default function EventFilters({
         ))}
         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
           <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-sm"
-            >
+            <Button variant="outline" size="sm" className="text-sm">
               <CalendarIcon className="mr-2 h-4 w-4" />
               {date?.from ? (
                 date.to ? (
@@ -253,7 +250,10 @@ export default function EventFilters({
             />
           </PopoverContent>
         </Popover>
-        {(localFilters.category.length > 0 || localFilters.dateFilter || date || localFilters.search) && (
+        {(localFilters.category.length > 0 ||
+          localFilters.dateFilter ||
+          date ||
+          localFilters.search) && (
           <Button
             variant="ghost"
             size="sm"

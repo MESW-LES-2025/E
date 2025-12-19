@@ -69,7 +69,7 @@ export default function CreateOrganizationPage() {
     setMounted(true);
     // Initialize formKey after mount to avoid hydration issues
     setFormKey(Date.now());
-    
+
     const authenticated = isAuthenticated();
     setAuthed(authenticated);
 

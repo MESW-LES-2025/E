@@ -59,7 +59,10 @@ const loadCalendarFilterFromStorage = (): EndpointType => {
   if (typeof window === "undefined") return EndpointType.ALL;
   try {
     const stored = localStorage.getItem(STORAGE_KEY_CALENDAR_FILTER);
-    if (stored && Object.values(EndpointType).includes(stored as EndpointType)) {
+    if (
+      stored &&
+      Object.values(EndpointType).includes(stored as EndpointType)
+    ) {
       return stored as EndpointType;
     }
   } catch (e) {
@@ -277,110 +280,113 @@ export default function EventsCalendar() {
             ))}
           </div>
 
-        <div className="flex justify-center bg-card p-6 rounded-lg border">
-          <Calendar
-            mode="single"
-            className="rounded-lg [--cell-size:--spacing(12)]"
-            modifiers={{
-              past: (date) => date.getTime() < new Date().setHours(0, 0, 0, 0),
-              event: eventDates,
-            }}
-            modifiersClassNames={{
-              past: calendarClasses.past,
-              event: calendarClasses.event,
-              today: "bg-primary/20 text-primary font-bold rounded-lg border-2 border-primary",
-              selected: "bg-primary text-primary-foreground rounded-lg font-bold",
-            }}
-            fixedWeeks
-            onDayClick={(day) => setSelectedDay(day)}
-            onMonthChange={(month) => {
-              setCurrentMonth(month);
-            }}
-            disabled={(date) =>
-              loading ||
-              date.getMonth() !== currentMonth.getMonth() ||
-              date.getFullYear() !== currentMonth.getFullYear()
-            }
-          />
-        </div>
-        <Button
-          variant="default"
-          className="mt-6 w-full max-w-[400px] mx-auto font-semibold"
-          onClick={async () => {
-            try {
-              const base =
-                process.env.NEXT_PUBLIC_API_BASE_URL ||
-                "http://localhost:8000/api";
-
-              const response = await fetchWithAuth(
-                `${base}/events/export-calendar/`,
-                {
-                  method: "GET",
-                },
-              );
-              if (!response.ok) {
-                throw new Error("Failed to export calendar");
+          <div className="flex justify-center bg-card p-6 rounded-lg border">
+            <Calendar
+              mode="single"
+              className="rounded-lg [--cell-size:--spacing(12)]"
+              modifiers={{
+                past: (date) =>
+                  date.getTime() < new Date().setHours(0, 0, 0, 0),
+                event: eventDates,
+              }}
+              modifiersClassNames={{
+                past: calendarClasses.past,
+                event: calendarClasses.event,
+                today:
+                  "bg-primary/20 text-primary font-bold rounded-lg border-2 border-primary",
+                selected:
+                  "bg-primary text-primary-foreground rounded-lg font-bold",
+              }}
+              fixedWeeks
+              onDayClick={(day) => setSelectedDay(day)}
+              onMonthChange={(month) => {
+                setCurrentMonth(month);
+              }}
+              disabled={(date) =>
+                loading ||
+                date.getMonth() !== currentMonth.getMonth() ||
+                date.getFullYear() !== currentMonth.getFullYear()
               }
+            />
+          </div>
+          <Button
+            variant="default"
+            className="mt-6 w-full max-w-[400px] mx-auto font-semibold"
+            onClick={async () => {
+              try {
+                const base =
+                  process.env.NEXT_PUBLIC_API_BASE_URL ||
+                  "http://localhost:8000/api";
 
-              const blob = await response.blob();
-              const url = window.URL.createObjectURL(blob);
+                const response = await fetchWithAuth(
+                  `${base}/events/export-calendar/`,
+                  {
+                    method: "GET",
+                  },
+                );
+                if (!response.ok) {
+                  throw new Error("Failed to export calendar");
+                }
 
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "my_events.ics";
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-            } catch (err) {
-              console.error(err);
-              alert("Could not export calendar. Try again later.");
-            }
-          }}
-        >
-          Export My Events (.ics)
-        </Button>
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "my_events.ics";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+              } catch (err) {
+                console.error(err);
+                alert("Could not export calendar. Try again later.");
+              }
+            }}
+          >
+            Export My Events (.ics)
+          </Button>
         </div>
 
         <div className="flex-1">
-        <div className="bg-card p-6 rounded-lg border min-h-[400px]">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-pulse space-y-4">
-                <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+          <div className="bg-card p-6 rounded-lg border min-h-[400px]">
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-pulse space-y-4">
+                  <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+                </div>
+                <p className="text-muted-foreground mt-4">Loading events...</p>
               </div>
-              <p className="text-muted-foreground mt-4">Loading events...</p>
-            </div>
-          ) : eventsForSelectedDay.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground text-lg">
-                {selectedDay
-                  ? `No ${filter.toLowerCase()} events are planned for ${selectedDay.toLocaleDateString()}`
-                  : "No date selected"}
-              </p>
-            </div>
-          ) : (
-            <>
-              <h3 className="text-xl font-bold mb-6 text-center">
-                {filter === EndpointType.ALL
-                  ? `All events on ${selectedDay?.toLocaleDateString()}`
-                  : `${filter} events on ${selectedDay?.toLocaleDateString()}`}
-              </h3>
-              <div className="flex flex-wrap justify-center gap-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
-                {eventsForSelectedDay.map((event) => (
-                  <div key={event.id} className="w-full max-w-sm">
-                    <EventCard
-                      event={event}
-                      onViewDetails={(eventId) => {
-                        setSelectedEventId(eventId);
-                        setModalOpen(true);
-                      }}
-                    />
-                  </div>
-                ))}
+            ) : eventsForSelectedDay.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground text-lg">
+                  {selectedDay
+                    ? `No ${filter.toLowerCase()} events are planned for ${selectedDay.toLocaleDateString()}`
+                    : "No date selected"}
+                </p>
               </div>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold mb-6 text-center">
+                  {filter === EndpointType.ALL
+                    ? `All events on ${selectedDay?.toLocaleDateString()}`
+                    : `${filter} events on ${selectedDay?.toLocaleDateString()}`}
+                </h3>
+                <div className="flex flex-wrap justify-center gap-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
+                  {eventsForSelectedDay.map((event) => (
+                    <div key={event.id} className="w-full max-w-sm">
+                      <EventCard
+                        event={event}
+                        onViewDetails={(eventId) => {
+                          setSelectedEventId(eventId);
+                          setModalOpen(true);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

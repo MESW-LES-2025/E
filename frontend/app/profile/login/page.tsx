@@ -81,13 +81,20 @@ export default function LoginPage() {
 
           {error && <FieldError>{error}</FieldError>}
 
-          <Button type="submit" disabled={loading} className="w-full font-semibold" size="lg">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full font-semibold"
+            size="lg"
+          >
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
 
         <div className="mt-6 text-sm text-center">
-          <span className="text-muted-foreground">Don&apos;t have an account? </span>
+          <span className="text-muted-foreground">
+            Don&apos;t have an account?{" "}
+          </span>
           <Link
             href="/profile/register"
             className="text-primary hover:underline font-medium"
@@ -101,7 +108,10 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
             Enter as visitor
           </Link>
         </div>

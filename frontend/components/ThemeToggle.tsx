@@ -19,7 +19,9 @@ export default function ThemeToggle() {
           return stored;
         }
         // If no stored preference, use system preference
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
         return prefersDark ? "dark" : "light";
       } catch {
         return "light";
@@ -35,17 +37,17 @@ export default function ThemeToggle() {
     if (!mounted || theme === null) return;
 
     const root = document.documentElement;
-    
+
     // Disable transitions during theme change
     root.classList.add("theme-transitioning");
-    
+
     // Apply theme change
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
-    
+
     // Re-enable transitions after a brief delay
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -89,4 +91,3 @@ export default function ThemeToggle() {
     </Button>
   );
 }
-

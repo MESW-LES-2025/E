@@ -81,7 +81,10 @@ interface Participant {
   last_name: string;
 }
 
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+const CATEGORY_COLORS: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
   SOCIAL: {
     bg: "bg-primary/10 dark:bg-primary/20",
     text: "text-primary",
@@ -117,11 +120,6 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
     text: "text-pink-500",
     border: "border-pink-500/30",
   },
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  Active: "bg-green-500 text-white",
-  Cancelled: "bg-red-500 text-white",
 };
 
 export default function EventModal({
@@ -160,7 +158,6 @@ export default function EventModal({
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Load authentication state from localStorage after mount (client-side only)
@@ -286,7 +283,7 @@ export default function EventModal({
       try {
         let res;
         let shouldRetryPublic = false;
-        
+
         if (isAuthenticated) {
           try {
             res = await fetchWithAuth(`${base}/events/${id}/`);
@@ -307,7 +304,7 @@ export default function EventModal({
             shouldRetryPublic = true;
           }
         }
-        
+
         // Try public fetch if needed (either not authenticated, or auth failed)
         if (!isAuthenticated || shouldRetryPublic) {
           res = await fetch(`${base}/events/${id}/`);
@@ -316,7 +313,7 @@ export default function EventModal({
         if (!res.ok) {
           throw new Error(`Status ${res.status}`);
         }
-        
+
         const data = await res.json();
         if (!cancelled) {
           setEvent(data);
@@ -839,7 +836,9 @@ export default function EventModal({
                   )}
                   {event.status && (
                     <Badge
-                      variant={event.status === "Canceled" ? "destructive" : "default"}
+                      variant={
+                        event.status === "Canceled" ? "destructive" : "default"
+                      }
                       className="font-medium"
                     >
                       {event.status}

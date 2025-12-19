@@ -149,9 +149,7 @@ export default function Footer() {
             <h3 className="font-semibold mb-4">Contact</h3>
             <ul className="space-y-2">
               <li>
-                <p className="text-sm text-muted-foreground">
-                  Porto, Portugal
-                </p>
+                <p className="text-sm text-muted-foreground">Porto, Portugal</p>
               </li>
               <li>
                 <p className="text-sm text-muted-foreground">
@@ -202,4 +200,3 @@ export default function Footer() {
     </footer>
   );
 }
-

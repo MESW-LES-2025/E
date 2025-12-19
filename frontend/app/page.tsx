@@ -137,14 +137,23 @@ export default function Home() {
               <span className="text-foreground">Erasmus Community</span>
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Connect with fellow students, explore cultural activities, and make
-              unforgettable memories in the vibrant city of Porto
+              Connect with fellow students, explore cultural activities, and
+              make unforgettable memories in the vibrant city of Porto
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button asChild size="lg" className="text-lg px-8 hover:scale-105 hover:shadow-lg transition-all duration-200 hover:bg-primary hover:brightness-110">
+              <Button
+                asChild
+                size="lg"
+                className="text-lg px-8 hover:scale-105 hover:shadow-lg transition-all duration-200 hover:bg-primary hover:brightness-110"
+              >
                 <Link href="/events">Explore Events</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg px-8 hover:scale-105 hover:shadow-lg hover:border-primary hover:bg-primary/10 transition-all duration-200">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="text-lg px-8 hover:scale-105 hover:shadow-lg hover:border-primary hover:bg-primary/10 transition-all duration-200"
+              >
                 <Link href="/organizations">Browse Organizations</Link>
               </Button>
             </div>

@@ -148,27 +148,27 @@ export default function NotificationsPage() {
         <CardContent className="pt-6">
           <h2 className="text-xl font-bold mb-4">Notification Preferences</h2>
           <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="reminders-enabled"
-              checked={remindersEnabled}
-              onCheckedChange={handleReminderToggle}
-            />
-            <Label htmlFor="reminders-enabled">
-              Enable Upcoming Event Reminders
-            </Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="reminders-enabled"
+                checked={remindersEnabled}
+                onCheckedChange={handleReminderToggle}
+              />
+              <Label htmlFor="reminders-enabled">
+                Enable Upcoming Event Reminders
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="event-changes-enabled"
+                checked={eventChangesEnabled}
+                onCheckedChange={handleEventChangesToggle}
+              />
+              <Label htmlFor="event-changes-enabled">
+                Enable Event Change Notifications
+              </Label>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="event-changes-enabled"
-              checked={eventChangesEnabled}
-              onCheckedChange={handleEventChangesToggle}
-            />
-            <Label htmlFor="event-changes-enabled">
-              Enable Event Change Notifications
-            </Label>
-          </div>
-        </div>
         </CardContent>
       </Card>
 
