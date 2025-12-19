@@ -52,15 +52,56 @@ interface User {
   role: string;
 }
 
+const STORAGE_KEY_CALENDAR_FILTER = "calendar_filter";
+
+// Load calendar filter from localStorage
+const loadCalendarFilterFromStorage = (): EndpointType => {
+  if (typeof window === "undefined") return EndpointType.ALL;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_CALENDAR_FILTER);
+    if (stored && Object.values(EndpointType).includes(stored as EndpointType)) {
+      return stored as EndpointType;
+    }
+  } catch (e) {
+    console.error("Failed to load calendar filter from storage:", e);
+  }
+  return EndpointType.ALL;
+};
+
+// Save calendar filter to localStorage
+const saveCalendarFilterToStorage = (filter: EndpointType) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY_CALENDAR_FILTER, filter);
+  } catch (e) {
+    console.error("Failed to save calendar filter to storage:", e);
+  }
+};
+
 export default function EventsCalendar() {
   const date = new Date();
   const router = useRouter();
   const [events, setEvents] = useState<ErasmusEvent[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [filter, setFilter] = useState<EndpointType>(EndpointType.ALL);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<Date>(date);
   const [selectedDay, setSelectedDay] = useState<Date>(date);
   const [user, setUser] = useState<User | null>(null);
+
+  // Load filter from localStorage after mount (client-side only)
+  useEffect(() => {
+    setMounted(true);
+    const storedFilter = loadCalendarFilterFromStorage();
+    setFilter(storedFilter);
+  }, []);
+
+  // Save filter to localStorage whenever it changes (only after mount)
+  useEffect(() => {
+    if (mounted) {
+      saveCalendarFilterToStorage(filter);
+    }
+  }, [filter, mounted]);
 
   // modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -214,24 +255,32 @@ export default function EventsCalendar() {
   }, [user]);
 
   return (
-    <div className="flex flex-col lg:flex-row justify-center">
-      <div className="flex-1 p-4 flex flex-col">
-        <div className="flex space-x-2 mb-4 justify-center">
-          {availableFilters.map(({ type, label, onClick }) => (
-            <Button
-              key={type}
-              variant={filter === type ? "default" : "outline"}
-              onClick={onClick}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+      <div className="mb-8">
+        <h1 className="text-4xl md:text-5xl font-bold mb-2">Event Calendar</h1>
+        <p className="text-muted-foreground text-lg">
+          View your events in a calendar format
+        </p>
+      </div>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex-1 flex flex-col">
+          <div className="flex flex-wrap gap-2 mb-6 justify-center lg:justify-start">
+            {availableFilters.map(({ type, label, onClick }) => (
+              <Button
+                key={type}
+                variant={filter === type ? "default" : "outline"}
+                onClick={onClick}
+                className="font-medium"
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center bg-card p-6 rounded-lg border">
           <Calendar
             mode="single"
-            className="rounded-lg border [--cell-size:--spacing(12)]"
+            className="rounded-lg [--cell-size:--spacing(12)]"
             modifiers={{
               past: (date) => date.getTime() < new Date().setHours(0, 0, 0, 0),
               event: eventDates,
@@ -239,8 +288,8 @@ export default function EventsCalendar() {
             modifiersClassNames={{
               past: calendarClasses.past,
               event: calendarClasses.event,
-              today: "bg-blue-300 text-white rounded-lg",
-              selected: "bg-primary text-primary-foreground rounded-lg",
+              today: "bg-primary/20 text-primary font-bold rounded-lg border-2 border-primary",
+              selected: "bg-primary text-primary-foreground rounded-lg font-bold",
             }}
             fixedWeeks
             onDayClick={(day) => setSelectedDay(day)}
@@ -255,8 +304,8 @@ export default function EventsCalendar() {
           />
         </div>
         <Button
-          variant="outline"
-          className="mt-4 w-full max-w-[400px] mx-auto"
+          variant="default"
+          className="mt-6 w-full max-w-[400px] mx-auto font-semibold"
           onClick={async () => {
             try {
               const base =
@@ -290,39 +339,49 @@ export default function EventsCalendar() {
         >
           Export My Events (.ics)
         </Button>
-      </div>
+        </div>
 
-      <div className="flex-1 p-4">
-        {loading ? (
-          <p className="text-center text-gray-500">Loading events...</p>
-        ) : eventsForSelectedDay.length === 0 ? (
-          <p className="text-center text-gray-500">
-            {selectedDay
-              ? `No ${filter.toLowerCase()} events are planned for ${selectedDay.toLocaleDateString()}`
-              : "No date selected"}
-          </p>
-        ) : (
-          <>
-            <p className="text-center text-gray-500 sticky mb-6.5 top-0 bg-gray-50">
-              {filter === EndpointType.ALL
-                ? `All events planned for ${selectedDay?.toLocaleDateString()}:`
-                : `${filter} events planned for ${selectedDay?.toLocaleDateString()}:`}
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 max-h-[calc(100vh-13.5rem)] overflow-y-auto">
-              {eventsForSelectedDay.map((event) => (
-                <div key={event.id} className="w-full max-w-sm">
-                  <EventCard
-                    event={event}
-                    onViewDetails={(eventId) => {
-                      setSelectedEventId(eventId);
-                      setModalOpen(true);
-                    }}
-                  />
-                </div>
-              ))}
+        <div className="flex-1">
+        <div className="bg-card p-6 rounded-lg border min-h-[400px]">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+              </div>
+              <p className="text-muted-foreground mt-4">Loading events...</p>
             </div>
-          </>
-        )}
+          ) : eventsForSelectedDay.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">
+                {selectedDay
+                  ? `No ${filter.toLowerCase()} events are planned for ${selectedDay.toLocaleDateString()}`
+                  : "No date selected"}
+              </p>
+            </div>
+          ) : (
+            <>
+              <h3 className="text-xl font-bold mb-6 text-center">
+                {filter === EndpointType.ALL
+                  ? `All events on ${selectedDay?.toLocaleDateString()}`
+                  : `${filter} events on ${selectedDay?.toLocaleDateString()}`}
+              </h3>
+              <div className="flex flex-wrap justify-center gap-6 max-h-[calc(100vh-20rem)] overflow-y-auto">
+                {eventsForSelectedDay.map((event) => (
+                  <div key={event.id} className="w-full max-w-sm">
+                    <EventCard
+                      event={event}
+                      onViewDetails={(eventId) => {
+                        setSelectedEventId(eventId);
+                        setModalOpen(true);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        </div>
       </div>
 
       {modalOpen && (

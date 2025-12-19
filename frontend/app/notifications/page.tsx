@@ -19,10 +19,13 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [eventChangesEnabled, setEventChangesEnabled] = useState(true);
 
   useEffect(() => {
+    setMounted(true);
+    // Load preferences from localStorage after mount (client-side only)
     const storedPreference = localStorage.getItem("remindersEnabled");
     if (storedPreference !== null) {
       setRemindersEnabled(JSON.parse(storedPreference));
@@ -37,7 +40,9 @@ export default function NotificationsPage() {
 
   const handleReminderToggle = (enabled: boolean) => {
     setRemindersEnabled(enabled);
-    localStorage.setItem("remindersEnabled", JSON.stringify(enabled));
+    if (mounted) {
+      localStorage.setItem("remindersEnabled", JSON.stringify(enabled));
+    }
     if (onNotificationReceivedCallback) {
       onNotificationReceivedCallback();
     }
@@ -45,7 +50,9 @@ export default function NotificationsPage() {
 
   const handleEventChangesToggle = (enabled: boolean) => {
     setEventChangesEnabled(enabled);
-    localStorage.setItem("eventChangesEnabled", JSON.stringify(enabled));
+    if (mounted) {
+      localStorage.setItem("eventChangesEnabled", JSON.stringify(enabled));
+    }
     if (onNotificationReceivedCallback) {
       onNotificationReceivedCallback();
     }
@@ -120,9 +127,14 @@ export default function NotificationsPage() {
   const unreadCount = items.filter((n) => !n.is_read).length;
 
   return (
-    <div className="container mx-auto p-8 max-w-3xl">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Notifications</h1>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-3xl">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-2">Notifications</h1>
+          <p className="text-muted-foreground">
+            Stay updated with your events and activities
+          </p>
+        </div>
         <Button
           variant="outline"
           disabled={saving || unreadCount === 0}
@@ -132,9 +144,10 @@ export default function NotificationsPage() {
         </Button>
       </div>
 
-      <div className="mb-6">
-        <h2 className="text-xl font-bold mb-2">Notification Preferences</h2>
-        <div className="space-y-3">
+      <Card className="mb-8">
+        <CardContent className="pt-6">
+          <h2 className="text-xl font-bold mb-4">Notification Preferences</h2>
+          <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <Switch
               id="reminders-enabled"
@@ -156,7 +169,8 @@ export default function NotificationsPage() {
             </Label>
           </div>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <Card>
@@ -171,58 +185,71 @@ export default function NotificationsPage() {
       ) : items.length === 0 ? (
         <p className="text-muted-foreground">No notifications.</p>
       ) : (
-        <ul className="space-y-3">
+        <div className="space-y-3">
           {items.map((n) => (
-            <li
+            <Card
               key={n.id}
-              className={`border rounded p-4 flex items-start gap-3 ${
-                n.is_read ? "bg-white" : "bg-yellow-50"
+              className={`border-2 transition-all ${
+                n.is_read
+                  ? "bg-card border-border"
+                  : "bg-primary/5 border-primary/30 shadow-sm"
               }`}
             >
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4"
-                checked={n.is_read}
-                onChange={(e) => toggleRead(n.id, e.target.checked)}
-                aria-label={n.is_read ? "Mark as unread" : "Mark as read"}
-                disabled={saving}
-              />
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <h2
-                    className={`font-semibold ${n.is_read ? "" : "text-yellow-900"}`}
-                  >
-                    {n.title}
-                  </h2>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(n.created_at).toLocaleString()}
-                  </span>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4"
+                    checked={n.is_read}
+                    onChange={(e) => toggleRead(n.id, e.target.checked)}
+                    aria-label={n.is_read ? "Mark as unread" : "Mark as read"}
+                    disabled={saving}
+                  />
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start gap-4">
+                      <h2
+                        className={`font-semibold text-lg ${
+                          n.is_read ? "text-foreground" : "text-primary"
+                        }`}
+                      >
+                        {n.title}
+                      </h2>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(n.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    {n.message && (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {n.message}
+                      </p>
+                    )}
+                    <div className="mt-3">
+                      {n.is_read ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => toggleRead(n.id, false)}
+                          disabled={saving}
+                        >
+                          Mark as unread
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => toggleRead(n.id, true)}
+                          disabled={saving}
+                        >
+                          Mark as read
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                {n.message && <p className="mt-2 text-sm">{n.message}</p>}
-                <div className="mt-2">
-                  {n.is_read ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => toggleRead(n.id, false)}
-                      disabled={saving}
-                    >
-                      Mark as unread
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => toggleRead(n.id, true)}
-                      disabled={saving}
-                    >
-                      Mark as read
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </li>
+              </CardContent>
+            </Card>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

@@ -38,7 +38,7 @@ import {
 export default function CreateOrganizationPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const [formKey, setFormKey] = useState(Date.now());
+  const [formKey, setFormKey] = useState(0); // Initialize with 0, will be set after mount
   const [mounted, setMounted] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -67,6 +67,9 @@ export default function CreateOrganizationPage() {
 
   useEffect(() => {
     setMounted(true);
+    // Initialize formKey after mount to avoid hydration issues
+    setFormKey(Date.now());
+    
     const authenticated = isAuthenticated();
     setAuthed(authenticated);
 

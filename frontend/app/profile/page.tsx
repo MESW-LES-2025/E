@@ -34,6 +34,32 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 
+const STORAGE_KEY_PROFILE_TAB = "profile_active_tab";
+
+// Load active tab from localStorage
+const loadActiveTabFromStorage = (): "profile" | "followed" | "interested" => {
+  if (typeof window === "undefined") return "profile";
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_PROFILE_TAB);
+    if (stored && ["profile", "followed", "interested"].includes(stored)) {
+      return stored as "profile" | "followed" | "interested";
+    }
+  } catch (e) {
+    console.error("Failed to load active tab from storage:", e);
+  }
+  return "profile";
+};
+
+// Save active tab to localStorage
+const saveActiveTabToStorage = (tab: "profile" | "followed" | "interested") => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY_PROFILE_TAB, tab);
+  } catch (e) {
+    console.error("Failed to save active tab to storage:", e);
+  }
+};
+
 export default function ProfilePage() {
   const router = useRouter();
 
@@ -77,6 +103,10 @@ export default function ProfilePage() {
     const authenticated = isAuthenticated();
     setAuthed(authenticated);
 
+    // Load active tab from localStorage after mount
+    const storedTab = loadActiveTabFromStorage();
+    setActiveTab(storedTab);
+
     if (!authenticated) {
       router.replace("/profile/login");
       return;
@@ -105,6 +135,13 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [router]);
+
+  // Save active tab to localStorage whenever it changes (only after mount)
+  useEffect(() => {
+    if (mounted) {
+      saveActiveTabToStorage(activeTab);
+    }
+  }, [activeTab, mounted]);
 
   // Fetch followed organizations when tab is active
   useEffect(() => {
@@ -291,9 +328,12 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="container mx-auto p-8 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">My Profile</h1>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl">
+      <div className="mb-8">
+        <h1 className="text-4xl md:text-5xl font-bold mb-2">My Profile</h1>
+        <p className="text-muted-foreground text-lg">
+          Manage your account and preferences
+        </p>
       </div>
 
       {/* Tabs */}
