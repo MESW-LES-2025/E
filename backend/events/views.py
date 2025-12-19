@@ -237,9 +237,13 @@ class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def update(self, request, *args, **kwargs):
-        print("Event update called!")
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
+
+        # Store original instance for comparison
+        original_date = instance.date
+        original_location = instance.location
+        original_status = instance.status
 
         # Permissions
         is_owner = instance.organization.owner == request.user
@@ -266,9 +270,30 @@ class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        # Prepare data for change detection (include original values if not in request)
+        change_detection_data = request.data.copy()
+        if partial:
+            # For partial updates, include original values for fields not being updated
+            if "date" not in change_detection_data:
+                change_detection_data["date"] = original_date
+            if "location" not in change_detection_data:
+                change_detection_data["location"] = original_location
+            if "status" not in change_detection_data:
+                change_detection_data["status"] = original_status
+
+        # Detect critical changes before update
+        critical_changes = detect_critical_changes(instance, change_detection_data)
+
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
+        # Refresh instance to get updated values
+        instance.refresh_from_db()
+
+        # If critical changes detected, notify interested users
+        if critical_changes:
+            notify_interested_users(instance, "event_updated", critical_changes)
 
         return Response(serializer.data)
 
@@ -514,6 +539,9 @@ class CancelEventView(APIView):
 
         event.status = "Canceled"
         event.save()
+
+        # Notify interested users and participants about cancellation
+        notify_interested_users(event, "event_cancelled", None)
 
         serializer = EventSerializer(event)
         return Response(serializer.data, status=status.HTTP_200_OK)
