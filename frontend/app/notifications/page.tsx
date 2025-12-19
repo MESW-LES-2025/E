@@ -20,11 +20,18 @@ export default function NotificationsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [eventChangesEnabled, setEventChangesEnabled] = useState(true);
 
   useEffect(() => {
     const storedPreference = localStorage.getItem("remindersEnabled");
     if (storedPreference !== null) {
       setRemindersEnabled(JSON.parse(storedPreference));
+    }
+    const storedEventChangesPreference = localStorage.getItem(
+      "eventChangesEnabled",
+    );
+    if (storedEventChangesPreference !== null) {
+      setEventChangesEnabled(JSON.parse(storedEventChangesPreference));
     }
   }, []);
 
@@ -36,14 +43,35 @@ export default function NotificationsPage() {
     }
   };
 
-  const load = async (remindersAllowed: boolean) => {
+  const handleEventChangesToggle = (enabled: boolean) => {
+    setEventChangesEnabled(enabled);
+    localStorage.setItem("eventChangesEnabled", JSON.stringify(enabled));
+    if (onNotificationReceivedCallback) {
+      onNotificationReceivedCallback();
+    }
+  };
+
+  const load = async (
+    remindersAllowed: boolean,
+    eventChangesAllowed: boolean,
+  ) => {
     try {
       setLoading(true);
       setError(null);
       const data = await listNotifications();
-      const filteredData = remindersAllowed
-        ? data
-        : data.filter((item) => item.title !== "Event Reminder");
+      let filteredData = data;
+      if (!remindersAllowed) {
+        filteredData = filteredData.filter(
+          (item) => item.title !== "Event Reminder",
+        );
+      }
+      if (!eventChangesAllowed) {
+        filteredData = filteredData.filter(
+          (item) =>
+            !item.title.startsWith("Event Updated:") &&
+            !item.title.startsWith("Event Cancelled:"),
+        );
+      }
       setItems(filteredData);
     } catch (e) {
       console.error(e);
@@ -54,8 +82,8 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    load(remindersEnabled);
-  }, [remindersEnabled]);
+    load(remindersEnabled, eventChangesEnabled);
+  }, [remindersEnabled, eventChangesEnabled]);
 
   const toggleRead = async (id: number, nextRead: boolean) => {
     try {
@@ -106,15 +134,27 @@ export default function NotificationsPage() {
 
       <div className="mb-6">
         <h2 className="text-xl font-bold mb-2">Notification Preferences</h2>
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="reminders-enabled"
-            checked={remindersEnabled}
-            onCheckedChange={handleReminderToggle}
-          />
-          <Label htmlFor="reminders-enabled">
-            Enable Upcoming Event Reminders
-          </Label>
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="reminders-enabled"
+              checked={remindersEnabled}
+              onCheckedChange={handleReminderToggle}
+            />
+            <Label htmlFor="reminders-enabled">
+              Enable Upcoming Event Reminders
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="event-changes-enabled"
+              checked={eventChangesEnabled}
+              onCheckedChange={handleEventChangesToggle}
+            />
+            <Label htmlFor="event-changes-enabled">
+              Enable Event Change Notifications
+            </Label>
+          </div>
         </div>
       </div>
 
