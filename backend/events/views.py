@@ -97,7 +97,9 @@ def notify_interested_users(event, notification_type, change_data):
 
         # Determine change type for WebSocket message
         change_type = (
-            change_data["changes"][0]["field"] if change_data.get("changes") else "unknown"
+            change_data["changes"][0]["field"]
+            if change_data.get("changes")
+            else "unknown"
         )
 
         ws_message = {
@@ -105,12 +107,16 @@ def notify_interested_users(event, notification_type, change_data):
             "event_id": event.id,
             "event_name": event.name,
             "change_type": change_type,
-            "old_value": change_data["changes"][0]["old_value"]
-            if change_data.get("changes")
-            else None,
-            "new_value": change_data["changes"][0]["new_value"]
-            if change_data.get("changes")
-            else None,
+            "old_value": (
+                change_data["changes"][0]["old_value"]
+                if change_data.get("changes")
+                else None
+            ),
+            "new_value": (
+                change_data["changes"][0]["new_value"]
+                if change_data.get("changes")
+                else None
+            ),
             "message": message_text,
         }
     else:
