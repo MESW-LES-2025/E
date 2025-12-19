@@ -18,14 +18,26 @@ export const connectWebSocket = (userId: string) => {
 
   socket.onmessage = (event) => {
     const remindersEnabled = localStorage.getItem("remindersEnabled");
-    if (remindersEnabled === null || JSON.parse(remindersEnabled)) {
-      const data = JSON.parse(event.data);
-      if (data.type === "event_reminder") {
+    const remindersAllowed =
+      remindersEnabled === null || JSON.parse(remindersEnabled);
+
+    const data = JSON.parse(event.data);
+
+    if (data.type === "event_reminder") {
+      if (remindersAllowed) {
         toast.info(
           `Event Reminder: ${data.event_name} is in ${data.time_left}.`,
         );
       }
     }
+
+    // toast for new event notifications
+    if (data.type === "new_event") {
+      const org = data.organization_name ?? "Organization";
+      const name = data.event_name ?? "New Event";
+      toast.info(`New Event: ${org} published "${name}".`);
+    }
+
     if (onNotificationReceivedCallback) {
       onNotificationReceivedCallback();
     }

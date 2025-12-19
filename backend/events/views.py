@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -8,6 +10,8 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from notifications.models import Notification
 
 from .models import Event
 from .serializers import EventSerializer, UserSerializer
@@ -35,7 +39,7 @@ class EventListCreateView(generics.ListCreateAPIView):
 
         # Verify the user owns the organization or is a collaborator
         try:
-            organization = Organization.objects.get(id=organization_id)
+            organization = Organization.objects.get(pk=organization_id)
         except (Organization.DoesNotExist, ValueError, TypeError):
             return Response(
                 {"organization": ["Organization not found."]},
@@ -61,6 +65,35 @@ class EventListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(organizer=request.user, organization=organization)
+
+        # Notifie followers of the organization about the new event
+        event = serializer.instance
+        followers = organization.followers.all()
+        if followers:
+            channel_layer = get_channel_layer()
+            for user in followers:
+                # Optional: avoid notifying the organizer
+                if user == request.user:
+                    continue
+                Notification.objects.create(
+                    user=user,
+                    title="New Event from Followed Organization",
+                    message=(
+                        f"{organization.name} published the event '{event.name}' "
+                    ),
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{user.id}",
+                    {
+                        "type": "send_notification",
+                        "message": {
+                            "type": "new_event",
+                            "organization_name": organization.name,
+                            "event_name": event.name,
+                            "start_time": event.date.isoformat(),
+                        },
+                    },
+                )
 
         headers = self.get_success_headers(serializer.data)
         return Response(
@@ -249,7 +282,7 @@ class CreateEventView(generics.CreateAPIView):
 
         # Verify the user owns the organization or is a collaborator
         try:
-            organization = Organization.objects.get(id=organization_id)
+            organization = Organization.objects.get(pk=organization_id)
         except (Organization.DoesNotExist, ValueError, TypeError):
             return Response(
                 {"organization": ["Organization not found."]},
@@ -275,6 +308,36 @@ class CreateEventView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
 
         serializer.save(organizer=self.request.user, organization=organization)
+
+        # Notify followers of the organization about the new event
+        event = serializer.instance
+        followers = organization.followers.all()
+        if followers:
+            channel_layer = get_channel_layer()
+            for user in followers:
+                # Optional: avoid notifying the organizer
+                if user == request.user:
+                    continue
+                Notification.objects.create(
+                    user=user,
+                    title="New Event from Followed Organization",
+                    message=(
+                        f"{organization.name} published the event '{event.name}' "
+                    ),
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{user.id}",
+                    {
+                        "type": "send_notification",
+                        "message": {
+                            "type": "new_event",
+                            "organization_name": organization.name,
+                            "event_name": event.name,
+                            "start_time": event.date.isoformat(),
+                        },
+                    },
+                )
+
         headers = self.get_success_headers(serializer.data)
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
