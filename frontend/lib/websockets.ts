@@ -5,6 +5,35 @@ const WEBSOCKET_URL = "ws://localhost:8000/ws/notifications/";
 
 let socket: WebSocket | null = null;
 
+type EventReminderMsg = {
+  type: "event_reminder";
+  event_name?: string;
+  time_left?: string;
+  start_time?: string;
+};
+
+type NewEventMsg = {
+  type: "new_event";
+  organization_name?: string;
+  event_name?: string;
+  start_time?: string;
+};
+
+type SendNotificationEnvelope = {
+  type?: string; // "send_notification" from backend
+  message?: EventReminderMsg | NewEventMsg;
+};
+
+function isObject(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null;
+}
+function isEventReminder(x: unknown): x is EventReminderMsg {
+  return isObject(x) && x["type"] === "event_reminder";
+}
+function isNewEvent(x: unknown): x is NewEventMsg {
+  return isObject(x) && x["type"] === "new_event";
+}
+
 export const connectWebSocket = (userId: string) => {
   if (socket && socket.readyState === WebSocket.OPEN) {
     return;
@@ -17,25 +46,43 @@ export const connectWebSocket = (userId: string) => {
   };
 
   socket.onmessage = (event) => {
-    const remindersEnabled = localStorage.getItem("remindersEnabled");
-    const remindersAllowed =
-      remindersEnabled === null || JSON.parse(remindersEnabled);
-
-    const data = JSON.parse(event.data);
-
-    if (data.type === "event_reminder") {
-      if (remindersAllowed) {
-        toast.info(
-          `Event Reminder: ${data.event_name} is in ${data.time_left}.`,
-        );
-      }
+    // Defensive parse
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(event.data as string);
+    } catch {
+      console.warn("[ws] non-JSON message received", event.data);
     }
 
-    // toast for new event notifications
-    if (data.type === "new_event") {
-      const org = data.organization_name ?? "Organization";
-      const name = data.event_name ?? "New Event";
+    // Normalize payload:
+    const msg =
+      isObject(parsed) && "message" in parsed
+        ? (parsed as SendNotificationEnvelope).message
+        : parsed;
+
+    if (isEventReminder(msg)) {
+      // Gate only event_reminder by local preference
+      const remindersEnabled = localStorage.getItem("remindersEnabled");
+      const remindersAllowed =
+        remindersEnabled === null ||
+        (remindersEnabled === "true" || remindersEnabled === "false"
+          ? JSON.parse(remindersEnabled)
+          : true);
+
+      if (remindersAllowed) {
+        const name = msg.event_name ?? "Event";
+        const left = msg.time_left ?? "";
+        toast.info(`Event Reminder: ${name} is in ${left}.`);
+      }
+      console.debug("[ws] message type:", msg.type, msg);
+    } else if (isNewEvent(msg)) {
+      // Always show new event notifications
+      const org = msg.organization_name ?? "Organization";
+      const name = msg.event_name ?? "New Event";
       toast.info(`New Event: ${org} published "${name}".`);
+      console.debug("[ws] message type:", msg.type, msg);
+    } else if (msg !== null && msg !== undefined) {
+      console.debug("[ws] message (unrecognized payload):", msg);
     }
 
     if (onNotificationReceivedCallback) {
