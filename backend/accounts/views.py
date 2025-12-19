@@ -118,7 +118,7 @@ class OrganizationViewSet(ModelViewSet):
         if organization_types:
             queryset = queryset.filter(organization_type__in=organization_types)
 
-        # Filter by search query if provided (search in name, description, city, country)
+        # Filter by search query (name, description, city, country)
         search = self.request.query_params.get("search")
         if search:
             from django.db.models import Q
