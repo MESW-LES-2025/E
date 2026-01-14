@@ -7,6 +7,7 @@ from .views import (
     EventInterestedUsersView,
     EventParticipantsView,
     EventRetrieveUpdateDestroyView,
+    ExportUserCalendarView,
     InterestEventView,
     MyOrganizedEventsView,
     ParticipateEventView,
@@ -71,5 +72,10 @@ urlpatterns = [
         "events/<int:pk>/interested-users/",
         EventInterestedUsersView.as_view(),
         name="event-interested-users",
+    ),
+    path(
+        "events/export-calendar/",
+        ExportUserCalendarView.as_view(),
+        name="export_user_calendar",
     ),
 ]

@@ -414,9 +414,10 @@ describe("Organizations Page", () => {
     });
 
     // Check that type labels are displayed correctly
-    expect(screen.getByText("Company")).toBeInTheDocument();
-    expect(screen.getByText("Non-profit")).toBeInTheDocument();
-    expect(screen.getByText("Not specified")).toBeInTheDocument();
-    expect(screen.getByText("UNKNOWN_TYPE")).toBeInTheDocument();
+    // Use getAllByText since there might be multiple instances
+    expect(screen.getAllByText("Company").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Non-profit").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Not specified").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("UNKNOWN_TYPE").length).toBeGreaterThan(0);
   });
 });

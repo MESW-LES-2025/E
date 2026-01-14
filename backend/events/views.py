@@ -1,16 +1,144 @@
+import datetime
 from datetime import timedelta
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound, PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from notifications.models import Notification
+
 from .models import Event
 from .serializers import EventSerializer, UserSerializer
+from .utils import detect_critical_changes
+
+
+def notify_interested_users(event, notification_type, change_data):
+    """
+    Notify interested users and participants about event changes.
+
+    Args:
+        event: The Event instance
+        notification_type: 'event_updated' or 'event_cancelled'
+        change_data: Dictionary with change information
+    """
+    channel_layer = get_channel_layer()
+
+    # Get all interested users
+    interested_users = event.interested_users.all()
+
+    # For cancellations, also notify participants
+    if notification_type == "event_cancelled":
+        participants = event.participants.all()
+        # Combine interested users and participants, avoiding duplicates
+        all_users = set(interested_users) | set(participants)
+    else:
+        all_users = interested_users
+
+    if not all_users:
+        return
+
+    # Build notification message based on change type
+    if notification_type == "event_cancelled":
+        title = f"Event Cancelled: {event.name}"
+        message = f"The event '{event.name}' has been cancelled."
+        ws_message = {
+            "type": "event_cancelled",
+            "event_id": event.id,
+            "event_name": event.name,
+            "message": message,
+        }
+    elif notification_type == "event_updated":
+        # Build message from change data
+        change_messages = []
+        for change in change_data.get("changes", []):
+            field = change["field"]
+            old_val = change["old_value"]
+            new_val = change["new_value"]
+
+            if field == "date":
+                # Format dates nicely
+                try:
+                    from django.utils.dateparse import parse_datetime
+
+                    old_dt = parse_datetime(old_val) if old_val else None
+                    new_dt = parse_datetime(new_val) if new_val else None
+                    if old_dt and new_dt:
+                        old_str = old_dt.strftime("%B %d, %Y at %I:%M %p")
+                        new_str = new_dt.strftime("%B %d, %Y at %I:%M %p")
+                        change_messages.append(
+                            f"Event time changed from {old_str} to {new_str}"
+                        )
+                    else:
+                        change_messages.append("Event time changed")
+                except (ValueError, TypeError):
+                    change_messages.append("Event time changed")
+            elif field == "location":
+                old_loc = old_val or "TBA"
+                new_loc = new_val or "TBA"
+                change_messages.append(
+                    f"Event location changed from {old_loc} to {new_loc}"
+                )
+            elif field == "status":
+                change_messages.append(
+                    f"Event status changed from {old_val} to {new_val}"
+                )
+
+        message_text = ". ".join(change_messages)
+        title = f"Event Updated: {event.name}"
+        message = f"{event.name}: {message_text}"
+
+        # Determine change type for WebSocket message
+        change_type = (
+            change_data["changes"][0]["field"]
+            if change_data.get("changes")
+            else "unknown"
+        )
+
+        ws_message = {
+            "type": "event_updated",
+            "event_id": event.id,
+            "event_name": event.name,
+            "change_type": change_type,
+            "old_value": (
+                change_data["changes"][0]["old_value"]
+                if change_data.get("changes")
+                else None
+            ),
+            "new_value": (
+                change_data["changes"][0]["new_value"]
+                if change_data.get("changes")
+                else None
+            ),
+            "message": message_text,
+        }
+    else:
+        return  # Unknown notification type
+
+    # Create notifications and send WebSocket messages
+    for user in all_users:
+        # Create database notification
+        Notification.objects.create(
+            user=user,
+            title=title,
+            message=message,
+        )
+
+        # Send WebSocket notification
+        async_to_sync(channel_layer.group_send)(
+            f"notifications_{user.id}",
+            {
+                "type": "send_notification",
+                "message": ws_message,
+            },
+        )
 
 
 class EventListCreateView(generics.ListCreateAPIView):
@@ -35,7 +163,7 @@ class EventListCreateView(generics.ListCreateAPIView):
 
         # Verify the user owns the organization or is a collaborator
         try:
-            organization = Organization.objects.get(id=organization_id)
+            organization = Organization.objects.get(pk=organization_id)
         except (Organization.DoesNotExist, ValueError, TypeError):
             return Response(
                 {"organization": ["Organization not found."]},
@@ -62,6 +190,35 @@ class EventListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save(organizer=request.user, organization=organization)
 
+        # Notifie followers of the organization about the new event
+        event = serializer.instance
+        followers = organization.followers.all()
+        if followers:
+            channel_layer = get_channel_layer()
+            for user in followers:
+                # Optional: avoid notifying the organizer
+                if user == request.user:
+                    continue
+                Notification.objects.create(
+                    user=user,
+                    title="New Event from Followed Organization",
+                    message=(
+                        f"{organization.name} published the event '{event.name}' "
+                    ),
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{user.id}",
+                    {
+                        "type": "send_notification",
+                        "message": {
+                            "type": "new_event",
+                            "organization_name": organization.name,
+                            "event_name": event.name,
+                            "start_time": event.date.isoformat(),
+                        },
+                    },
+                )
+
         headers = self.get_success_headers(serializer.data)
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
@@ -77,7 +234,13 @@ class AllEventsListView(generics.ListAPIView):
 
 class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # Allow public read access
+
+    def get_permissions(self):
+        """Allow public read (GET), require auth for write (PUT, PATCH, DELETE)"""
+        if self.request.method in ["GET", "HEAD", "OPTIONS"]:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         """Only return events that have an organization"""
@@ -86,9 +249,13 @@ class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def update(self, request, *args, **kwargs):
-        print("Event update called!")
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
+
+        # Store original instance for comparison
+        original_date = instance.date
+        original_location = instance.location
+        original_status = instance.status
 
         # Permissions
         is_owner = instance.organization.owner == request.user
@@ -115,9 +282,30 @@ class EventRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        # Prepare data for change detection (include original values if not in request)
+        change_detection_data = request.data.copy()
+        if partial:
+            # For partial updates, include original values for fields not being updated
+            if "date" not in change_detection_data:
+                change_detection_data["date"] = original_date
+            if "location" not in change_detection_data:
+                change_detection_data["location"] = original_location
+            if "status" not in change_detection_data:
+                change_detection_data["status"] = original_status
+
+        # Detect critical changes before update
+        critical_changes = detect_critical_changes(instance, change_detection_data)
+
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+
+        # Refresh instance to get updated values
+        instance.refresh_from_db()
+
+        # If critical changes detected, notify interested users
+        if critical_changes:
+            notify_interested_users(instance, "event_updated", critical_changes)
 
         return Response(serializer.data)
 
@@ -249,7 +437,7 @@ class CreateEventView(generics.CreateAPIView):
 
         # Verify the user owns the organization or is a collaborator
         try:
-            organization = Organization.objects.get(id=organization_id)
+            organization = Organization.objects.get(pk=organization_id)
         except (Organization.DoesNotExist, ValueError, TypeError):
             return Response(
                 {"organization": ["Organization not found."]},
@@ -275,6 +463,36 @@ class CreateEventView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
 
         serializer.save(organizer=self.request.user, organization=organization)
+
+        # Notify followers of the organization about the new event
+        event = serializer.instance
+        followers = organization.followers.all()
+        if followers:
+            channel_layer = get_channel_layer()
+            for user in followers:
+                # Optional: avoid notifying the organizer
+                if user == request.user:
+                    continue
+                Notification.objects.create(
+                    user=user,
+                    title="New Event from Followed Organization",
+                    message=(
+                        f"{organization.name} published the event '{event.name}' "
+                    ),
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f"notifications_{user.id}",
+                    {
+                        "type": "send_notification",
+                        "message": {
+                            "type": "new_event",
+                            "organization_name": organization.name,
+                            "event_name": event.name,
+                            "start_time": event.date.isoformat(),
+                        },
+                    },
+                )
+
         headers = self.get_success_headers(serializer.data)
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
@@ -299,7 +517,6 @@ class UserInterestedEventsView(generics.ListAPIView):
 
 class UserOrganizedEventsView(generics.ListAPIView):
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -334,6 +551,9 @@ class CancelEventView(APIView):
 
         event.status = "Canceled"
         event.save()
+
+        # Notify interested users and participants about cancellation
+        notify_interested_users(event, "event_cancelled", None)
 
         serializer = EventSerializer(event)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -616,3 +836,57 @@ class EventInterestedUsersView(generics.ListAPIView):
             )
 
         return event.interested_users.all().order_by("first_name", "last_name")
+
+
+class ExportUserCalendarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        # Get only events the user participates in
+        events = (
+            Event.objects.filter(participants=user, status="Active")
+            .select_related("organization", "organizer")
+            .order_by("date")
+        )
+
+        # ICS header
+        ics_content = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//Erasmus Porto//EN",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+        ]
+
+        now = timezone.now().strftime("%Y%m%dT%H%M%SZ")
+
+        for event in events:
+            start = event.date.astimezone(datetime.timezone.utc).strftime(
+                "%Y%m%dT%H%M%SZ"
+            )
+
+            # No end date in model; use same as start
+            end = start
+
+            ics_event = [
+                "BEGIN:VEVENT",
+                f"UID:event-{event.id}@erasmus-porto",
+                f"DTSTAMP:{now}",
+                f"DTSTART:{start}",
+                f"DTEND:{end}",
+                f"SUMMARY:{event.name}",
+                f"DESCRIPTION:{event.description or ''}",
+                f"LOCATION:{event.location or ''}",
+                "END:VEVENT",
+            ]
+            ics_content.extend(ics_event)
+
+        ics_content.append("END:VCALENDAR")
+        ics_text = "\r\n".join(ics_content)
+
+        response = HttpResponse(ics_text, content_type="text/calendar")
+        response["Content-Disposition"] = 'attachment; filename="my_events.ics"'
+
+        return response

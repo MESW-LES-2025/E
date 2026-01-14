@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { isAuthenticated, logout } from "../../lib/auth";
 import { getProfile } from "../../lib/profiles";
-import { getUnreadCount } from "../../lib/notifications";
+import { getFilteredUnreadCount } from "../../lib/notifications";
 
 // Mock Next.js navigation
 jest.mock("next/navigation", () => ({
@@ -23,7 +23,8 @@ jest.mock("../../lib/profiles", () => ({
 }));
 
 jest.mock("../../lib/notifications", () => ({
-  getUnreadCount: jest.fn(),
+  getFilteredUnreadCount: jest.fn(),
+  registerNotificationRefreshCallback: jest.fn(),
 }));
 
 const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
@@ -33,9 +34,8 @@ const mockIsAuthenticated = isAuthenticated as jest.MockedFunction<
 >;
 const mockLogout = logout as jest.MockedFunction<typeof logout>;
 const mockGetProfile = getProfile as jest.MockedFunction<typeof getProfile>;
-const mockGetUnreadCount = getUnreadCount as jest.MockedFunction<
-  typeof getUnreadCount
->;
+const mockGetFilteredUnreadCount =
+  getFilteredUnreadCount as jest.MockedFunction<typeof getFilteredUnreadCount>;
 
 describe("Navbar Component", () => {
   const mockPush = jest.fn();
@@ -52,7 +52,7 @@ describe("Navbar Component", () => {
       prefetch: jest.fn(),
     } as ReturnType<typeof useRouter>);
     mockUsePathname.mockReturnValue("/");
-    mockGetUnreadCount.mockResolvedValue(0); // Default to 0 unread
+    mockGetFilteredUnreadCount.mockResolvedValue(0); // Default to 0 unread
   });
 
   describe("Unauthenticated state", () => {
@@ -100,9 +100,13 @@ describe("Navbar Component", () => {
 
       render(<Navbar />);
 
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      userButton.click();
+
       await waitFor(() => {
         expect(screen.getByText("My Events")).toBeInTheDocument();
-        expect(screen.getByText("My Profile")).toBeInTheDocument();
+        expect(screen.getByText("Profile")).toBeInTheDocument();
         expect(screen.getByText("Logout")).toBeInTheDocument();
       });
 
@@ -126,10 +130,14 @@ describe("Navbar Component", () => {
 
       render(<Navbar />);
 
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Org");
+      userButton.click();
+
       await waitFor(() => {
         expect(screen.getByText("My Organizations")).toBeInTheDocument();
         expect(screen.getByText("My Events")).toBeInTheDocument();
-        expect(screen.getByText("My Profile")).toBeInTheDocument();
+        expect(screen.getByText("Profile")).toBeInTheDocument();
         expect(screen.getByText("Logout")).toBeInTheDocument();
       });
     });
@@ -150,6 +158,12 @@ describe("Navbar Component", () => {
       });
 
       render(<Navbar />);
+
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      await act(async () => {
+        userButton.click();
+      });
 
       await waitFor(() => {
         expect(screen.getByText("Logout")).toBeInTheDocument();
@@ -260,21 +274,29 @@ describe("Navbar Component", () => {
     });
 
     it("should display the unread count when greater than 0", async () => {
-      mockGetUnreadCount.mockResolvedValue(5);
+      mockGetFilteredUnreadCount.mockResolvedValue(5);
 
       render(<Navbar />);
+
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      userButton.click();
 
       await waitFor(() => {
         const badge = screen.getByText("5");
         expect(badge).toBeInTheDocument();
-        expect(badge).toHaveClass("bg-red-600");
+        expect(badge).toHaveClass("bg-primary");
       });
     });
 
     it("should not display the unread count when it is 0", async () => {
-      mockGetUnreadCount.mockResolvedValue(0);
+      mockGetFilteredUnreadCount.mockResolvedValue(0);
 
       render(<Navbar />);
+
+      // Wait for the user button to appear, then click it to open the dropdown
+      const userButton = await screen.findByText("Test");
+      userButton.click();
 
       await waitFor(() => {
         expect(screen.getByText("Notifications")).toBeInTheDocument();
@@ -285,9 +307,11 @@ describe("Navbar Component", () => {
     });
 
     it("should handle errors when fetching unread count", async () => {
-      mockGetUnreadCount.mockRejectedValue(new Error("API Error"));
+      mockGetFilteredUnreadCount.mockRejectedValue(new Error("API Error"));
       render(<Navbar />);
-      await waitFor(() => expect(mockGetUnreadCount).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockGetFilteredUnreadCount).toHaveBeenCalled(),
+      );
       expect(screen.queryByText("API Error")).not.toBeInTheDocument();
     });
   });

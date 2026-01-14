@@ -257,25 +257,32 @@ export default function RegisterPage() {
   const isSubmitDisabled = isSubmitting || !allFilled || hasAnyErrors;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-full max-w-md rounded-xl border bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-center mb-4">
-          Create an account
-        </h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl border-2 border-primary/20 bg-card p-8 shadow-xl">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            Create an account
+          </h1>
+          <p className="text-muted-foreground">
+            Join the Erasmus in Porto community
+          </p>
+        </div>
 
         {/* Student / Organizer toggle */}
-        <div className="flex gap-2 mb-6 justify-center">
+        <div className="flex gap-2 mb-8 justify-center p-1 bg-muted rounded-lg">
           <Button
             type="button"
-            variant={registrationType === "student" ? "default" : "outline"}
+            variant={registrationType === "student" ? "default" : "ghost"}
             onClick={() => setRegistrationType("student")}
+            className="flex-1 font-medium"
           >
             Student
           </Button>
           <Button
             type="button"
-            variant={registrationType === "organizer" ? "default" : "outline"}
+            variant={registrationType === "organizer" ? "default" : "ghost"}
             onClick={() => setRegistrationType("organizer")}
+            className="flex-1 font-medium"
           >
             Organizer
           </Button>
@@ -380,23 +387,24 @@ export default function RegisterPage() {
 
           <Button
             type="submit"
-            className="w-full mt-2"
+            className="w-full mt-2 font-semibold"
+            size="lg"
             disabled={isSubmitDisabled}
           >
             {isSubmitting ? "Creating account..." : "Sign up"}
           </Button>
         </form>
 
-        <div className="my-4">
+        <div className="my-6">
           <Separator />
         </div>
 
-        <div className="mt-2 text-md text-center">
-          <span className="text-sm text-slate-600">
+        <div className="text-center">
+          <span className="text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
               href="/profile/login"
-              className="text-blue-600 hover:underline"
+              className="text-primary hover:underline font-medium"
             >
               Go to login
             </Link>

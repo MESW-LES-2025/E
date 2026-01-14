@@ -1,3 +1,5 @@
+import { jwtDecode } from "jwt-decode";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 const storageKey = "auth_tokens";
@@ -40,6 +42,21 @@ export async function getAuthToken(): Promise<string | null> {
     return null;
   }
 }
+
+export async function getUserId(): Promise<string | null> {
+  const token = await getAuthToken();
+  if (token) {
+    try {
+      const decodedToken: { user_id: string } = jwtDecode(token);
+      return decodedToken.user_id;
+    } catch (error) {
+      console.error("Failed to decode JWT token:", error);
+      return null;
+    }
+  }
+  return null;
+}
+
 export type RegisterRole = "ATTENDEE" | "ORGANIZER";
 
 export interface RegisterPayload {

@@ -11,6 +11,8 @@ import {
 import { isAuthenticated } from "@/lib/auth";
 import { getProfile } from "@/lib/profiles";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { MapPin } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -108,38 +110,45 @@ export default function OrganizationCard({
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow flex flex-col">
-      <CardHeader>
-        <CardTitle className="line-clamp-2">{organization.name}</CardTitle>
-        <CardDescription>
-          {getOrganizationTypeLabel(organization.organization_type)}
+    <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/50 flex flex-col">
+      <CardHeader className="pb-3">
+        <CardTitle className="line-clamp-2 text-xl font-bold group-hover:text-primary transition-colors">
+          {organization.name}
+        </CardTitle>
+        <CardDescription className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="font-medium">
+            {getOrganizationTypeLabel(organization.organization_type)}
+          </Badge>
           {organization.event_count > 0 && (
-            <span className="ml-2">
-              • {organization.event_count} event
+            <span className="text-sm">
+              {organization.event_count} event
               {organization.event_count !== 1 ? "s" : ""}
             </span>
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1">
+      <CardContent className="flex-1 space-y-3">
         {organization.description && (
-          <p className="text-sm text-muted-foreground line-clamp-3 mb-2">
+          <p className="text-sm text-muted-foreground line-clamp-3">
             {organization.description}
           </p>
         )}
-        {organization.city && organization.country && (
-          <p className="text-sm text-muted-foreground">
-            📍 {organization.city}, {organization.country}
-          </p>
-        )}
-        {organization.owner_name && (
-          <p className="text-sm text-muted-foreground mt-1">
-            By {organization.owner_name}
-          </p>
-        )}
+        <div className="space-y-1">
+          {organization.city && organization.country && (
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              {organization.city}, {organization.country}
+            </p>
+          )}
+          {organization.owner_name && (
+            <p className="text-sm text-muted-foreground">
+              By {organization.owner_name}
+            </p>
+          )}
+        </div>
       </CardContent>
-      <CardFooter className="flex flex-col gap-2">
-        <Button variant="outline" className="w-full" asChild>
+      <CardFooter className="flex flex-col gap-2 pt-4">
+        <Button variant="default" className="w-full font-semibold" asChild>
           <Link
             href={`/organizations/detail?id=${organization.id}`}
             onClick={handleCardClick}
@@ -149,7 +158,7 @@ export default function OrganizationCard({
         </Button>
         {userRole === "ATTENDEE" && (
           <Button
-            variant={isFollowing ? "outline" : "default"}
+            variant={isFollowing ? "outline" : "secondary"}
             size="sm"
             onClick={handleFollowToggle}
             disabled={followLoading}

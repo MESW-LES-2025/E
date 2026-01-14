@@ -82,21 +82,38 @@ export interface OrganizationEvent {
 }
 
 // List all organizations (public endpoint, but uses auth if available for is_following)
-export async function listOrganizations(): Promise<PublicOrganization[]> {
+export async function listOrganizations(
+  search?: string,
+  organizationTypes?: OrganizationType | OrganizationType[],
+): Promise<PublicOrganization[]> {
+  // Build URL with search and organization_type parameters if provided
+  const url = new URL(`${API_BASE}/accounts/organizations/`);
+  if (search && search.trim()) {
+    url.searchParams.append("search", search.trim());
+  }
+  if (organizationTypes) {
+    const types = Array.isArray(organizationTypes)
+      ? organizationTypes
+      : [organizationTypes];
+    types.forEach((type) => {
+      url.searchParams.append("organization_type", type);
+    });
+  }
+
   // Try authenticated request first to get is_following field
   // Fall back to public request if not authenticated
   let response;
   try {
-    response = await fetchWithAuth(`${API_BASE}/accounts/organizations/`, {
+    response = await fetchWithAuth(url.toString(), {
       method: "GET",
     });
     // If 401/403, try public fetch
     if (response.status === 401 || response.status === 403) {
-      response = await fetch(`${API_BASE}/accounts/organizations/`);
+      response = await fetch(url.toString());
     }
   } catch {
     // If fetchWithAuth fails, try public fetch
-    response = await fetch(`${API_BASE}/accounts/organizations/`);
+    response = await fetch(url.toString());
   }
 
   if (!response.ok) {

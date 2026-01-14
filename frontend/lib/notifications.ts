@@ -10,6 +10,18 @@ export type NotificationItem = {
   created_at: string;
 };
 
+export let onNotificationReceivedCallback: (() => void) | null = null;
+
+export function registerNotificationRefreshCallback(callback: () => void) {
+  onNotificationReceivedCallback = callback;
+}
+
+export function runNotificationRefreshCallbacks() {
+  if (onNotificationReceivedCallback) {
+    onNotificationReceivedCallback();
+  }
+}
+
 export async function getUnreadCount(): Promise<number> {
   const res = await fetchWithAuth(`${API_BASE}/notifications/unread-count/`, {
     method: "GET",
@@ -17,6 +29,21 @@ export async function getUnreadCount(): Promise<number> {
   if (!res.ok) throw new Error("Failed to fetch unread count");
   const data = await res.json();
   return data.unread ?? 0;
+}
+
+export async function getFilteredUnreadCount(
+  remindersEnabled: boolean,
+): Promise<number> {
+  const allNotifications = await listNotifications();
+  let filteredNotifications = allNotifications;
+
+  if (!remindersEnabled) {
+    filteredNotifications = allNotifications.filter(
+      (item) => item.title !== "Event Reminder",
+    );
+  }
+
+  return filteredNotifications.filter((item) => !item.is_read).length;
 }
 
 export async function listNotifications(): Promise<NotificationItem[]> {
@@ -36,6 +63,7 @@ export async function markAsRead(id: number): Promise<void> {
     },
   );
   if (!res.ok) throw new Error("Failed to mark as read");
+  runNotificationRefreshCallbacks();
 }
 
 export async function markAsUnread(id: number): Promise<void> {
@@ -46,6 +74,7 @@ export async function markAsUnread(id: number): Promise<void> {
     },
   );
   if (!res.ok) throw new Error("Failed to mark as unread");
+  runNotificationRefreshCallbacks();
 }
 
 export async function markAllAsRead(): Promise<number> {
@@ -57,5 +86,6 @@ export async function markAllAsRead(): Promise<number> {
   );
   if (!res.ok) throw new Error("Failed to mark all as read");
   const data = await res.json();
+  runNotificationRefreshCallbacks();
   return data.updated ?? 0;
 }

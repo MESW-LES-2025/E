@@ -43,9 +43,14 @@ export default function LoginPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6">
-        <h1 className="text-xl font-semibold mb-4">Sign in</h1>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl border-2 border-primary/20 bg-card shadow-xl p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            Welcome Back
+          </h1>
+          <p className="text-muted-foreground">Sign in to your account</p>
+        </div>
         <form onSubmit={onSubmit} className="space-y-3" noValidate>
           <Field>
             <FieldLabel htmlFor="username">Username</FieldLabel>
@@ -76,27 +81,37 @@ export default function LoginPage() {
 
           {error && <FieldError>{error}</FieldError>}
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Entering..." : "Enter"}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full font-semibold"
+            size="lg"
+          >
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
 
-        <div className="mt-4 text-sm text-gray-600 text-center">
-          <span>Don&apos;t have an account? </span>
+        <div className="mt-6 text-sm text-center">
+          <span className="text-muted-foreground">
+            Don&apos;t have an account?{" "}
+          </span>
           <Link
             href="/profile/register"
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline font-medium"
           >
             Register now
           </Link>
         </div>
 
-        <div className="my-4">
+        <div className="my-6">
           <Separator />
         </div>
 
-        <div className="mt-2 text-md text-center">
-          <Link href="/" className="text-blue-600 hover:underline">
+        <div className="text-center">
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
             Enter as visitor
           </Link>
         </div>

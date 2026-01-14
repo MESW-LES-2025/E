@@ -22,14 +22,14 @@ describe("Home Page", () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve([]),
+        json: () => Promise.resolve({ results: [] }),
       }),
     ) as jest.Mock;
 
     render(<Home />);
     await waitFor(() => {
       expect(
-        screen.getByText("No events found matching your filters"),
+        screen.getByText("No upcoming events at the moment."),
       ).toBeInTheDocument();
     });
   });

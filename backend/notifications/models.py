@@ -13,7 +13,7 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-created_at"]  # newer first for listing
+        ordering = ["-created_at", "-id"]  # newer first for listing
 
     def __str__(self):
         return f"{self.user.username} - {self.title}"
