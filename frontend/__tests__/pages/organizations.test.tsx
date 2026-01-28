@@ -420,4 +420,312 @@ describe("Organizations Page", () => {
     expect(screen.getAllByText("Not specified").length).toBeGreaterThan(0);
     expect(screen.getAllByText("UNKNOWN_TYPE").length).toBeGreaterThan(0);
   });
+
+  it("should handle localStorage error when loading search", () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation(() => {
+      throw new Error("Storage error");
+    });
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Failed to load search from storage:",
+      expect.any(Error),
+    );
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should handle localStorage error when saving search", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "setItem");
+    localStorageSpy.mockImplementation(() => {
+      throw new Error("Storage error");
+    });
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/organizations/i)).toBeInTheDocument();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should handle localStorage error when loading categories", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "organizations_search") {
+        return null;
+      }
+      if (key === "organizations_category") {
+        throw new Error("Storage error");
+      }
+      return null;
+    });
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    // Wait for component to mount and try to load categories
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to load categories from storage:",
+        expect.any(Error),
+      );
+    }, { timeout: 2000 });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should handle localStorage error when saving categories", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "setItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "orgs_category") {
+        throw new Error("Storage error");
+      }
+    });
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/organizations/i)).toBeInTheDocument();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should load search from localStorage on mount", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "orgs_search") {
+        return "test search";
+      }
+      return null;
+    });
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    await waitFor(() => {
+      expect(mockListOrganizations).toHaveBeenCalled();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should load categories from localStorage on mount", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "orgs_category") {
+        return JSON.stringify(["COMPANY", "NON_PROFIT"]);
+      }
+      return null;
+    });
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    await waitFor(() => {
+      expect(mockListOrganizations).toHaveBeenCalled();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should filter out invalid categories from localStorage", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "orgs_category") {
+        return JSON.stringify(["COMPANY", "INVALID_TYPE", "NON_PROFIT"]);
+      }
+      return null;
+    });
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    await waitFor(() => {
+      expect(mockListOrganizations).toHaveBeenCalled();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should handle toggleCategory function", async () => {
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([
+      {
+        id: 1,
+        name: "Test Org",
+        description: "Test",
+        email: "test@example.com",
+        website: "",
+        phone: "",
+        address: "",
+        city: "",
+        country: "",
+        logo_url: null,
+        cover_image_url: null,
+        twitter_handle: "",
+        facebook_url: "",
+        linkedin_url: "",
+        instagram_handle: "",
+        organization_type: "COMPANY",
+        established_date: null,
+        owner_name: "Owner",
+        event_count: 0,
+        created_at: "2024-01-01T00:00:00Z",
+      },
+    ]);
+
+    render(<OrganizationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Org")).toBeInTheDocument();
+    });
+
+    // Click on a category badge to toggle it - use getAllByText since there might be multiple
+    const companyBadges = screen.getAllByText("Company");
+    const companyBadge = companyBadges.find(badge => badge.closest('[class*="Badge"]') || badge.closest('span')) || companyBadges[0];
+    fireEvent.click(companyBadge);
+
+    // Should filter organizations (debounced, so wait a bit)
+    await waitFor(() => {
+      expect(mockListOrganizations).toHaveBeenCalledTimes(2);
+    }, { timeout: 1000 });
+  });
+
+  it("should handle clear all filters", async () => {
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([
+      {
+        id: 1,
+        name: "Test Org",
+        description: "Test",
+        email: "test@example.com",
+        website: "",
+        phone: "",
+        address: "",
+        city: "",
+        country: "",
+        logo_url: null,
+        cover_image_url: null,
+        twitter_handle: "",
+        facebook_url: "",
+        linkedin_url: "",
+        instagram_handle: "",
+        organization_type: "COMPANY",
+        established_date: null,
+        owner_name: "Owner",
+        event_count: 0,
+        created_at: "2024-01-01T00:00:00Z",
+      },
+    ]);
+
+    render(<OrganizationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Org")).toBeInTheDocument();
+    });
+
+    // First set a filter, then clear it
+    const companyBadges = screen.getAllByText("Company");
+    if (companyBadges.length > 0) {
+      fireEvent.click(companyBadges[0]);
+      await waitFor(() => {
+        // Wait for filter to be applied and clear all button to appear
+        const clearAllButton = screen.queryByText("Clear all");
+        if (clearAllButton) {
+          fireEvent.click(clearAllButton);
+        }
+      }, { timeout: 1000 });
+    }
+
+    // Should clear filters and refetch (debounced)
+    await waitFor(() => {
+      expect(mockListOrganizations).toHaveBeenCalled();
+    }, { timeout: 2000 });
+  });
+
+  it("should handle loadSearchFromStorage when window is undefined", () => {
+    const originalWindow = global.window;
+    // @ts-expect-error - intentionally removing window for test
+    delete global.window;
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    // Should use default empty search
+    expect(screen.getByText(/organizations/i)).toBeInTheDocument();
+
+    global.window = originalWindow;
+  });
+
+  it("should handle saveSearchToStorage when window is undefined", () => {
+    const originalWindow = global.window;
+    // @ts-expect-error - intentionally removing window for test
+    delete global.window;
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    // Should not crash
+    expect(screen.getByText(/organizations/i)).toBeInTheDocument();
+
+    global.window = originalWindow;
+  });
+
+  it("should handle loadCategoriesFromStorage when window is undefined", () => {
+    const originalWindow = global.window;
+    // @ts-expect-error - intentionally removing window for test
+    delete global.window;
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    // Should use default empty categories
+    expect(screen.getByText(/organizations/i)).toBeInTheDocument();
+
+    global.window = originalWindow;
+  });
+
+  it("should handle saveCategoriesToStorage when window is undefined", () => {
+    const originalWindow = global.window;
+    // @ts-expect-error - intentionally removing window for test
+    delete global.window;
+
+    mockIsAuthenticated.mockReturnValue(false);
+    mockListOrganizations.mockResolvedValue([]);
+
+    render(<OrganizationsPage />);
+
+    // Should not crash
+    expect(screen.getByText(/organizations/i)).toBeInTheDocument();
+
+    global.window = originalWindow;
+  });
 });

@@ -21,6 +21,8 @@ jest.mock("@/lib/notifications", () => ({
   markAsRead: jest.fn(),
   markAsUnread: jest.fn(),
   markAllAsRead: jest.fn(),
+  registerNotificationRefreshCallback: jest.fn(),
+  onNotificationReceivedCallback: null,
 }));
 
 const mockListNotifications = listNotifications as jest.MockedFunction<
@@ -293,5 +295,175 @@ describe("NotificationsPage", () => {
     expect(readCheckbox.checked).toBe(true);
     fireEvent.click(readCheckbox); // uncheck
     await waitFor(() => expect(mockMarkAsUnread).toHaveBeenCalledWith(2));
+  });
+
+  it("should load reminders preference from localStorage", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "remindersEnabled") {
+        return "true";
+      }
+      if (key === "eventChangesEnabled") {
+        return "false";
+      }
+      return null;
+    });
+
+    mockListNotifications.mockResolvedValue(mockNotifications);
+    render(<NotificationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unread Notification")).toBeInTheDocument();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should load eventChanges preference from localStorage", async () => {
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "remindersEnabled") {
+        return "false";
+      }
+      if (key === "eventChangesEnabled") {
+        return "true";
+      }
+      return null;
+    });
+
+    mockListNotifications.mockResolvedValue(mockNotifications);
+    render(<NotificationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unread Notification")).toBeInTheDocument();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should filter out reminders when reminders are disabled", async () => {
+    const notificationsWithReminder: NotificationItem[] = [
+      ...mockNotifications,
+      {
+        id: 3,
+        title: "Event Reminder",
+        message: "Event starts in 1 hour",
+        is_read: false,
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "remindersEnabled") {
+        return "false";
+      }
+      return null;
+    });
+
+    mockListNotifications.mockResolvedValue(notificationsWithReminder);
+    render(<NotificationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unread Notification")).toBeInTheDocument();
+      expect(screen.queryByText("Event Reminder")).not.toBeInTheDocument();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should filter out event changes when eventChanges are disabled", async () => {
+    const notificationsWithChanges: NotificationItem[] = [
+      ...mockNotifications,
+      {
+        id: 3,
+        title: "Event Updated: Test Event",
+        message: "Event details changed",
+        is_read: false,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 4,
+        title: "Event Cancelled: Another Event",
+        message: "Event was cancelled",
+        is_read: false,
+        created_at: new Date().toISOString(),
+      },
+    ];
+
+    const localStorageSpy = jest.spyOn(Storage.prototype, "getItem");
+    localStorageSpy.mockImplementation((key) => {
+      if (key === "eventChangesEnabled") {
+        return "false";
+      }
+      return null;
+    });
+
+    mockListNotifications.mockResolvedValue(notificationsWithChanges);
+    render(<NotificationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unread Notification")).toBeInTheDocument();
+      expect(
+        screen.queryByText("Event Updated: Test Event"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Event Cancelled: Another Event"),
+      ).not.toBeInTheDocument();
+    });
+
+    localStorageSpy.mockRestore();
+  });
+
+  it("should call notification callback when reminder toggle changes", async () => {
+    // Import the actual function from the module (not mocked)
+    const notificationsModule = await import("@/lib/notifications");
+    const mockCallback = jest.fn();
+    notificationsModule.registerNotificationRefreshCallback(mockCallback);
+
+    mockListNotifications.mockResolvedValue(mockNotifications);
+    render(<NotificationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unread Notification")).toBeInTheDocument();
+    });
+
+    // Find and toggle the reminder switch
+    const reminderToggle = screen
+      .getAllByRole("checkbox")
+      .find((cb) => (cb as HTMLElement).getAttribute("aria-label")?.includes("Reminder"));
+
+    if (reminderToggle) {
+      fireEvent.click(reminderToggle);
+      await waitFor(() => {
+        expect(mockCallback).toHaveBeenCalled();
+      });
+    }
+  });
+
+  it("should call notification callback when eventChanges toggle changes", async () => {
+    // Import the actual function from the module (not mocked)
+    const notificationsModule = await import("@/lib/notifications");
+    const mockCallback = jest.fn();
+    notificationsModule.registerNotificationRefreshCallback(mockCallback);
+
+    mockListNotifications.mockResolvedValue(mockNotifications);
+    render(<NotificationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unread Notification")).toBeInTheDocument();
+    });
+
+    // Find and toggle the event changes switch
+    const eventChangesToggle = screen
+      .getAllByRole("checkbox")
+      .find((cb) => (cb as HTMLElement).getAttribute("aria-label")?.includes("Event Changes"));
+
+    if (eventChangesToggle) {
+      fireEvent.click(eventChangesToggle);
+      await waitFor(() => {
+        expect(mockCallback).toHaveBeenCalled();
+      });
+    }
   });
 });

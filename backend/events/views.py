@@ -549,7 +549,7 @@ class CancelEventView(APIView):
         else:
             raise PermissionDenied("You do not have permission to cancel this event.")
 
-        event.status = "Canceled"
+        event.status = "Cancelled"
         event.save()
 
         # Notify interested users and participants about cancellation
@@ -585,7 +585,7 @@ class UncancelEventView(APIView):
         else:
             raise PermissionDenied("You do not have permission to uncancel this event.")
 
-        if event.status != "Canceled":
+        if event.status != "Cancelled":
             return Response({"error": "Event is not canceled."}, status=400)
 
         event.status = "Active"

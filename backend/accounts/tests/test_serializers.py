@@ -180,3 +180,119 @@ class OrganizationSerializerTest(TestCase):
 
         serializer = OrganizationSerializer(organization)
         self.assertEqual(serializer.data["event_count"], 2)
+
+    def test_get_is_following_authenticated_following(self):
+        """Test get_is_following returns True when user is following"""
+        from unittest.mock import Mock
+
+        user = User.objects.create_user(
+            username="follower",
+            email="follower@example.com",
+            password="password123",
+        )
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+        organization.followers.add(user)
+
+        request = Mock()
+        request.user = user
+        request.user.is_authenticated = True
+
+        serializer = PublicOrganizationSerializer(
+            organization, context={"request": request}
+        )
+        self.assertTrue(serializer.data["is_following"])
+
+    def test_get_is_following_authenticated_not_following(self):
+        """Test get_is_following returns False when user is not following"""
+        from unittest.mock import Mock
+
+        user = User.objects.create_user(
+            username="nonfollower",
+            email="nonfollower@example.com",
+            password="password123",
+        )
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+
+        request = Mock()
+        request.user = user
+        request.user.is_authenticated = True
+
+        serializer = PublicOrganizationSerializer(
+            organization, context={"request": request}
+        )
+        self.assertFalse(serializer.data["is_following"])
+
+    def test_get_is_following_unauthenticated(self):
+        """Test get_is_following returns False when user is not authenticated"""
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+
+        serializer = PublicOrganizationSerializer(organization)
+        self.assertFalse(serializer.data["is_following"])
+
+    def test_get_is_following_no_request(self):
+        """Test get_is_following returns False when request is not in context"""
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+
+        serializer = PublicOrganizationSerializer(organization, context={})
+        self.assertFalse(serializer.data["is_following"])
+
+    def test_get_is_collaborator_authenticated_collaborator(self):
+        """Test get_is_collaborator returns True when user is collaborator"""
+        from unittest.mock import Mock
+        from accounts.serializers import CollaboratorOrganizationSerializer
+
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="password123",
+        )
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+        organization.collaborators.add(collaborator)
+
+        request = Mock()
+        request.user = collaborator
+        request.user.is_authenticated = True
+
+        serializer = CollaboratorOrganizationSerializer(
+            organization, context={"request": request}
+        )
+        self.assertTrue(serializer.data["is_collaborator"])
+
+    def test_get_is_collaborator_authenticated_not_collaborator(self):
+        """Test get_is_collaborator returns False when user is not collaborator"""
+        from unittest.mock import Mock
+        from accounts.serializers import CollaboratorOrganizationSerializer
+
+        user = User.objects.create_user(
+            username="noncollab",
+            email="noncollab@example.com",
+            password="password123",
+        )
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+
+        request = Mock()
+        request.user = user
+        request.user.is_authenticated = True
+
+        serializer = CollaboratorOrganizationSerializer(
+            organization, context={"request": request}
+        )
+        self.assertFalse(serializer.data["is_collaborator"])
+
+    def test_get_is_collaborator_unauthenticated(self):
+        """Test get_is_collaborator returns False when user is not authenticated"""
+        from accounts.serializers import CollaboratorOrganizationSerializer
+
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+
+        serializer = CollaboratorOrganizationSerializer(organization)
+        self.assertFalse(serializer.data["is_collaborator"])
+
+    def test_get_is_collaborator_no_request(self):
+        """Test get_is_collaborator returns False when request is not in context"""
+        from accounts.serializers import CollaboratorOrganizationSerializer
+
+        organization = Organization.objects.create(name="Test Org", owner=self.user)
+
+        serializer = CollaboratorOrganizationSerializer(organization, context={})
+        self.assertFalse(serializer.data["is_collaborator"])

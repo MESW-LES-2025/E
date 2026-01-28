@@ -37,7 +37,9 @@ export async function getAuthToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
   try {
     const tokens = localStorage.getItem(storageKey);
-    return tokens ? JSON.parse(tokens)?.access : null;
+    if (!tokens) return null;
+    const parsed = JSON.parse(tokens);
+    return parsed?.access ?? null;
   } catch {
     return null;
   }

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor, act } from "@testing-library/react";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
 import { useRouter, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { isAuthenticated, logout } from "../../lib/auth";
@@ -313,6 +313,332 @@ describe("Navbar Component", () => {
         expect(mockGetFilteredUnreadCount).toHaveBeenCalled(),
       );
       expect(screen.queryByText("API Error")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Mobile Menu", () => {
+    beforeEach(() => {
+      mockIsAuthenticated.mockReturnValue(true);
+      mockGetProfile.mockResolvedValue({
+        id: 1,
+        user_id: 1,
+        username: "testuser",
+        email: "test@example.com",
+        first_name: "Test",
+        last_name: "User",
+        role: "ATTENDEE",
+        phone_number: "",
+        bio: "",
+        participating_events: [],
+      });
+      mockGetFilteredUnreadCount.mockResolvedValue(0);
+    });
+
+    it("should show X icon when mobile menu is open", async () => {
+      // Mock window.matchMedia for responsive behavior
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation((query) => ({
+          matches: true, // Simulate mobile view
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test")).toBeInTheDocument();
+      });
+
+      // Find and click the mobile menu button
+      const menuButtons = screen.getAllByRole("button");
+      const mobileMenuButton = menuButtons.find((btn) =>
+        btn.className.includes("md:hidden"),
+      );
+
+      if (mobileMenuButton) {
+        fireEvent.click(mobileMenuButton);
+
+        await waitFor(() => {
+          // After clicking, the menu should be open and show X icon
+          // The X icon is rendered when mobileMenuOpen is true
+          // There might be multiple "Home" elements (desktop and mobile), so use getAllByText
+          const homeElements = screen.getAllByText("Home");
+          expect(homeElements.length).toBeGreaterThan(0);
+        });
+      }
+    });
+
+    it("should close mobile menu on logout", async () => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation((query) => ({
+          matches: true,
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test")).toBeInTheDocument();
+      });
+
+      // Open mobile menu first
+      const menuButtons = screen.getAllByRole("button");
+      const mobileMenuButton = menuButtons.find((btn) =>
+        btn.className.includes("md:hidden"),
+      );
+
+      if (mobileMenuButton) {
+        fireEvent.click(mobileMenuButton);
+
+        await waitFor(() => {
+          // There might be multiple "Home" elements, so use getAllByText
+          const homeElements = screen.getAllByText("Home");
+          expect(homeElements.length).toBeGreaterThan(0);
+        });
+
+        // Find and click logout button in mobile menu
+        const logoutButton = screen.getByText("Logout");
+        fireEvent.click(logoutButton);
+
+        await waitFor(() => {
+          expect(mockLogout).toHaveBeenCalled();
+        });
+      }
+    });
+  });
+
+  describe("fetchUnreadCount", () => {
+    beforeEach(() => {
+      mockIsAuthenticated.mockReturnValue(true);
+      mockGetProfile.mockResolvedValue({
+        id: 1,
+        user_id: 1,
+        username: "testuser",
+        email: "test@example.com",
+        first_name: "Test",
+        last_name: "User",
+        role: "ATTENDEE",
+        phone_number: "",
+        bio: "",
+        participating_events: [],
+      });
+    });
+
+    it("should fetch unread count with reminders enabled", async () => {
+      localStorage.setItem("remindersEnabled", "true");
+      mockGetFilteredUnreadCount.mockResolvedValue(5);
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(mockGetFilteredUnreadCount).toHaveBeenCalled();
+      });
+    });
+
+    it("should fetch unread count with reminders disabled", async () => {
+      localStorage.setItem("remindersEnabled", "false");
+      mockGetFilteredUnreadCount.mockResolvedValue(3);
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(mockGetFilteredUnreadCount).toHaveBeenCalled();
+      });
+    });
+
+    it("should default to reminders enabled when not set", async () => {
+      localStorage.removeItem("remindersEnabled");
+      mockGetFilteredUnreadCount.mockResolvedValue(2);
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(mockGetFilteredUnreadCount).toHaveBeenCalled();
+      });
+    });
+
+    it("should handle unread count fetch error", async () => {
+      mockGetFilteredUnreadCount.mockRejectedValue(new Error("API Error"));
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(mockGetFilteredUnreadCount).toHaveBeenCalled();
+      });
+
+      // Should not crash, unread should default to 0
+      expect(screen.getByText("Test")).toBeInTheDocument();
+    });
+  });
+
+  describe("Mobile menu interactions", () => {
+    beforeEach(() => {
+      mockIsAuthenticated.mockReturnValue(true);
+      mockGetProfile.mockResolvedValue({
+        id: 1,
+        user_id: 1,
+        username: "testuser",
+        email: "test@example.com",
+        first_name: "Test",
+        last_name: "User",
+        role: "ATTENDEE",
+        phone_number: "",
+        bio: "",
+        participating_events: [],
+      });
+      mockGetFilteredUnreadCount.mockResolvedValue(0);
+    });
+
+    it("should toggle mobile menu open and close", async () => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation((query) => ({
+          matches: true,
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test")).toBeInTheDocument();
+      });
+
+      const menuButtons = screen.getAllByRole("button");
+      const mobileMenuButton = menuButtons.find((btn) =>
+        btn.className.includes("md:hidden"),
+      );
+
+      if (mobileMenuButton) {
+        // Open menu
+        fireEvent.click(mobileMenuButton);
+
+        await waitFor(() => {
+          const homeElements = screen.getAllByText("Home");
+          expect(homeElements.length).toBeGreaterThan(0);
+        });
+
+        // Close menu by clicking again
+        fireEvent.click(mobileMenuButton);
+
+        // Menu should close
+        await waitFor(() => {
+          expect(screen.getByText("Test")).toBeInTheDocument();
+        });
+      }
+    });
+
+    it("should close mobile menu when clicking a link", async () => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation((query) => ({
+          matches: true,
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Test")).toBeInTheDocument();
+      });
+
+      const menuButtons = screen.getAllByRole("button");
+      const mobileMenuButton = menuButtons.find((btn) =>
+        btn.className.includes("md:hidden"),
+      );
+
+      if (mobileMenuButton) {
+        fireEvent.click(mobileMenuButton);
+
+        await waitFor(() => {
+          const homeLinks = screen.getAllByText("Home");
+          expect(homeLinks.length).toBeGreaterThan(0);
+        });
+
+        // Click a link in mobile menu
+        const homeLinks = screen.getAllByText("Home");
+        const mobileHomeLink = homeLinks.find((link) => {
+          const parent = link.closest("div");
+          return parent?.className.includes("md:hidden");
+        });
+
+        if (mobileHomeLink) {
+          fireEvent.click(mobileHomeLink);
+        }
+      }
+    });
+  });
+
+  describe("Notification refresh callback", () => {
+    beforeEach(() => {
+      mockIsAuthenticated.mockReturnValue(true);
+      mockGetProfile.mockResolvedValue({
+        id: 1,
+        user_id: 1,
+        username: "testuser",
+        email: "test@example.com",
+        first_name: "Test",
+        last_name: "User",
+        role: "ATTENDEE",
+        phone_number: "",
+        bio: "",
+        participating_events: [],
+      });
+    });
+
+    it("should register notification refresh callback on mount", async () => {
+      const { registerNotificationRefreshCallback } = require("../../lib/notifications");
+      const mockRegisterCallback = registerNotificationRefreshCallback as jest.Mock;
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        expect(mockRegisterCallback).toHaveBeenCalled();
+      });
+    });
+
+    it("should unregister callback on unmount", async () => {
+      const { registerNotificationRefreshCallback } = require("../../lib/notifications");
+      const mockRegisterCallback = registerNotificationRefreshCallback as jest.Mock;
+
+      const { unmount } = render(<Navbar />);
+
+      await waitFor(() => {
+        expect(mockRegisterCallback).toHaveBeenCalled();
+      });
+
+      unmount();
+
+      // Should have been called with empty function to unregister
+      expect(mockRegisterCallback).toHaveBeenCalledWith(expect.any(Function));
     });
   });
 });

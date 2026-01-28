@@ -7,6 +7,13 @@ import {
   deleteOrganization,
   getOrganizationEvents,
   getMyOrganizations,
+  searchUsers,
+  getCollaborators,
+  addCollaborator,
+  removeCollaborator,
+  followOrganization,
+  unfollowOrganization,
+  getFollowedOrganizations,
 } from "../../lib/organizations";
 import { fetchWithAuth } from "../../lib/auth";
 
@@ -115,6 +122,282 @@ describe("Organizations API", () => {
       } as Response);
 
       await expect(listOrganizations()).rejects.toThrow("Failed to fetch");
+    });
+
+    it("should include search parameter in URL when provided", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Test Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: null,
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      await listOrganizations("test search");
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("search=test"),
+        { method: "GET" },
+      );
+    });
+
+    it("should not include search parameter when search is empty or whitespace", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Test Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: null,
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      await listOrganizations("   ");
+
+      const callUrl = mockFetchWithAuth.mock.calls[0][0] as string;
+      expect(callUrl).not.toContain("search=");
+    });
+
+    it("should include organization_type parameter when single type provided", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Test Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: "COMPANY",
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      await listOrganizations(undefined, "COMPANY");
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("organization_type=COMPANY"),
+        { method: "GET" },
+      );
+    });
+
+    it("should include multiple organization_type parameters when array provided", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Test Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: "COMPANY",
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      await listOrganizations(undefined, ["COMPANY", "NON_PROFIT"]);
+
+      const callUrl = mockFetchWithAuth.mock.calls[0][0] as string;
+      expect(callUrl).toContain("organization_type=COMPANY");
+      expect(callUrl).toContain("organization_type=NON_PROFIT");
+    });
+
+    it("should fallback to public fetch when fetchWithAuth returns 401", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Test Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: null,
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      const result = await listOrganizations();
+
+      expect(mockFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockOrganizations);
+    });
+
+    it("should fallback to public fetch when fetchWithAuth returns 403", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Test Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: null,
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      const result = await listOrganizations();
+
+      expect(mockFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockOrganizations);
+    });
+
+    it("should fallback to public fetch when fetchWithAuth throws error", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Test Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: null,
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockRejectedValueOnce(new Error("Network error"));
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      const result = await listOrganizations();
+
+      expect(mockFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockOrganizations);
     });
   });
 
@@ -406,6 +689,81 @@ describe("Organizations API", () => {
         "Failed to fetch organization events",
       );
     });
+
+    it("should fallback to public fetch when fetchWithAuth returns 401", async () => {
+      const mockEvents = [
+        {
+          id: 1,
+          name: "Test Event",
+          date: "2024-12-31T00:00:00Z",
+          status: "Active",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvents,
+      } as Response);
+
+      const result = await getOrganizationEvents(1);
+
+      expect(mockFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockEvents);
+    });
+
+    it("should fallback to public fetch when fetchWithAuth returns 403", async () => {
+      const mockEvents = [
+        {
+          id: 1,
+          name: "Test Event",
+          date: "2024-12-31T00:00:00Z",
+          status: "Active",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      } as Response);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvents,
+      } as Response);
+
+      const result = await getOrganizationEvents(1);
+
+      expect(mockFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockEvents);
+    });
+
+    it("should fallback to public fetch when fetchWithAuth throws error", async () => {
+      const mockEvents = [
+        {
+          id: 1,
+          name: "Test Event",
+          date: "2024-12-31T00:00:00Z",
+          status: "Active",
+        },
+      ];
+
+      mockFetchWithAuth.mockRejectedValueOnce(new Error("Network error"));
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockEvents,
+      } as Response);
+
+      const result = await getOrganizationEvents(1);
+
+      expect(mockFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockEvents);
+    });
   });
 
   describe("getMyOrganizations", () => {
@@ -462,6 +820,327 @@ describe("Organizations API", () => {
 
       await expect(getMyOrganizations()).rejects.toThrow(
         "Failed to fetch my organizations",
+      );
+    });
+  });
+
+  describe("searchUsers", () => {
+    it("should return empty array when query is less than 2 characters", async () => {
+      const result = await searchUsers("a");
+      expect(result).toEqual([]);
+      expect(mockFetchWithAuth).not.toHaveBeenCalled();
+    });
+
+    it("should search users with valid query", async () => {
+      const mockUsers = [
+        {
+          id: 1,
+          username: "user1",
+          email: "user1@example.com",
+          first_name: "John",
+          last_name: "Doe",
+          role: "ATTENDEE",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockUsers,
+      } as Response);
+
+      const result = await searchUsers("user");
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/accounts/organizations/search_users/"),
+        { method: "GET" },
+      );
+      expect(result).toEqual(mockUsers);
+    });
+
+    it("should encode query parameter correctly", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      } as Response);
+
+      await searchUsers("user name");
+
+      const callUrl = mockFetchWithAuth.mock.calls[0][0] as string;
+      expect(callUrl).toContain("q=user%20name");
+    });
+
+    it("should throw error on failed search", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "Search failed" }),
+      } as Response);
+
+      await expect(searchUsers("user")).rejects.toThrow("Search failed");
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(searchUsers("user")).rejects.toThrow(
+        "Failed to search users",
+      );
+    });
+  });
+
+  describe("getCollaborators", () => {
+    it("should fetch collaborators for organization", async () => {
+      const mockCollaborators = [
+        {
+          id: 1,
+          username: "collab1",
+          email: "collab1@example.com",
+          first_name: "Jane",
+          last_name: "Smith",
+          role: "ORGANIZER",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockCollaborators,
+      } as Response);
+
+      const result = await getCollaborators(1);
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/accounts/organizations/1/collaborators/"),
+        { method: "GET" },
+      );
+      expect(result).toEqual(mockCollaborators);
+    });
+
+    it("should throw error on failed fetch", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "Not found" }),
+      } as Response);
+
+      await expect(getCollaborators(999)).rejects.toThrow("Not found");
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(getCollaborators(1)).rejects.toThrow(
+        "Failed to fetch collaborators",
+      );
+    });
+  });
+
+  describe("addCollaborator", () => {
+    it("should add collaborator to organization", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+      } as Response);
+
+      await addCollaborator(1, 2);
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/accounts/organizations/1/collaborators/2/"),
+        { method: "POST" },
+      );
+    });
+
+    it("should throw error on failed add", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "User not found" }),
+      } as Response);
+
+      await expect(addCollaborator(1, 999)).rejects.toThrow("User not found");
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(addCollaborator(1, 2)).rejects.toThrow(
+        "Failed to add collaborator",
+      );
+    });
+  });
+
+  describe("removeCollaborator", () => {
+    it("should remove collaborator from organization", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+      } as Response);
+
+      await removeCollaborator(1, 2);
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/accounts/organizations/1/collaborators/2/"),
+        { method: "DELETE" },
+      );
+    });
+
+    it("should throw error on failed remove", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "Collaborator not found" }),
+      } as Response);
+
+      await expect(removeCollaborator(1, 999)).rejects.toThrow(
+        "Collaborator not found",
+      );
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(removeCollaborator(1, 2)).rejects.toThrow(
+        "Failed to remove collaborator",
+      );
+    });
+  });
+
+  describe("followOrganization", () => {
+    it("should follow organization", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+      } as Response);
+
+      await followOrganization(1);
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/accounts/organizations/1/follow/"),
+        { method: "POST" },
+      );
+    });
+
+    it("should throw error on failed follow", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "Organization not found" }),
+      } as Response);
+
+      await expect(followOrganization(999)).rejects.toThrow(
+        "Organization not found",
+      );
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(followOrganization(1)).rejects.toThrow(
+        "Failed to follow organization",
+      );
+    });
+  });
+
+  describe("unfollowOrganization", () => {
+    it("should unfollow organization", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+      } as Response);
+
+      await unfollowOrganization(1);
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/accounts/organizations/1/follow/"),
+        { method: "DELETE" },
+      );
+    });
+
+    it("should throw error on failed unfollow", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "Not following" }),
+      } as Response);
+
+      await expect(unfollowOrganization(999)).rejects.toThrow("Not following");
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(unfollowOrganization(1)).rejects.toThrow(
+        "Failed to unfollow organization",
+      );
+    });
+  });
+
+  describe("getFollowedOrganizations", () => {
+    it("should fetch followed organizations", async () => {
+      const mockOrganizations = [
+        {
+          id: 1,
+          name: "Followed Org",
+          description: "Test description",
+          email: "test@example.com",
+          website: "",
+          phone: "",
+          address: "",
+          city: "",
+          country: "",
+          logo_url: null,
+          cover_image_url: null,
+          twitter_handle: "",
+          facebook_url: "",
+          linkedin_url: "",
+          instagram_handle: "",
+          organization_type: null,
+          established_date: null,
+          owner_name: "Owner",
+          event_count: 0,
+          is_following: true,
+          created_at: "2024-01-01T00:00:00Z",
+        },
+      ];
+
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockOrganizations,
+      } as Response);
+
+      const result = await getFollowedOrganizations();
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/accounts/organizations/followed/"),
+        { method: "GET" },
+      );
+      expect(result).toEqual(mockOrganizations);
+    });
+
+    it("should throw error on failed fetch", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ detail: "Unauthorized" }),
+      } as Response);
+
+      await expect(getFollowedOrganizations()).rejects.toThrow("Unauthorized");
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      mockFetchWithAuth.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      } as Response);
+
+      await expect(getFollowedOrganizations()).rejects.toThrow(
+        "Failed to fetch followed organizations",
       );
     });
   });

@@ -2,6 +2,7 @@ import {
   cancelEventRequest,
   uncancelEventRequest,
   getMyOrganizedEvents,
+  getEventParticipants,
   getEventInterestedUsers,
   markEventAsInterested,
   unmarkEventAsInterested,
@@ -119,6 +120,101 @@ describe("Events API", () => {
 
       await expect(getMyOrganizedEvents()).rejects.toThrow(
         "Failed to fetch organized events",
+      );
+    });
+  });
+
+  describe("getEventParticipants", () => {
+    it("should return participants array on success", async () => {
+      const mockParticipants = [
+        {
+          id: 1,
+          username: "user1",
+          first_name: "John",
+          last_name: "Doe",
+        },
+        {
+          id: 2,
+          username: "user2",
+          first_name: "Jane",
+          last_name: "Smith",
+        },
+      ];
+
+      const mockResponse = {
+        ok: true,
+        json: async () => mockParticipants,
+      } as Response;
+
+      mockFetchWithAuth.mockResolvedValue(mockResponse);
+
+      const result = await getEventParticipants(1);
+
+      expect(mockFetchWithAuth).toHaveBeenCalledWith(
+        expect.stringContaining("/events/1/participants/"),
+        { method: "GET" },
+      );
+      expect(result).toEqual(mockParticipants);
+    });
+
+    it("should return results array when response has results property", async () => {
+      const mockParticipants = [
+        {
+          id: 1,
+          username: "user1",
+          first_name: "John",
+          last_name: "Doe",
+        },
+      ];
+
+      const mockResponse = {
+        ok: true,
+        json: async () => ({ results: mockParticipants }),
+      } as Response;
+
+      mockFetchWithAuth.mockResolvedValue(mockResponse);
+
+      const result = await getEventParticipants(1);
+
+      expect(result).toEqual(mockParticipants);
+    });
+
+    it("should throw error when response is not ok", async () => {
+      const mockResponse = {
+        ok: false,
+        json: async () => ({ detail: "Not found" }),
+      } as Response;
+
+      mockFetchWithAuth.mockResolvedValue(mockResponse);
+
+      await expect(getEventParticipants(1)).rejects.toThrow("Not found");
+    });
+
+    it("should throw default error when response has no detail", async () => {
+      const mockResponse = {
+        ok: false,
+        json: async () => ({}),
+      } as Response;
+
+      mockFetchWithAuth.mockResolvedValue(mockResponse);
+
+      await expect(getEventParticipants(1)).rejects.toThrow(
+        "Failed to fetch event participants",
+      );
+    });
+
+    it("should handle JSON parse error gracefully", async () => {
+      const mockResponse = {
+        ok: false,
+        json: async () => {
+          throw new Error("Invalid JSON");
+        },
+      } as Response;
+
+      mockFetchWithAuth.mockResolvedValue(mockResponse);
+
+      await expect(getEventParticipants(1)).rejects.toThrow(
+        "Failed to fetch event participants",
       );
     });
   });

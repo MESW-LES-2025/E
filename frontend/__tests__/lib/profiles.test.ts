@@ -156,4 +156,49 @@ describe("Profiles API", () => {
       );
     });
   });
+
+  describe("API_BASE fallback", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.resetModules();
+      process.env = { ...originalEnv };
+    });
+
+    afterAll(() => {
+      process.env = originalEnv;
+    });
+
+    it("should use fallback URL when NEXT_PUBLIC_API_BASE_URL is not set", async () => {
+      delete process.env.NEXT_PUBLIC_API_BASE_URL;
+
+      const { getProfile } = await import("../../lib/profiles");
+      const { fetchWithAuth: mockedFetch } = (await import(
+        "../../lib/auth"
+      )) as unknown as { fetchWithAuth: jest.Mock };
+
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 1,
+          user_id: 1,
+          username: "test",
+          email: "test@example.com",
+          first_name: "Test",
+          last_name: "User",
+          role: "ATTENDEE",
+          phone_number: "",
+          bio: "",
+          participating_events: [],
+        }),
+      });
+
+      await getProfile();
+
+      expect(mockedFetch).toHaveBeenCalledWith(
+        expect.stringContaining("http://localhost:8000/api"),
+        { method: "GET" },
+      );
+    });
+  });
 });

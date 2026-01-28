@@ -1,3 +1,5 @@
+from unittest.mock import Mock, patch
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -158,3 +160,18 @@ class NotificationAPITest(APITestCase):
         url = reverse("notification-unread-count")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    @patch("notifications.views.get_channel_layer")
+    @patch("notifications.views.async_to_sync")
+    def test_test_notification_view(self, mock_async_to_sync, mock_get_channel_layer):
+        """Test TestNotificationView sends notification via WebSocket"""
+        mock_channel_layer = Mock()
+        mock_get_channel_layer.return_value = mock_channel_layer
+
+        self.client.force_authenticate(user=self.user1)
+        url = reverse("test-notification")
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "Notification sent")
+        mock_async_to_sync.assert_called()

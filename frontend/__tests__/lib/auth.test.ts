@@ -5,6 +5,8 @@ import {
   login,
   register,
   fetchWithAuth,
+  getAuthToken,
+  getUserId,
 } from "@/lib/auth";
 
 // Mock localStorage
@@ -437,6 +439,233 @@ describe("Auth API", () => {
       expect(response.status).toBe(401);
       expect(localStorage.getItem("auth_tokens")).toBeNull();
       consoleSpy.mockRestore();
+    });
+
+    it("should handle 403 status and refresh token", async () => {
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ access: "old_token", refresh: "refresh_token" }),
+      );
+
+      // First call returns 403
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 403,
+        } as Response)
+        // Refresh token call
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ access: "new_token" }),
+        } as Response)
+        // Retry with new token
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: "success" }),
+        } as Response);
+
+      const response = await fetchWithAuth("http://localhost:8000/api/test", {
+        method: "GET",
+      });
+
+      expect(response.ok).toBe(true);
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe("getAuthToken", () => {
+    it("should return access token when tokens exist", async () => {
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ access: "test_token", refresh: "refresh_token" }),
+      );
+
+      const token = await getAuthToken();
+      expect(token).toBe("test_token");
+    });
+
+    it("should return null when no tokens exist", async () => {
+      const token = await getAuthToken();
+      expect(token).toBeNull();
+    });
+
+    it("should return null when tokens are invalid JSON", async () => {
+      localStorage.setItem("auth_tokens", "invalid json");
+      const token = await getAuthToken();
+      expect(token).toBeNull();
+    });
+
+    it("should return null when tokens don't have access key", async () => {
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ refresh: "refresh_token" }),
+      );
+      const token = await getAuthToken();
+      expect(token).toBeNull();
+    });
+
+    it("should return null in SSR context", async () => {
+      const originalWindow = global.window;
+      // @ts-expect-error - intentionally removing window for test
+      delete global.window;
+
+      const token = await getAuthToken();
+      expect(token).toBeNull();
+
+      global.window = originalWindow;
+    });
+  });
+
+  describe("getUserId", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should return user ID from valid token", async () => {
+      const mockToken =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTIzIn0.test";
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ access: mockToken, refresh: "refresh_token" }),
+      );
+
+      // Mock jwtDecode
+      const jwtDecode = require("jwt-decode");
+      jest.spyOn(jwtDecode, "jwtDecode").mockReturnValue({ user_id: "123" });
+
+      const userId = await getUserId();
+      expect(userId).toBe("123");
+    });
+
+    it("should return null when no token exists", async () => {
+      const userId = await getUserId();
+      expect(userId).toBeNull();
+    });
+
+    it("should return null and log error when JWT decode fails", async () => {
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ access: "invalid_token", refresh: "refresh_token" }),
+      );
+
+      // Mock jwtDecode to throw error
+      const jwtDecode = require("jwt-decode");
+      jest.spyOn(jwtDecode, "jwtDecode").mockImplementation(() => {
+        throw new Error("Invalid token");
+      });
+
+      const userId = await getUserId();
+      expect(userId).toBeNull();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Failed to decode JWT token:",
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("refreshToken", () => {
+    it("should refresh token successfully", async () => {
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ access: "old_token", refresh: "refresh_token" }),
+      );
+
+      // First call returns 401, triggering refresh
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+        } as Response)
+        // Refresh token call succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ access: "new_token" }),
+        } as Response)
+        // Retry with new token succeeds
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: "success" }),
+        } as Response);
+
+      const response = await fetchWithAuth("http://localhost:8000/api/test", {
+        method: "GET",
+      });
+
+      // Verify refresh was called
+      const refreshCall = mockFetch.mock.calls.find(
+        (call) => typeof call[0] === "string" && call[0].includes("/token/refresh/")
+      );
+      expect(refreshCall).toBeDefined();
+      expect(response.ok).toBe(true);
+    });
+
+    it("should handle refresh token failure", async () => {
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ access: "old_token", refresh: "refresh_token" }),
+      );
+
+      // First call returns 401
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+        } as Response)
+        // Refresh token call fails
+        .mockResolvedValueOnce({
+          ok: false,
+        } as Response);
+
+      const response = await fetchWithAuth("http://localhost:8000/api/test", {
+        method: "GET",
+      });
+
+      expect(response.status).toBe(401);
+      expect(localStorage.getItem("auth_tokens")).toBeNull();
+    });
+
+    it("should handle missing refresh token", async () => {
+      localStorage.setItem(
+        "auth_tokens",
+        JSON.stringify({ access: "old_token" }), // No refresh token
+      );
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      const response = await fetchWithAuth("http://localhost:8000/api/test", {
+        method: "GET",
+      });
+
+      expect(response.status).toBe(401);
+      // Should clear tokens when refresh fails
+      expect(localStorage.getItem("auth_tokens")).toBeNull();
+    });
+
+    it("should handle refresh token parse error", async () => {
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      
+      localStorage.setItem("auth_tokens", "invalid json");
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+      } as Response);
+
+      const response = await fetchWithAuth("http://localhost:8000/api/test", {
+        method: "GET",
+      });
+
+      expect(response.status).toBe(401);
+      consoleErrorSpy.mockRestore();
     });
   });
 });
