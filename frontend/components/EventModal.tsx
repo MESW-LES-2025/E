@@ -309,8 +309,8 @@ export default function EventModal({
           res = await fetch(`${base}/events/${id}/`);
         }
 
-        if (!res.ok) {
-          throw new Error(`Status ${res.status}`);
+        if (!res || !res.ok) {
+          throw new Error(`Status ${res?.status}`);
         }
 
         const data = await res.json();
