@@ -19,13 +19,19 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
+        try:
+            text_data_json = json.loads(text_data)
+            message = text_data_json.get("message")
+            if message is None:
+                return  # Ignore messages without message key
 
-        # Send message to room group
-        await self.channel_layer.group_send(
-            self.group_name, {"type": "chat.message", "message": message}
-        )
+            # Send message to room group
+            await self.channel_layer.group_send(
+                self.group_name, {"type": "chat.message", "message": message}
+            )
+        except json.JSONDecodeError:
+            # Ignore invalid JSON
+            pass
 
     # Receive message from room group
     async def chat_message(self, event):

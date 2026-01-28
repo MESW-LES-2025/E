@@ -1,5 +1,7 @@
 """Tests for notifications consumers"""
 
+import asyncio
+
 from asgiref.sync import async_to_sync
 from channels.layers import InMemoryChannelLayer
 from channels.testing import WebsocketCommunicator
@@ -168,8 +170,8 @@ class NotificationConsumerTest(TestCase):
             self.assertTrue(connected)
 
             # Send message through the channel layer to trigger chat_message
-            channel_layer = InMemoryChannelLayer()
-            await channel_layer.group_send(
+            # Use the same channel layer as the communicator
+            await communicator.channel_layer.group_send(
                 f"notifications_{self.user.id}",
                 {
                     "type": "chat.message",
@@ -178,7 +180,7 @@ class NotificationConsumerTest(TestCase):
             )
 
             # Should receive the message
-            response = await communicator.receive_json_from(timeout=1)
+            response = await communicator.receive_json_from(timeout=2)
             self.assertIn("message", response)
             self.assertEqual(response["message"], "Test chat message")
 
@@ -205,8 +207,8 @@ class NotificationConsumerTest(TestCase):
                 "time_left": "1 hour",
             }
 
-            channel_layer = InMemoryChannelLayer()
-            await channel_layer.group_send(
+            # Use the same channel layer as the communicator
+            await communicator.channel_layer.group_send(
                 f"notifications_{self.user.id}",
                 {
                     "type": "send_notification",
@@ -215,7 +217,7 @@ class NotificationConsumerTest(TestCase):
             )
 
             # Should receive the notification message
-            response = await communicator.receive_json_from(timeout=1)
+            response = await communicator.receive_json_from(timeout=2)
             self.assertEqual(response["type"], "event_reminder")
             self.assertEqual(response["event_name"], "Test Event")
 
@@ -242,8 +244,8 @@ class NotificationConsumerTest(TestCase):
                 "created_at": "2026-01-27T12:00:00Z",
             }
 
-            channel_layer = InMemoryChannelLayer()
-            await channel_layer.group_send(
+            # Use the same channel layer as the communicator
+            await communicator.channel_layer.group_send(
                 f"notifications_{self.user.id}",
                 {
                     "type": "send_notification",
@@ -252,7 +254,7 @@ class NotificationConsumerTest(TestCase):
             )
 
             # Should receive the complete notification message
-            response = await communicator.receive_json_from(timeout=1)
+            response = await communicator.receive_json_from(timeout=2)
             self.assertEqual(response["id"], 1)
             self.assertEqual(response["type"], "event_reminder")
 
@@ -273,10 +275,9 @@ class NotificationConsumerTest(TestCase):
             self.assertTrue(connected)
 
             # Send invalid JSON - this should be handled gracefully
-            try:
-                await communicator.send_to(text_data="invalid json")
-            except Exception:
-                pass
+            await communicator.send_to(text_data="invalid json")
+            # Wait a bit to ensure the error is handled
+            await asyncio.sleep(0.1)
 
             await communicator.disconnect()
 
@@ -294,11 +295,10 @@ class NotificationConsumerTest(TestCase):
             connected, subprotocol = await communicator.connect()
             self.assertTrue(connected)
 
-            # Send JSON without message key - should handle KeyError
-            try:
-                await communicator.send_json_to({"type": "test"})
-            except (KeyError, Exception):
-                pass
+            # Send JSON without message key - should handle gracefully
+            await communicator.send_json_to({"type": "test"})
+            # Wait a bit to ensure the error is handled
+            await asyncio.sleep(0.1)
 
             await communicator.disconnect()
 

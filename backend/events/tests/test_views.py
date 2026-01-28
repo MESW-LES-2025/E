@@ -693,7 +693,7 @@ class EventInterestViewTest(APITestCase):
         self.event.interested_users.add(self.user)
 
         self.client.force_authenticate(user=self.user)
-        url = reverse("events-interested", kwargs={"pk": self.event.id})
+        url = reverse("event-interested", kwargs={"pk": self.event.id})
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -704,7 +704,7 @@ class EventInterestViewTest(APITestCase):
     def test_delete_not_interested(self):
         """Test DELETE when not interested returns 404"""
         self.client.force_authenticate(user=self.user)
-        url = reverse("events-interested", kwargs={"pk": self.event.id})
+        url = reverse("event-interested", kwargs={"pk": self.event.id})
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -1173,7 +1173,7 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
         mock_get_channel_layer.return_value = mock_channel_layer
 
         self.client.force_authenticate(user=self.owner)
-        url = reverse("events-detail", kwargs={"pk": self.event.id})
+        url = reverse("event-detail", kwargs={"pk": self.event.id})
         data = {
             "name": "Test Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
@@ -1198,7 +1198,7 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
             }
 
             self.client.force_authenticate(user=self.owner)
-            url = reverse("events-detail", kwargs={"pk": self.event.id})
+            url = reverse("event-detail", kwargs={"pk": self.event.id})
             data = {
                 "name": "Test Event",
                 "date": (timezone.now() + timedelta(days=2)).isoformat(),
@@ -1228,7 +1228,7 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
             }
 
             self.client.force_authenticate(user=self.owner)
-            url = reverse("events-detail", kwargs={"pk": self.event.id})
+            url = reverse("event-detail", kwargs={"pk": self.event.id})
             data = {
                 "name": "Test Event",
                 "date": (timezone.now() + timedelta(days=1)).isoformat(),
@@ -1247,7 +1247,6 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
             "name": "Test Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
             "location": "Test Location",
-            "organization": None,
         }
 
         response = self.client.patch(url, data)
@@ -1500,7 +1499,7 @@ class EventRetrieveUpdateDestroyViewDestroyTest(APITestCase):
         other_user.profile.save()
 
         self.client.force_authenticate(user=other_user)
-        url = reverse("events-detail", kwargs={"pk": self.event.id})
+        url = reverse("event-detail", kwargs={"pk": self.event.id})
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

@@ -143,6 +143,9 @@ def notify_interested_users(event, notification_type, change_data):
 
 class EventListCreateView(generics.ListCreateAPIView):
     serializer_class = EventSerializer
+    permission_classes = [
+        AllowAny
+    ]  # Allow public read, create checks permissions in create()
 
     def get_queryset(self):
         """Only return events that have an organization"""
