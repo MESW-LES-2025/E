@@ -90,7 +90,7 @@ describe("EventModal", () => {
     capacity: 10,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     localStorage.clear();
     global.fetch = jest.fn();

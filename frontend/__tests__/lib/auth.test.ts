@@ -532,7 +532,7 @@ describe("Auth API", () => {
       // Mock jwtDecode
       const jwtDecodeModule = await import("jwt-decode");
       jest
-        .spyOn(jwtDecodeModule, "default")
+        .spyOn(jwtDecodeModule, "jwtDecode")
         .mockReturnValue({ user_id: "123" });
 
       const userId = await getUserId();
@@ -555,7 +555,7 @@ describe("Auth API", () => {
 
       // Mock jwtDecode to throw error
       const jwtDecodeModule = await import("jwt-decode");
-      jest.spyOn(jwtDecodeModule, "default").mockImplementation(() => {
+      jest.spyOn(jwtDecodeModule, "jwtDecode").mockImplementation(() => {
         throw new Error("Invalid token");
       });
 
