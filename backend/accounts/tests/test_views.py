@@ -933,8 +933,10 @@ class OrganizationViewSetExceptionTest(APITestCase):
         viewset = OrganizationViewSet()
         viewset.action = "retrieve"
         viewset.request = Mock()
-        viewset.request.user = collaborator
-        viewset.request.user.is_authenticated = True
+        mock_user = Mock()
+        mock_user.pk = collaborator.pk
+        mock_user.is_authenticated = True
+        viewset.request.user = mock_user
         viewset.kwargs = {"pk": org.id}
 
         # Mock get_object to return the organization
@@ -1575,8 +1577,10 @@ class OrganizationViewSetExceptionTest(APITestCase):
         viewset = OrganizationViewSet()
         viewset.action = "retrieve"
         viewset.request = Mock()
-        viewset.request.user = self.user
-        viewset.request.user.is_authenticated = True
+        mock_user = Mock()
+        mock_user.pk = self.user.pk
+        mock_user.is_authenticated = True
+        viewset.request.user = mock_user
         viewset.kwargs = {"pk": org.id}
 
         with patch.object(viewset, "get_object", return_value=org):

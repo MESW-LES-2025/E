@@ -107,6 +107,7 @@ class CreateEventViewTest(APITestCase):
             "location": "Test Location",
             "description": "Test Description",
             "organization": self.organization.id,
+            "category": "SOCIAL",
         }
 
         response = self.client.post(url, data)
@@ -140,6 +141,7 @@ class CreateEventViewTest(APITestCase):
             "location": "Test Location",
             "description": "Test Description",
             "organization": self.organization.id,
+            "category": "SOCIAL",
         }
 
         response = self.client.post(url, data)
@@ -166,6 +168,7 @@ class CreateEventViewTest(APITestCase):
             "location": "Test Location",
             "description": "Test Description",
             "organization": self.organization.id,
+            "category": "SOCIAL",
         }
 
         response = self.client.post(url, data)
@@ -311,6 +314,7 @@ class EventListCreateViewTest(APITestCase):
             "location": "Test Location",
             "description": "Test Description",
             "organization": self.organization.id,
+            "category": "SOCIAL",
         }
 
         response = self.client.post(url, data)
@@ -337,6 +341,7 @@ class EventListCreateViewTest(APITestCase):
             "location": "Test Location",
             "description": "Test Description",
             "organization": self.organization.id,
+            "category": "SOCIAL",
         }
 
         response = self.client.post(url, data)
@@ -506,7 +511,7 @@ class MyOrganizedEventsViewTest(APITestCase):
         )
 
         self.client.force_authenticate(user=collaborator)
-        url = reverse("events-my-organized")
+        url = reverse("my-organized-events")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)

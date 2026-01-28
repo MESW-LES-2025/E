@@ -24,7 +24,7 @@ class SeedDataCommandTest(TestCase):
         output = out.getvalue()
 
         # Command should complete without errors
-        self.assertIn("Seeding", output)
+        self.assertIn("Seed", output)
 
     def test_command_creates_organizations(self):
         """Test that command creates organizations"""

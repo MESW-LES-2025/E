@@ -134,6 +134,13 @@ class PublicOrganizationSerializerTest(TestCase):
 
 
 class OrganizationSerializerTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="testuser",
+            email="test@example.com",
+            password="password123",
+        )
+
     """Tests for OrganizationSerializer"""
 
     def test_get_owner_name(self):
@@ -194,8 +201,10 @@ class OrganizationSerializerTest(TestCase):
         organization.followers.add(user)
 
         request = Mock()
-        request.user = user
-        request.user.is_authenticated = True
+        mock_user = Mock()
+        mock_user.pk = user.pk
+        mock_user.is_authenticated = True
+        request.user = mock_user
 
         serializer = PublicOrganizationSerializer(
             organization, context={"request": request}
@@ -214,8 +223,10 @@ class OrganizationSerializerTest(TestCase):
         organization = Organization.objects.create(name="Test Org", owner=self.user)
 
         request = Mock()
-        request.user = user
-        request.user.is_authenticated = True
+        mock_user = Mock()
+        mock_user.pk = user.pk
+        mock_user.is_authenticated = True
+        request.user = mock_user
 
         serializer = PublicOrganizationSerializer(
             organization, context={"request": request}
@@ -251,8 +262,10 @@ class OrganizationSerializerTest(TestCase):
         organization.collaborators.add(collaborator)
 
         request = Mock()
-        request.user = collaborator
-        request.user.is_authenticated = True
+        mock_user = Mock()
+        mock_user.pk = collaborator.pk
+        mock_user.is_authenticated = True
+        request.user = mock_user
 
         serializer = CollaboratorOrganizationSerializer(
             organization, context={"request": request}
@@ -274,7 +287,7 @@ class OrganizationSerializerTest(TestCase):
 
         request = Mock()
         request.user = user
-        request.user.is_authenticated = True
+        type(user).is_authenticated = property(lambda self: True)
 
         serializer = CollaboratorOrganizationSerializer(
             organization, context={"request": request}
