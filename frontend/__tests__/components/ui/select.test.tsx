@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import userEvent from "@testing-library/user-event";
 import {
   Select,
   SelectTrigger,
@@ -67,9 +66,12 @@ describe("Custom Select Component", () => {
     fireEvent.click(trigger);
 
     // Wait for the content to appear in the portal
-    await waitFor(() => {
-      expect(screen.getByText("Group 1")).toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Group 1")).toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
   });
 
   it("renders SelectSeparator", async () => {
@@ -92,11 +94,15 @@ describe("Custom Select Component", () => {
     fireEvent.click(trigger);
 
     // Wait for the content to appear and check for separator
-    await waitFor(() => {
-      const separator = document.querySelector('[data-slot="select-separator"]') ||
-                       document.querySelector('[role="separator"]');
-      expect(separator).toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        const separator =
+          document.querySelector('[data-slot="select-separator"]') ||
+          document.querySelector('[role="separator"]');
+        expect(separator).toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
   });
 
   it("handles value change", async () => {
@@ -119,9 +125,12 @@ describe("Custom Select Component", () => {
     fireEvent.click(trigger);
 
     // Wait for options to appear in the portal
-    await waitFor(() => {
-      expect(screen.getByText("Option 2")).toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Option 2")).toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
 
     const option2 = screen.getByText("Option 2");
     fireEvent.pointerDown(option2);
@@ -171,9 +180,12 @@ describe("Custom Select Component", () => {
     fireEvent.click(trigger);
 
     // Wait for content to be rendered (SelectContent uses Portal)
-    await waitFor(() => {
-      const label = screen.getByText("Custom Label");
-      expect(label).toHaveClass("custom-label-class");
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        const label = screen.getByText("Custom Label");
+        expect(label).toHaveClass("custom-label-class");
+      },
+      { timeout: 2000 },
+    );
   });
 });

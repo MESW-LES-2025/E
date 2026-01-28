@@ -214,7 +214,7 @@ describe("Notification Library", () => {
     });
 
     it("should not throw when no callback is registered", () => {
-      registerNotificationRefreshCallback(null as any);
+      registerNotificationRefreshCallback(null as unknown as () => void);
       expect(() => runNotificationRefreshCallbacks()).not.toThrow();
     });
   });
@@ -222,9 +222,27 @@ describe("Notification Library", () => {
   describe("getFilteredUnreadCount", () => {
     it("should return unread count when reminders are enabled", async () => {
       const mockNotifications = [
-        { id: 1, title: "Event Reminder", is_read: false, message: "", created_at: "" },
-        { id: 2, title: "Other Notification", is_read: false, message: "", created_at: "" },
-        { id: 3, title: "Read Notification", is_read: true, message: "", created_at: "" },
+        {
+          id: 1,
+          title: "Event Reminder",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 2,
+          title: "Other Notification",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 3,
+          title: "Read Notification",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
       ];
       mockFetchWithAuth.mockResolvedValue({
         ok: true,
@@ -236,9 +254,27 @@ describe("Notification Library", () => {
 
     it("should filter out reminders when reminders are disabled", async () => {
       const mockNotifications = [
-        { id: 1, title: "Event Reminder", is_read: false, message: "", created_at: "" },
-        { id: 2, title: "Other Notification", is_read: false, message: "", created_at: "" },
-        { id: 3, title: "Event Reminder", is_read: true, message: "", created_at: "" },
+        {
+          id: 1,
+          title: "Event Reminder",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 2,
+          title: "Other Notification",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 3,
+          title: "Event Reminder",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
       ];
       mockFetchWithAuth.mockResolvedValue({
         ok: true,
@@ -250,8 +286,20 @@ describe("Notification Library", () => {
 
     it("should return 0 when all notifications are read", async () => {
       const mockNotifications = [
-        { id: 1, title: "Event Reminder", is_read: true, message: "", created_at: "" },
-        { id: 2, title: "Other Notification", is_read: true, message: "", created_at: "" },
+        {
+          id: 1,
+          title: "Event Reminder",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 2,
+          title: "Other Notification",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
       ];
       mockFetchWithAuth.mockResolvedValue({
         ok: true,

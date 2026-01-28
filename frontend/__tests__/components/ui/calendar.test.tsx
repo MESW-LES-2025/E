@@ -25,20 +25,25 @@ describe("Calendar Component", () => {
     // Find and click a date - need to find clickable dates (not disabled)
     const dates = screen.getAllByRole("gridcell");
     // Filter for dates that are not disabled and have a button
-    const clickableDates = dates.filter(date => {
+    const clickableDates = dates.filter((date) => {
       const button = date.querySelector("button");
-      return button && !button.disabled && !button.hasAttribute("aria-disabled");
+      return (
+        button && !button.disabled && !button.hasAttribute("aria-disabled")
+      );
     });
-    
+
     if (clickableDates.length > 0) {
       // Get the button inside the gridcell
       const button = clickableDates[0].querySelector("button");
       if (button) {
         fireEvent.click(button);
         // onSelect should be called
-        await waitFor(() => {
-          expect(onSelect).toHaveBeenCalled();
-        }, { timeout: 2000 });
+        await waitFor(
+          () => {
+            expect(onSelect).toHaveBeenCalled();
+          },
+          { timeout: 2000 },
+        );
       } else {
         // If no button found, just verify calendar renders
         expect(dates.length).toBeGreaterThan(0);
@@ -64,7 +69,6 @@ describe("Calendar Component", () => {
   });
 
   it("handles disabled dates", () => {
-    const disabledDate = new Date("2020-01-01");
     render(<Calendar disabled={(date) => date < new Date()} />);
 
     // Disabled dates should not be clickable
@@ -79,16 +83,13 @@ describe("Calendar Component", () => {
   });
 
   it("handles CalendarDayButton with focused modifier", async () => {
-    const { CalendarDayButton } = require("@/components/ui/calendar");
+    const calendarModule = await import("@/components/ui/calendar");
+    const { CalendarDayButton } = calendarModule;
     const day = { date: new Date() };
     const modifiers = { focused: true };
-    
+
     render(
-      <CalendarDayButton
-        day={day}
-        modifiers={modifiers}
-        className="test"
-      />
+      <CalendarDayButton day={day} modifiers={modifiers} className="test" />,
     );
 
     // Button should render
@@ -96,17 +97,14 @@ describe("Calendar Component", () => {
     expect(button).toBeInTheDocument();
   });
 
-  it("handles CalendarDayButton without focused modifier", () => {
-    const { CalendarDayButton } = require("@/components/ui/calendar");
+  it("handles CalendarDayButton without focused modifier", async () => {
+    const calendarModule = await import("@/components/ui/calendar");
+    const { CalendarDayButton } = calendarModule;
     const day = { date: new Date() };
     const modifiers = { focused: false };
-    
+
     render(
-      <CalendarDayButton
-        day={day}
-        modifiers={modifiers}
-        className="test"
-      />
+      <CalendarDayButton day={day} modifiers={modifiers} className="test" />,
     );
 
     const button = screen.getByRole("button");

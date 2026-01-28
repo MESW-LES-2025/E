@@ -1,6 +1,5 @@
 import { connectWebSocket, disconnectWebSocket } from "@/lib/websockets";
 import { toast } from "sonner";
-import { onNotificationReceivedCallback } from "@/lib/notifications";
 
 // Mock sonner toast
 jest.mock("sonner", () => ({
@@ -51,10 +50,38 @@ describe("WebSocket Notifications", () => {
     global.WebSocket = jest.fn(
       () => mockWebSocket,
     ) as unknown as typeof WebSocket;
-    (global.WebSocket as unknown as { OPEN: number; CONNECTING: number; CLOSING: number; CLOSED: number }).OPEN = 1;
-    (global.WebSocket as unknown as { OPEN: number; CONNECTING: number; CLOSING: number; CLOSED: number }).CONNECTING = 0;
-    (global.WebSocket as unknown as { OPEN: number; CONNECTING: number; CLOSING: number; CLOSED: number }).CLOSING = 2;
-    (global.WebSocket as unknown as { OPEN: number; CONNECTING: number; CLOSING: number; CLOSED: number }).CLOSED = 3;
+    (
+      global.WebSocket as unknown as {
+        OPEN: number;
+        CONNECTING: number;
+        CLOSING: number;
+        CLOSED: number;
+      }
+    ).OPEN = 1;
+    (
+      global.WebSocket as unknown as {
+        OPEN: number;
+        CONNECTING: number;
+        CLOSING: number;
+        CLOSED: number;
+      }
+    ).CONNECTING = 0;
+    (
+      global.WebSocket as unknown as {
+        OPEN: number;
+        CONNECTING: number;
+        CLOSING: number;
+        CLOSED: number;
+      }
+    ).CLOSING = 2;
+    (
+      global.WebSocket as unknown as {
+        OPEN: number;
+        CONNECTING: number;
+        CLOSING: number;
+        CLOSED: number;
+      }
+    ).CLOSED = 3;
 
     // Mock localStorage - default to returning null (enabled by default)
     const mockLocalStorage = {
@@ -63,7 +90,7 @@ describe("WebSocket Notifications", () => {
       removeItem: jest.fn(),
       clear: jest.fn(),
     };
-    
+
     Object.defineProperty(window, "localStorage", {
       value: mockLocalStorage,
       writable: true,
@@ -189,7 +216,6 @@ describe("WebSocket Notifications", () => {
     expect(secondCall).toBe(firstCall);
   });
 
-
   it("should log connection message on open", () => {
     const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     connectWebSocket("123");
@@ -213,7 +239,7 @@ describe("WebSocket Notifications", () => {
     };
 
     if (mockWebSocket.onmessage) {
-      mockWebSocket.onmessage(messageEvent as any);
+      mockWebSocket.onmessage(messageEvent as MessageEvent);
     }
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -294,10 +320,10 @@ describe("WebSocket Notifications", () => {
     const consoleDebugSpy = jest
       .spyOn(console, "debug")
       .mockImplementation(() => {});
-    
+
     // Clear toast calls but NOT localStorage mock
     (toast.info as jest.Mock).mockClear();
-    
+
     // Mock localStorage - return "true" for eventChangesEnabled
     // This must be set BEFORE connectWebSocket and remain active
     (window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
@@ -306,7 +332,7 @@ describe("WebSocket Notifications", () => {
       }
       return null;
     });
-    
+
     connectWebSocket("123");
 
     // Verify localStorage mock is still active
@@ -321,7 +347,7 @@ describe("WebSocket Notifications", () => {
         message: "Date changed",
       }),
     };
-    
+
     // Also test with envelope format
     const envelopeMessageEvent = {
       data: JSON.stringify({
@@ -338,7 +364,7 @@ describe("WebSocket Notifications", () => {
     // Verify the message can be parsed
     const parsed = JSON.parse(messageEvent.data);
     expect(parsed.type).toBe("event_updated");
-    
+
     // Verify onmessage handler exists
     expect(mockWebSocket.onmessage).toBeDefined();
 
@@ -346,9 +372,12 @@ describe("WebSocket Notifications", () => {
     if (mockWebSocket.onmessage) {
       mockWebSocket.onmessage(messageEvent);
     }
-    
+
     // If first didn't work, try envelope format
-    if (!(toast.info as jest.Mock).mock.calls.length && mockWebSocket.onmessage) {
+    if (
+      !(toast.info as jest.Mock).mock.calls.length &&
+      mockWebSocket.onmessage
+    ) {
       (window.localStorage.getItem as jest.Mock).mockClear();
       (window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === "eventChangesEnabled") {
@@ -360,12 +389,16 @@ describe("WebSocket Notifications", () => {
     }
 
     // Check if localStorage was called
-    expect(window.localStorage.getItem).toHaveBeenCalledWith("eventChangesEnabled");
-    
+    expect(window.localStorage.getItem).toHaveBeenCalledWith(
+      "eventChangesEnabled",
+    );
+
     // Verify the value returned
-    const eventChangesEnabled = window.localStorage.getItem("eventChangesEnabled");
+    const eventChangesEnabled = window.localStorage.getItem(
+      "eventChangesEnabled",
+    );
     expect(eventChangesEnabled).toBe("true");
-    
+
     expect(toast.info).toHaveBeenCalled();
     expect(consoleDebugSpy).toHaveBeenCalled();
     consoleDebugSpy.mockRestore();
@@ -434,10 +467,10 @@ describe("WebSocket Notifications", () => {
     const consoleDebugSpy = jest
       .spyOn(console, "debug")
       .mockImplementation(() => {});
-    
+
     // Clear toast calls but NOT localStorage mock
     (toast.warning as jest.Mock).mockClear();
-    
+
     // Mock localStorage - return "true" for eventChangesEnabled
     // This must be set BEFORE connectWebSocket and remain active
     (window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
@@ -446,7 +479,7 @@ describe("WebSocket Notifications", () => {
       }
       return null;
     });
-    
+
     connectWebSocket("123");
 
     // Verify localStorage mock is still active
@@ -460,7 +493,7 @@ describe("WebSocket Notifications", () => {
         message: "Cancelled due to weather",
       }),
     };
-    
+
     // Also test with envelope format
     const envelopeMessageEvent = {
       data: JSON.stringify({
@@ -478,9 +511,12 @@ describe("WebSocket Notifications", () => {
     if (mockWebSocket.onmessage) {
       mockWebSocket.onmessage(messageEvent);
     }
-    
+
     // If first didn't work, try envelope format
-    if (!(toast.warning as jest.Mock).mock.calls.length && mockWebSocket.onmessage) {
+    if (
+      !(toast.warning as jest.Mock).mock.calls.length &&
+      mockWebSocket.onmessage
+    ) {
       (window.localStorage.getItem as jest.Mock).mockClear();
       (window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === "eventChangesEnabled") {
@@ -604,8 +640,12 @@ describe("WebSocket Notifications", () => {
   it("should call notification callback when message received", () => {
     const mockCallback = jest.fn();
     // Set the callback
-    (require("@/lib/notifications") as any).onNotificationReceivedCallback =
-      mockCallback;
+    const notificationsModule = await import("@/lib/notifications");
+    (
+      notificationsModule as {
+        onNotificationReceivedCallback?: (data: unknown) => void;
+      }
+    ).onNotificationReceivedCallback = mockCallback;
 
     connectWebSocket("123");
     (window.localStorage.getItem as jest.Mock).mockReturnValue(null);
@@ -646,7 +686,9 @@ describe("WebSocket Notifications", () => {
   });
 
   it("should log disconnect message on close", () => {
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+    const consoleLogSpy = jest
+      .spyOn(console, "log")
+      .mockImplementation(() => {});
     connectWebSocket("123");
 
     if (mockWebSocket.onclose) {
@@ -667,7 +709,6 @@ describe("WebSocket Notifications", () => {
     // Socket should be null after close
     // We can't directly check the internal socket variable, but we can verify
     // by checking that a new connection creates a new socket
-    const firstSocket = (global.WebSocket as jest.Mock).mock.results[0].value;
     connectWebSocket("123");
     const secondSocket = (global.WebSocket as jest.Mock).mock.results[1].value;
 
@@ -682,7 +723,7 @@ describe("WebSocket Notifications", () => {
     connectWebSocket("123");
 
     if (mockWebSocket.onerror) {
-      mockWebSocket.onerror({} as any);
+      mockWebSocket.onerror(new Event("error"));
     }
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -695,11 +736,12 @@ describe("WebSocket Notifications", () => {
   it("should handle event_updated action click", () => {
     // Mock window.location.href BEFORE connecting WebSocket
     // The closure in the onClick handler will capture window.location at creation time
-    const originalLocation = (window as any).location;
+    const originalLocation = window.location;
     const mockLocation: { href: string } = { href: "" };
-    
-    delete (window as any).location;
-    (window as any).location = mockLocation;
+
+    delete (window as unknown as { location?: Location }).location;
+    (window as unknown as { location: { href: string } }).location =
+      mockLocation;
 
     // Set up localStorage mock
     (window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
@@ -737,12 +779,12 @@ describe("WebSocket Notifications", () => {
     const action = lastCall[1]?.action;
     expect(action).toBeDefined();
     expect(action?.onClick).toBeDefined();
-    
+
     // Verify action exists and has onClick
     expect(action).toBeDefined();
     expect(action?.onClick).toBeDefined();
     expect(action?.label).toBe("View Event");
-    
+
     // The onClick handler creates a closure that references window.location
     // The closure is created when toast.info is called, which happens during onmessage
     // At that point, window.location should be our mockLocation
@@ -754,21 +796,22 @@ describe("WebSocket Notifications", () => {
         action.onClick();
       }
     }).not.toThrow();
-    
+
     // Note: In a real browser, this would navigate to the event page
     // In tests, we verify the action structure is correct
 
     // Restore
-    (window as any).location = originalLocation;
+    (window as unknown as { location: Location }).location = originalLocation;
   });
 
   it("should handle event_cancelled action click", () => {
     // Mock window.location.href - create a simple object that can be mutated
-    const originalLocation = (window as any).location;
+    const originalLocation = window.location;
     const mockLocation: { href: string } = { href: "" };
-    
-    delete (window as any).location;
-    (window as any).location = mockLocation;
+
+    delete (window as unknown as { location?: Location }).location;
+    (window as unknown as { location: { href: string } }).location =
+      mockLocation;
 
     // Set up localStorage mock
     (window.localStorage.getItem as jest.Mock).mockImplementation((key) => {
@@ -805,12 +848,12 @@ describe("WebSocket Notifications", () => {
     const action = lastCall[1]?.action;
     expect(action).toBeDefined();
     expect(action?.onClick).toBeDefined();
-    
+
     // Verify action exists and has onClick
     expect(action).toBeDefined();
     expect(action?.onClick).toBeDefined();
     expect(action?.label).toBe("View Event");
-    
+
     // Verify the onClick can be called without error
     // The closure references window.location, which might not update our mock
     // in the test environment, but we verify the function is callable
@@ -821,7 +864,7 @@ describe("WebSocket Notifications", () => {
     }).not.toThrow();
 
     // Restore
-    (window as any).location = originalLocation;
+    (window as unknown as { location: Location }).location = originalLocation;
   });
 
   it("should handle event_updated without event_id (no action)", () => {

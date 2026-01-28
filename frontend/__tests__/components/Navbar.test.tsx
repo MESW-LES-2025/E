@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  fireEvent,
+} from "@testing-library/react";
 import { useRouter, usePathname } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import { isAuthenticated, logout } from "../../lib/auth";
@@ -615,8 +621,9 @@ describe("Navbar Component", () => {
     });
 
     it("should register notification refresh callback on mount", async () => {
-      const { registerNotificationRefreshCallback } = require("../../lib/notifications");
-      const mockRegisterCallback = registerNotificationRefreshCallback as jest.Mock;
+      const notificationsModule = await import("../../lib/notifications");
+      const mockRegisterCallback =
+        notificationsModule.registerNotificationRefreshCallback as jest.Mock;
 
       render(<Navbar />);
 
@@ -626,8 +633,9 @@ describe("Navbar Component", () => {
     });
 
     it("should unregister callback on unmount", async () => {
-      const { registerNotificationRefreshCallback } = require("../../lib/notifications");
-      const mockRegisterCallback = registerNotificationRefreshCallback as jest.Mock;
+      const notificationsModule = await import("../../lib/notifications");
+      const mockRegisterCallback =
+        notificationsModule.registerNotificationRefreshCallback as jest.Mock;
 
       const { unmount } = render(<Navbar />);
 

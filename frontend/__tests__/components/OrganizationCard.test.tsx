@@ -5,7 +5,6 @@ import { PublicOrganization } from "@/lib/organizations";
 import { getProfile } from "@/lib/profiles";
 import { followOrganization, unfollowOrganization } from "@/lib/organizations";
 import { isAuthenticated } from "@/lib/auth";
-import { useRouter } from "next/navigation";
 
 jest.mock("@/lib/profiles", () => ({
   getProfile: jest.fn(),
@@ -166,10 +165,10 @@ describe("OrganizationCard", () => {
     // The button shows "Following" and "Unfollow" appears on hover
     // We need to hover over the button to see "Unfollow", or click "Following"
     const followingButton = screen.getByRole("button", { name: /following/i });
-    
+
     // Hover to show "Unfollow" text, or just click the button
     fireEvent.mouseEnter(followingButton);
-    
+
     await waitFor(() => {
       // After hover, "Unfollow" should be visible
       const unfollowText = screen.queryByText("Unfollow");
@@ -268,7 +267,9 @@ describe("OrganizationCard", () => {
   });
 
   it("should save referrer to sessionStorage on card click", async () => {
-    render(<OrganizationCard organization={mockOrganization} referrer="/test" />);
+    render(
+      <OrganizationCard organization={mockOrganization} referrer="/test" />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Test Organization")).toBeInTheDocument();

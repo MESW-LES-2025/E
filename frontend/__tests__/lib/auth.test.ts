@@ -530,8 +530,10 @@ describe("Auth API", () => {
       );
 
       // Mock jwtDecode
-      const jwtDecode = require("jwt-decode");
-      jest.spyOn(jwtDecode, "jwtDecode").mockReturnValue({ user_id: "123" });
+      const jwtDecodeModule = await import("jwt-decode");
+      jest
+        .spyOn(jwtDecodeModule, "default")
+        .mockReturnValue({ user_id: "123" });
 
       const userId = await getUserId();
       expect(userId).toBe("123");
@@ -552,8 +554,8 @@ describe("Auth API", () => {
       );
 
       // Mock jwtDecode to throw error
-      const jwtDecode = require("jwt-decode");
-      jest.spyOn(jwtDecode, "jwtDecode").mockImplementation(() => {
+      const jwtDecodeModule = await import("jwt-decode");
+      jest.spyOn(jwtDecodeModule, "default").mockImplementation(() => {
         throw new Error("Invalid token");
       });
 
@@ -597,7 +599,8 @@ describe("Auth API", () => {
 
       // Verify refresh was called
       const refreshCall = mockFetch.mock.calls.find(
-        (call) => typeof call[0] === "string" && call[0].includes("/token/refresh/")
+        (call) =>
+          typeof call[0] === "string" && call[0].includes("/token/refresh/"),
       );
       expect(refreshCall).toBeDefined();
       expect(response.ok).toBe(true);
@@ -652,7 +655,7 @@ describe("Auth API", () => {
       const consoleErrorSpy = jest
         .spyOn(console, "error")
         .mockImplementation(() => {});
-      
+
       localStorage.setItem("auth_tokens", "invalid json");
 
       mockFetch.mockResolvedValueOnce({

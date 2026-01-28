@@ -208,9 +208,7 @@ describe("EventsCalendar", () => {
   });
 
   it("handles user fetch error gracefully", async () => {
-    const consoleErrorSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
     mockedIsAuthenticated.mockReturnValue(true);
     mockedFetchWithAuth.mockResolvedValue({
       ok: false,
@@ -365,14 +363,16 @@ describe("EventsCalendar", () => {
   it("exports calendar when export button is clicked", async () => {
     const mockBlob = new Blob(["test"], { type: "text/calendar" });
     const mockUrl = "blob:http://localhost/test";
-    
+
     // Mock URL.createObjectURL
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = jest.fn().mockReturnValue(mockUrl);
-    
+
     // Don't mock appendChild - let it work normally
     // Just spy on remove
-    const removeSpy = jest.spyOn(HTMLElement.prototype, "remove").mockImplementation(() => {});
+    const removeSpy = jest
+      .spyOn(HTMLElement.prototype, "remove")
+      .mockImplementation(() => {});
 
     mockedIsAuthenticated.mockReturnValue(true);
     mockedFetchWithAuth.mockResolvedValue({
@@ -422,11 +422,14 @@ describe("EventsCalendar", () => {
     const exportButton = screen.getByText("Export My Events (.ics)");
     fireEvent.click(exportButton);
 
-    await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(
-        "Could not export calendar. Try again later.",
-      );
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(alertSpy).toHaveBeenCalledWith(
+          "Could not export calendar. Try again later.",
+        );
+      },
+      { timeout: 2000 },
+    );
 
     alertSpy.mockRestore();
     consoleErrorSpy.mockRestore();
@@ -450,9 +453,12 @@ describe("EventsCalendar", () => {
     const exportButton = screen.getByText("Export My Events (.ics)");
     fireEvent.click(exportButton);
 
-    await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalled();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(alertSpy).toHaveBeenCalled();
+      },
+      { timeout: 2000 },
+    );
 
     alertSpy.mockRestore();
     consoleErrorSpy.mockRestore();
@@ -605,7 +611,8 @@ describe("EventsCalendar", () => {
           role: "ORGANIZER",
         }),
     });
-    const { getMyOrganizedEvents } = require("@/lib/events");
+    const eventsModule = await import("@/lib/events");
+    const { getMyOrganizedEvents } = eventsModule;
     const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.Mock;
     mockGetMyOrganizedEvents.mockResolvedValue([
       {

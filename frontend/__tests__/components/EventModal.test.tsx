@@ -66,7 +66,7 @@ describe("EventModal", () => {
   const mockGetEventParticipants = getEventParticipants as jest.Mock;
   const mockCancelEventRequest = cancelEventRequest as jest.Mock;
   const mockUncancelEventRequest = uncancelEventRequest as jest.Mock;
-  
+
   // Get mocked functions - will be initialized in beforeEach
   let mockLogin: jest.Mock | undefined;
   let mockIsAuthenticated: jest.Mock | undefined;
@@ -99,17 +99,18 @@ describe("EventModal", () => {
     mockCancelEventRequest.mockClear();
     mockUncancelEventRequest.mockClear();
     mockFetchWithAuth.mockClear();
-    
+
     // Get fresh mocks
-    const authModule = require("../../lib/auth");
-    const orgModule = require("../../lib/organizations");
-    const eventsModule = require("../../lib/events");
+    const authModule = await import("../../lib/auth");
+    const orgModule = await import("../../lib/organizations");
+    const eventsModule = await import("../../lib/events");
     mockLogin = authModule.login as jest.Mock;
     mockIsAuthenticated = authModule.isAuthenticated as jest.Mock;
     mockFollowOrganization = orgModule.followOrganization as jest.Mock;
     mockUnfollowOrganization = orgModule.unfollowOrganization as jest.Mock;
-    mockGetEventInterestedUsers = eventsModule.getEventInterestedUsers as jest.Mock;
-    
+    mockGetEventInterestedUsers =
+      eventsModule.getEventInterestedUsers as jest.Mock;
+
     // Reset mock implementations
     mockLogin?.mockClear();
     mockIsAuthenticated?.mockReturnValue(false);
@@ -137,9 +138,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
       expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
     });
 
@@ -275,9 +279,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
       fireEvent.keyDown(window, { key: "Escape" });
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -290,9 +297,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
       fireEvent.keyDown(window, { key: "Enter" });
       fireEvent.keyDown(window, { key: "a" });
 
@@ -382,9 +392,12 @@ describe("EventModal", () => {
         json: async () => mockEvent,
       });
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
       const organization = screen.getByText(mockEvent.organization_name);
       const description = screen.getByText("Test Description");
       expect(organization.compareDocumentPosition(description)).toBe(4); // Node.DOCUMENT_POSITION_FOLLOWING
@@ -445,9 +458,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       expect(
         screen.queryByRole("button", { name: /Participants/i }),
@@ -472,9 +488,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       await waitFor(
         () => {
@@ -507,9 +526,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       await waitFor(
         () => {
@@ -550,9 +572,12 @@ describe("EventModal", () => {
       mockGetEventParticipants.mockResolvedValue(mockParticipants);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Wait for user data to load and Participants section to appear
       await waitFor(
@@ -616,9 +641,12 @@ describe("EventModal", () => {
       );
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
       const participantsButton = await screen.findByRole("button", {
         name: /Participants/i,
       });
@@ -650,9 +678,12 @@ describe("EventModal", () => {
       mockGetEventParticipants.mockResolvedValue([]); // Empty array
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
       const participantsButton = await screen.findByRole("button", {
         name: /Participants/i,
       });
@@ -675,9 +706,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Unauthenticated users should see Participate and Interested buttons
       const participateButton = screen.getByText("Participate");
@@ -709,9 +743,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Wait for user data to load
       await waitFor(
@@ -769,9 +806,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       await waitFor(
         () => {
@@ -801,9 +841,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       await waitFor(
         () => {
@@ -843,9 +886,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const participantElements = screen.getAllByText((content, element) => {
         const text = element?.textContent ?? "";
@@ -885,9 +931,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       expect(
         screen.getAllByText(
@@ -924,9 +973,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       expect(
         screen.getAllByText(
@@ -963,9 +1015,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const badges = screen.getAllByText("Event Full");
       // Find the <span> badge (not the button)
@@ -1005,9 +1060,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const participateButton = screen.getByRole("button", {
         name: "Participate",
@@ -1043,9 +1101,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const cancelButton = screen.getByRole("button", {
         name: "Cancel Participation",
@@ -1082,9 +1143,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const participateButton = screen.getByRole("button", {
         name: "Event Full",
@@ -1121,9 +1185,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const cancelButton = screen.getByRole("button", {
         name: "Cancel Participation",
@@ -1159,9 +1226,12 @@ describe("EventModal", () => {
         .mockRejectedValueOnce(new Error("API Error"));
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const participateButton = screen.getByRole("button", {
         name: "Participate",
@@ -1274,9 +1344,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const cancelButton = screen.getByRole("button", {
         name: "Cancel Participation",
@@ -1337,9 +1410,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       await waitFor(() => {
         expect(removeItemSpy).toHaveBeenCalledWith("auth_tokens");
@@ -1362,9 +1438,12 @@ describe("EventModal", () => {
         .mockRejectedValueOnce(new Error("Network error"));
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
       // Should still render the event
       expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
     });
@@ -1394,9 +1473,12 @@ describe("EventModal", () => {
         .mockRejectedValueOnce(new Error("Network error"));
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const cancelButton = screen.getByRole("button", {
         name: "Cancel Participation",
@@ -1439,9 +1521,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const cancelButton = screen.getByRole("button", { name: "Cancel Event" });
 
@@ -1491,9 +1576,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const reactivateButton = screen.getByRole("button", {
         name: "Reactivate Event",
@@ -1644,9 +1732,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       const interestedButton = screen.getByRole("button", {
         name: "Interested",
@@ -1658,7 +1749,6 @@ describe("EventModal", () => {
         expect(screen.getByText(/mark interest in/)).toBeInTheDocument();
       });
     });
-
   });
 
   describe("Login Overlay", () => {
@@ -1679,8 +1769,8 @@ describe("EventModal", () => {
       if (mockLogin) {
         mockLogin.mockResolvedValueOnce(undefined);
       } else {
-        const { login } = require("../../lib/auth");
-        (login as jest.Mock).mockResolvedValueOnce(undefined);
+        const authModule = await import("../../lib/auth");
+        (authModule.login as jest.Mock).mockResolvedValueOnce(undefined);
       }
 
       mockFetchWithAuth
@@ -1698,9 +1788,12 @@ describe("EventModal", () => {
         } as Response);
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Click participate to show login overlay
       const participateButton = screen.getByRole("button", {
@@ -1747,14 +1840,19 @@ describe("EventModal", () => {
       if (mockLogin) {
         mockLogin.mockRejectedValueOnce(new Error("Invalid credentials"));
       } else {
-        const { login } = require("../../lib/auth");
-        (login as jest.Mock).mockRejectedValueOnce(new Error("Invalid credentials"));
+        const authModule = await import("../../lib/auth");
+        (authModule.login as jest.Mock).mockRejectedValueOnce(
+          new Error("Invalid credentials"),
+        );
       }
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 10000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 10000 },
+      );
 
       // Click participate to show login overlay
       const participateButton = screen.getByRole("button", {
@@ -1762,9 +1860,12 @@ describe("EventModal", () => {
       });
       fireEvent.click(participateButton);
 
-      await waitFor(() => {
-        expect(screen.getByText("Sign in")).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText("Sign in")).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Fill in login form
       const usernameInput = screen.getByLabelText("Username");
@@ -1782,9 +1883,12 @@ describe("EventModal", () => {
       }
 
       // Should show error message
-      await waitFor(() => {
-        expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
     });
 
     it("should close login overlay when cancel is clicked", async () => {
@@ -1794,9 +1898,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Click participate to show login overlay
       const participateButton = screen.getByRole("button", {
@@ -1824,9 +1931,12 @@ describe("EventModal", () => {
       });
 
       render(<EventModal id="1" onClose={mockOnClose} />);
-      await waitFor(() => {
-        expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText(mockEvent.name)).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Click participate to show login overlay
       const participateButton = screen.getByRole("button", {

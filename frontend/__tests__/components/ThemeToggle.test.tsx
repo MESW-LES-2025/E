@@ -59,7 +59,7 @@ describe("ThemeToggle", () => {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
       dispatchEvent: jest.fn(),
-    } as any);
+    } as unknown as Window);
 
     render(<ThemeToggle />);
 
@@ -134,7 +134,7 @@ describe("ThemeToggle", () => {
     const consoleErrorSpy = jest
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    
+
     localStorage.setItem("theme", "light");
     render(<ThemeToggle />);
 
@@ -148,7 +148,7 @@ describe("ThemeToggle", () => {
     // Count how many times setItem is called
     let setItemCallCount = 0;
     const originalSetItem = Storage.prototype.setItem;
-    localStorageSpy.mockImplementation(function(key: string, value: string) {
+    localStorageSpy.mockImplementation(function (key: string, value: string) {
       setItemCallCount++;
       // Allow the initial setItem calls (from component initialization)
       // but throw on the toggle click (which should be after initial render)
@@ -162,12 +162,15 @@ describe("ThemeToggle", () => {
     const button = screen.getByRole("button");
     fireEvent.click(button);
 
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to save theme preference:",
-        expect.any(Error),
-      );
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "Failed to save theme preference:",
+          expect.any(Error),
+        );
+      },
+      { timeout: 2000 },
+    );
 
     consoleErrorSpy.mockRestore();
     localStorageSpy.mockRestore();
@@ -183,20 +186,23 @@ describe("ThemeToggle", () => {
     });
 
     const button = screen.getByRole("button");
-    
+
     // Check if theme-transitioning class is added (it's added synchronously)
-    const hasTransitioningBefore = document.documentElement.classList.contains("theme-transitioning");
-    
+    document.documentElement.classList.contains("theme-transitioning");
+
     fireEvent.click(button);
 
     // Theme transitioning class should be added temporarily
     // The class is removed after requestAnimationFrame, so we check the theme was applied
-    await waitFor(() => {
-      expect(document.documentElement.classList.contains("dark")).toBe(true);
-    }, { timeout: 1000 });
-    
+    await waitFor(
+      () => {
+        expect(document.documentElement.classList.contains("dark")).toBe(true);
+      },
+      { timeout: 1000 },
+    );
+
     // The class should eventually be removed
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     // Note: The class is removed asynchronously, so we just verify the theme changed
   });
 });

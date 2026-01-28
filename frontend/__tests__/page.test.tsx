@@ -1,12 +1,7 @@
 import "@testing-library/jest-dom";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import Home from "../app/page";
 import { listOrganizations } from "../lib/organizations";
-import {
-  markEventAsInterested,
-  unmarkEventAsInterested,
-} from "../lib/events";
 
 // Mock next/navigation
 jest.mock("next/navigation", () => ({
@@ -35,13 +30,6 @@ jest.mock("../lib/events", () => ({
 const mockListOrganizations = listOrganizations as jest.MockedFunction<
   typeof listOrganizations
 >;
-const mockMarkEventAsInterested = markEventAsInterested as jest.MockedFunction<
-  typeof markEventAsInterested
->;
-const mockUnmarkEventAsInterested =
-  unmarkEventAsInterested as jest.MockedFunction<
-    typeof unmarkEventAsInterested
-  >;
 
 describe("Home Page", () => {
   beforeEach(() => {
@@ -141,7 +129,7 @@ describe("Home Page", () => {
       }),
     ) as jest.Mock;
 
-    const { rerender } = render(<Home />);
+    render(<Home />);
 
     await waitFor(() => {
       expect(screen.getByText("Test Event")).toBeInTheDocument();
@@ -149,10 +137,20 @@ describe("Home Page", () => {
 
     // Mock EventModal to call the callback directly
     jest.mock("../components/EventModal", () => {
-      const originalModule = jest.requireActual("../components/EventModal");
+      jest.requireActual("../components/EventModal");
       return {
         __esModule: true,
-        default: ({ onInterestChange, id }: any) => {
+        default: ({
+          onInterestChange,
+          id,
+        }: {
+          onInterestChange?: (
+            id: number,
+            isInterested: boolean,
+            count: number,
+          ) => void;
+          id?: string;
+        }) => {
           // Simulate callback being called
           if (onInterestChange && id === "1") {
             setTimeout(() => {
@@ -314,7 +312,7 @@ describe("Home Page", () => {
     const consoleErrorSpy = jest
       .spyOn(console, "error")
       .mockImplementation(() => {});
-    
+
     global.fetch = jest.fn(() =>
       Promise.resolve({
         ok: true,
@@ -322,7 +320,9 @@ describe("Home Page", () => {
       }),
     ) as jest.Mock;
 
-    mockListOrganizations.mockRejectedValue(new Error("Failed to load organizations"));
+    mockListOrganizations.mockRejectedValue(
+      new Error("Failed to load organizations"),
+    );
 
     render(<Home />);
 
@@ -373,8 +373,11 @@ describe("Home Page", () => {
 
     render(<Home />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Test Org")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Test Org")).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
   });
 });

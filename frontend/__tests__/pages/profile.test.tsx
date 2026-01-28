@@ -378,7 +378,8 @@ describe("Profile Page", () => {
   });
 
   it("should load active tab from localStorage", async () => {
-    const { getFollowedOrganizations } = require("../../lib/organizations");
+    const orgModule = await import("../../lib/organizations");
+    const { getFollowedOrganizations } = orgModule;
     const mockGetFollowedOrganizations = getFollowedOrganizations as jest.Mock;
     mockGetFollowedOrganizations.mockResolvedValue([]);
 
@@ -406,14 +407,20 @@ describe("Profile Page", () => {
 
     render(<ProfilePage />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/profile/i)).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/profile/i)).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
     // Verify that followed organizations tab is active (it should fetch)
-    await waitFor(() => {
-      expect(mockGetFollowedOrganizations).toHaveBeenCalled();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(mockGetFollowedOrganizations).toHaveBeenCalled();
+      },
+      { timeout: 5000 },
+    );
 
     localStorageSpy.mockRestore();
   });
@@ -437,8 +444,10 @@ describe("Profile Page", () => {
     });
 
     it("should fetch followed organizations when tab is active", async () => {
-      const { getFollowedOrganizations } = require("../../lib/organizations");
-      const mockGetFollowedOrganizations = getFollowedOrganizations as jest.Mock;
+      const orgModule = await import("../../lib/organizations");
+      const { getFollowedOrganizations } = orgModule;
+      const mockGetFollowedOrganizations =
+        getFollowedOrganizations as jest.Mock;
       mockGetFollowedOrganizations.mockResolvedValue([
         {
           id: 1,
@@ -466,25 +475,34 @@ describe("Profile Page", () => {
 
       render(<ProfilePage />);
 
-      await waitFor(() => {
-        expect(screen.getByText("Profile Information")).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText("Profile Information")).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
 
       // Click on Followed Organizations tab - use getAllByText and get the button
       const followedTabs = screen.getAllByText("Followed Organizations");
-      const followedTab = followedTabs.find(el => el.tagName === "BUTTON") || followedTabs[0];
+      const followedTab =
+        followedTabs.find((el) => el.tagName === "BUTTON") || followedTabs[0];
       fireEvent.click(followedTab);
 
-      await waitFor(() => {
-        expect(mockGetFollowedOrganizations).toHaveBeenCalled();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(mockGetFollowedOrganizations).toHaveBeenCalled();
+        },
+        { timeout: 5000 },
+      );
     });
 
     it("should handle unfollow organization", async () => {
-      const { getFollowedOrganizations, unfollowOrganization } = require("../../lib/organizations");
-      const mockGetFollowedOrganizations = getFollowedOrganizations as jest.Mock;
+      const orgModule = await import("../../lib/organizations");
+      const { getFollowedOrganizations, unfollowOrganization } = orgModule;
+      const mockGetFollowedOrganizations =
+        getFollowedOrganizations as jest.Mock;
       const mockUnfollowOrganization = unfollowOrganization as jest.Mock;
-      
+
       mockGetFollowedOrganizations.mockResolvedValue([
         {
           id: 1,
@@ -519,7 +537,8 @@ describe("Profile Page", () => {
 
       // Click on Followed Organizations tab - use getAllByText and get the button
       const followedTabs = screen.getAllByText("Followed Organizations");
-      const followedTab = followedTabs.find(el => el.tagName === "BUTTON") || followedTabs[0];
+      const followedTab =
+        followedTabs.find((el) => el.tagName === "BUTTON") || followedTabs[0];
       fireEvent.click(followedTab);
 
       await waitFor(() => {
@@ -536,11 +555,15 @@ describe("Profile Page", () => {
 
     it("should handle unfollow organization error", async () => {
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-      const { getFollowedOrganizations, unfollowOrganization } = require("../../lib/organizations");
-      const mockGetFollowedOrganizations = getFollowedOrganizations as jest.Mock;
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      const orgModule = await import("../../lib/organizations");
+      const { getFollowedOrganizations, unfollowOrganization } = orgModule;
+      const mockGetFollowedOrganizations =
+        getFollowedOrganizations as jest.Mock;
       const mockUnfollowOrganization = unfollowOrganization as jest.Mock;
-      
+
       mockGetFollowedOrganizations.mockResolvedValue([
         {
           id: 1,
@@ -565,7 +588,9 @@ describe("Profile Page", () => {
           created_at: "2024-01-01T00:00:00Z",
         },
       ]);
-      mockUnfollowOrganization.mockRejectedValue(new Error("Failed to unfollow"));
+      mockUnfollowOrganization.mockRejectedValue(
+        new Error("Failed to unfollow"),
+      );
 
       render(<ProfilePage />);
 
@@ -575,7 +600,8 @@ describe("Profile Page", () => {
 
       // Click on Followed Organizations tab - use getAllByText and get the button
       const followedTabs = screen.getAllByText("Followed Organizations");
-      const followedTab = followedTabs.find(el => el.tagName === "BUTTON") || followedTabs[0];
+      const followedTab =
+        followedTabs.find((el) => el.tagName === "BUTTON") || followedTabs[0];
       fireEvent.click(followedTab);
 
       await waitFor(() => {
@@ -612,7 +638,8 @@ describe("Profile Page", () => {
     });
 
     it("should fetch interested events when tab is active", async () => {
-      const { getInterestedEvents } = require("../../lib/events");
+      const eventsModule = await import("../../lib/events");
+      const { getInterestedEvents } = eventsModule;
       const mockGetInterestedEvents = getInterestedEvents as jest.Mock;
       mockGetInterestedEvents.mockResolvedValue([
         {
@@ -639,7 +666,9 @@ describe("Profile Page", () => {
 
       // Click on Interested Events tab - use getAllByText and get the button
       const interestedTabs = screen.getAllByText("Interested Events");
-      const interestedTab = interestedTabs.find(el => el.tagName === "BUTTON") || interestedTabs[0];
+      const interestedTab =
+        interestedTabs.find((el) => el.tagName === "BUTTON") ||
+        interestedTabs[0];
       fireEvent.click(interestedTab);
 
       await waitFor(() => {
@@ -648,10 +677,11 @@ describe("Profile Page", () => {
     });
 
     it("should handle remove interest", async () => {
-      const { getInterestedEvents, unmarkEventAsInterested } = require("../../lib/events");
+      const eventsModule = await import("../../lib/events");
+      const { getInterestedEvents, unmarkEventAsInterested } = eventsModule;
       const mockGetInterestedEvents = getInterestedEvents as jest.Mock;
       const mockUnmarkEventAsInterested = unmarkEventAsInterested as jest.Mock;
-      
+
       mockGetInterestedEvents.mockResolvedValue([
         {
           id: 1,
@@ -678,7 +708,9 @@ describe("Profile Page", () => {
 
       // Click on Interested Events tab - use getAllByText and get the button
       const interestedTabs = screen.getAllByText("Interested Events");
-      const interestedTab = interestedTabs.find(el => el.tagName === "BUTTON") || interestedTabs[0];
+      const interestedTab =
+        interestedTabs.find((el) => el.tagName === "BUTTON") ||
+        interestedTabs[0];
       fireEvent.click(interestedTab);
 
       await waitFor(() => {
@@ -695,11 +727,14 @@ describe("Profile Page", () => {
 
     it("should handle remove interest error", async () => {
       const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-      const { getInterestedEvents, unmarkEventAsInterested } = require("../../lib/events");
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      const eventsModule = await import("../../lib/events");
+      const { getInterestedEvents, unmarkEventAsInterested } = eventsModule;
       const mockGetInterestedEvents = getInterestedEvents as jest.Mock;
       const mockUnmarkEventAsInterested = unmarkEventAsInterested as jest.Mock;
-      
+
       mockGetInterestedEvents.mockResolvedValue([
         {
           id: 1,
@@ -716,7 +751,9 @@ describe("Profile Page", () => {
           organizer_name: "Organizer",
         },
       ]);
-      mockUnmarkEventAsInterested.mockRejectedValue(new Error("Failed to remove interest"));
+      mockUnmarkEventAsInterested.mockRejectedValue(
+        new Error("Failed to remove interest"),
+      );
 
       render(<ProfilePage />);
 
@@ -726,7 +763,9 @@ describe("Profile Page", () => {
 
       // Click on Interested Events tab - use getAllByText and get the button
       const interestedTabs = screen.getAllByText("Interested Events");
-      const interestedTab = interestedTabs.find(el => el.tagName === "BUTTON") || interestedTabs[0];
+      const interestedTab =
+        interestedTabs.find((el) => el.tagName === "BUTTON") ||
+        interestedTabs[0];
       fireEvent.click(interestedTab);
 
       await waitFor(() => {
@@ -743,6 +782,5 @@ describe("Profile Page", () => {
       alertSpy.mockRestore();
       consoleErrorSpy.mockRestore();
     });
-
   });
 });

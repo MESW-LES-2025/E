@@ -100,18 +100,23 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Failed to load filters from storage:",
-        expect.any(Error),
-      );
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Failed to load filters from storage:",
+          expect.any(Error),
+        );
+      },
+      { timeout: 3000 },
+    );
 
     localStorageSpy.mockRestore();
   });
 
   it("should handle localStorage error when saving filters", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const localStorageSpy = jest.spyOn(Storage.prototype, "setItem");
     let callCount = 0;
     localStorageSpy.mockImplementation((key) => {
@@ -192,9 +197,12 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(consoleSpy).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
 
     localStorageSpy.mockRestore();
   });
@@ -218,18 +226,23 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Failed to load active tab from storage:",
-        expect.any(Error),
-      );
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Failed to load active tab from storage:",
+          expect.any(Error),
+        );
+      },
+      { timeout: 3000 },
+    );
 
     localStorageSpy.mockRestore();
   });
 
   it("should handle localStorage error when saving active tab", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const localStorageSpy = jest.spyOn(Storage.prototype, "setItem");
     let callCount = 0;
     localStorageSpy.mockImplementation((key) => {
@@ -315,8 +328,8 @@ describe("Events Page", () => {
 
     // Mock multiple times because filters load from localStorage and trigger re-fetch
     mockFetch.mockImplementation((url: string | Request | URL) => {
-      let urlString = '';
-      if (typeof url === 'string') {
+      let urlString = "";
+      if (typeof url === "string") {
         urlString = url;
       } else if (url instanceof Request) {
         urlString = url.url;
@@ -326,7 +339,10 @@ describe("Events Page", () => {
       return Promise.resolve({
         ok: true,
         json: async () => {
-          if (urlString.includes("/events/past/") || urlString.includes("events/past")) {
+          if (
+            urlString.includes("/events/past/") ||
+            urlString.includes("events/past")
+          ) {
             return { results: [] };
           }
           return { results: mockEvents };
@@ -336,20 +352,30 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Test Event 1")).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Test Event 1")).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
 
     // Find and click the view details button
-    const viewDetailsButton = await screen.findByText(/View Details/i, {}, { timeout: 15000 });
+    const viewDetailsButton = await screen.findByText(
+      /View Details/i,
+      {},
+      { timeout: 15000 },
+    );
     expect(viewDetailsButton).toBeInTheDocument();
-    
+
     fireEvent.click(viewDetailsButton);
-    
-    await waitFor(() => {
-      // Modal should open - check for the mock modal
-      expect(screen.getByTestId("event-modal")).toBeInTheDocument();
-    }, { timeout: 10000 });
+
+    await waitFor(
+      () => {
+        // Modal should open - check for the mock modal
+        expect(screen.getByTestId("event-modal")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
   }, 30000);
 
   it("should handle interest change callback", async () => {
@@ -374,8 +400,8 @@ describe("Events Page", () => {
 
     // Mock multiple times because filters load from localStorage and trigger re-fetch
     mockFetch.mockImplementation((url: string | Request | URL) => {
-      let urlString = '';
-      if (typeof url === 'string') {
+      let urlString = "";
+      if (typeof url === "string") {
         urlString = url;
       } else if (url instanceof Request) {
         urlString = url.url;
@@ -385,7 +411,10 @@ describe("Events Page", () => {
       return Promise.resolve({
         ok: true,
         json: async () => {
-          if (urlString.includes("/events/past/") || urlString.includes("events/past")) {
+          if (
+            urlString.includes("/events/past/") ||
+            urlString.includes("events/past")
+          ) {
             return { results: [] };
           }
           return { results: mockEvents };
@@ -395,26 +424,43 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Test Event 1")).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Test Event 1")).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
 
     // Open modal by clicking view details
-    const viewDetailsButton = await screen.findByText(/View Details/i, {}, { timeout: 15000 });
+    const viewDetailsButton = await screen.findByText(
+      /View Details/i,
+      {},
+      { timeout: 15000 },
+    );
     fireEvent.click(viewDetailsButton);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("event-modal")).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("event-modal")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
     // Trigger interest change through mock modal
-    const triggerInterestButton = await screen.findByTestId("trigger-interest-change", {}, { timeout: 10000 });
+    const triggerInterestButton = await screen.findByTestId(
+      "trigger-interest-change",
+      {},
+      { timeout: 10000 },
+    );
     fireEvent.click(triggerInterestButton);
 
     // Verify the interest count was updated (this tests handleInterestChange function)
-    await waitFor(() => {
-      expect(screen.getByText("Test Event 1")).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Test Event 1")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
   }, 30000);
 
   it("should handle participation change callback", async () => {
@@ -439,8 +485,8 @@ describe("Events Page", () => {
 
     // Mock multiple times because filters load from localStorage and trigger re-fetch
     mockFetch.mockImplementation((url: string | Request | URL) => {
-      let urlString = '';
-      if (typeof url === 'string') {
+      let urlString = "";
+      if (typeof url === "string") {
         urlString = url;
       } else if (url instanceof Request) {
         urlString = url.url;
@@ -450,7 +496,10 @@ describe("Events Page", () => {
       return Promise.resolve({
         ok: true,
         json: async () => {
-          if (urlString.includes("/events/past/") || urlString.includes("events/past")) {
+          if (
+            urlString.includes("/events/past/") ||
+            urlString.includes("events/past")
+          ) {
             return { results: [] };
           }
           return { results: mockEvents };
@@ -460,26 +509,43 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Test Event 1")).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Test Event 1")).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
 
     // Open modal by clicking view details
-    const viewDetailsButton = await screen.findByText(/View Details/i, {}, { timeout: 15000 });
+    const viewDetailsButton = await screen.findByText(
+      /View Details/i,
+      {},
+      { timeout: 15000 },
+    );
     fireEvent.click(viewDetailsButton);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("event-modal")).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("event-modal")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
     // Trigger participation change through mock modal
-    const triggerParticipationButton = await screen.findByTestId("trigger-participation-change", {}, { timeout: 10000 });
+    const triggerParticipationButton = await screen.findByTestId(
+      "trigger-participation-change",
+      {},
+      { timeout: 10000 },
+    );
     fireEvent.click(triggerParticipationButton);
 
     // Verify the component handles the change (this tests handleParticipationChange function)
-    await waitFor(() => {
-      expect(screen.getByText("Test Event 1")).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Test Event 1")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
   }, 30000);
 
   it("should handle close modal", async () => {
@@ -504,8 +570,8 @@ describe("Events Page", () => {
 
     // Mock multiple times because filters load from localStorage and trigger re-fetch
     mockFetch.mockImplementation((url: string | Request | URL) => {
-      let urlString = '';
-      if (typeof url === 'string') {
+      let urlString = "";
+      if (typeof url === "string") {
         urlString = url;
       } else if (url instanceof Request) {
         urlString = url.url;
@@ -515,7 +581,10 @@ describe("Events Page", () => {
       return Promise.resolve({
         ok: true,
         json: async () => {
-          if (urlString.includes("/events/past/") || urlString.includes("events/past")) {
+          if (
+            urlString.includes("/events/past/") ||
+            urlString.includes("events/past")
+          ) {
             return { results: [] };
           }
           return { results: mockEvents };
@@ -525,28 +594,41 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Test Event 1")).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Test Event 1")).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
 
     // Modal should not be open initially
     expect(screen.queryByTestId("event-modal")).not.toBeInTheDocument();
 
     // Open modal
-    const viewDetailsButton = await screen.findByText(/View Details/i, {}, { timeout: 15000 });
+    const viewDetailsButton = await screen.findByText(
+      /View Details/i,
+      {},
+      { timeout: 15000 },
+    );
     fireEvent.click(viewDetailsButton);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("event-modal")).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("event-modal")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
     // Close modal by clicking close button
     const closeButton = screen.getByText("Close");
     fireEvent.click(closeButton);
 
-    await waitFor(() => {
-      expect(screen.queryByTestId("event-modal")).not.toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId("event-modal")).not.toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
   }, 30000);
 
   it("should handle tab switching", async () => {
@@ -590,8 +672,8 @@ describe("Events Page", () => {
 
     // Mock multiple times because filters load from localStorage and trigger re-fetch
     mockFetch.mockImplementation((url: string | Request | URL) => {
-      let urlString = '';
-      if (typeof url === 'string') {
+      let urlString = "";
+      if (typeof url === "string") {
         urlString = url;
       } else if (url instanceof Request) {
         urlString = url.url;
@@ -601,7 +683,10 @@ describe("Events Page", () => {
       return Promise.resolve({
         ok: true,
         json: async () => {
-          if (urlString.includes("/events/past/") || urlString.includes("events/past")) {
+          if (
+            urlString.includes("/events/past/") ||
+            urlString.includes("events/past")
+          ) {
             return { results: mockPastEvents };
           }
           return { results: mockUpcomingEvents };
@@ -611,20 +696,26 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Upcoming Event")).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Upcoming Event")).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
 
     // Click on Past Events tab
     const pastTab = screen.getByText(/Past Events/i);
     expect(pastTab).toBeInTheDocument();
-    
+
     fireEvent.click(pastTab);
-    
+
     // Wait for past events to be displayed
-    await waitFor(() => {
-      expect(screen.getByText("Past Event")).toBeInTheDocument();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Past Event")).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
   }, 30000);
 
   it("should handle clear filters button click when no events", async () => {
@@ -636,27 +727,35 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/No upcoming events found matching your filters/i)).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(/No upcoming events found matching your filters/i),
+        ).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
 
     // Find and click the clear filters button
     const clearFiltersButton = screen.getByText(/Clear Filters/i);
     expect(clearFiltersButton).toBeInTheDocument();
-    
+
     fireEvent.click(clearFiltersButton);
-    
+
     // After clearing filters, component should re-render and fetch again
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalled();
-    }, { timeout: 10000 });
+    await waitFor(
+      () => {
+        expect(mockFetch).toHaveBeenCalled();
+      },
+      { timeout: 10000 },
+    );
   }, 30000);
 
   it("should handle retry button click on error", async () => {
     // Mock window.location.reload by replacing window.location entirely
     const reloadMock = jest.fn();
     const originalLocation = window.location;
-    
+
     // Create a mock location that implements reload
     const mockLocation = Object.create(Location.prototype);
     Object.assign(mockLocation, {
@@ -665,12 +764,22 @@ describe("Events Page", () => {
       assign: jest.fn(),
       replace: jest.fn(),
     });
-    
+
     // Replace window.location using delete and assignment
     try {
-      delete (window as any).location;
-      (window as any).location = mockLocation;
-    } catch (e) {
+      delete (window as unknown as { location?: Location }).location;
+      (
+        window as unknown as {
+          location: {
+            reload: jest.Mock;
+            href: string;
+            assign: jest.Mock;
+            replace: jest.Mock;
+            toString: jest.Mock;
+          };
+        }
+      ).location = mockLocation;
+    } catch {
       // If we can't replace location, just test that button exists and is clickable
     }
 
@@ -684,9 +793,12 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Could not load events/i)).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/Could not load events/i)).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
 
     const retryButton = screen.getByText(/Retry/i);
     expect(retryButton).toBeInTheDocument();
@@ -702,8 +814,8 @@ describe("Events Page", () => {
 
     // Restore window.location if we replaced it
     try {
-      (window as any).location = originalLocation;
-    } catch (e) {
+      (window as unknown as { location: Location }).location = originalLocation;
+    } catch {
       // Location might not be restorable
     }
   }, 30000);
@@ -723,9 +835,12 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Events")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Events")).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
 
     // Filters are saved when they change, which happens through EventFilters component
     // We verify the component renders
@@ -750,9 +865,12 @@ describe("Events Page", () => {
     render(<EventsPage />);
 
     // Component should render with default filters
-    await waitFor(() => {
-      expect(screen.getByText("Events")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Events")).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
   });
 
   it("should handle window undefined in saveFiltersToStorage", async () => {
@@ -769,9 +887,12 @@ describe("Events Page", () => {
     render(<EventsPage />);
 
     // Component should render and handle the case gracefully
-    await waitFor(() => {
-      expect(screen.getByText("Events")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Events")).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
   });
 
   it("should display events in grid layout", async () => {
@@ -812,8 +933,8 @@ describe("Events Page", () => {
 
     // Mock multiple times because filters load from localStorage and trigger re-fetch
     mockFetch.mockImplementation((url: string | Request | URL) => {
-      let urlString = '';
-      if (typeof url === 'string') {
+      let urlString = "";
+      if (typeof url === "string") {
         urlString = url;
       } else if (url instanceof Request) {
         urlString = url.url;
@@ -823,7 +944,10 @@ describe("Events Page", () => {
       return Promise.resolve({
         ok: true,
         json: async () => {
-          if (urlString.includes("/events/past/") || urlString.includes("events/past")) {
+          if (
+            urlString.includes("/events/past/") ||
+            urlString.includes("events/past")
+          ) {
             return { results: [] };
           }
           return { results: mockEvents };
@@ -833,10 +957,13 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Event 1")).toBeInTheDocument();
-      expect(screen.getByText("Event 2")).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Event 1")).toBeInTheDocument();
+        expect(screen.getByText("Event 2")).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
   }, 30000);
 
   it("should handle array response format from API", async () => {
@@ -861,8 +988,8 @@ describe("Events Page", () => {
 
     // Mock multiple times because filters load from localStorage and trigger re-fetch
     mockFetch.mockImplementation((url: string | Request | URL) => {
-      let urlString = '';
-      if (typeof url === 'string') {
+      let urlString = "";
+      if (typeof url === "string") {
         urlString = url;
       } else if (url instanceof Request) {
         urlString = url.url;
@@ -872,7 +999,10 @@ describe("Events Page", () => {
       return Promise.resolve({
         ok: true,
         json: async () => {
-          if (urlString.includes("/events/past/") || urlString.includes("events/past")) {
+          if (
+            urlString.includes("/events/past/") ||
+            urlString.includes("events/past")
+          ) {
             return []; // Array format for past events
           }
           return mockEvents; // Array format, not object with results
@@ -882,9 +1012,12 @@ describe("Events Page", () => {
 
     render(<EventsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Event 1")).toBeInTheDocument();
-    }, { timeout: 15000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Event 1")).toBeInTheDocument();
+      },
+      { timeout: 15000 },
+    );
   }, 30000);
 
   it("should handle saveFiltersToStorage when window is undefined", async () => {
@@ -901,9 +1034,12 @@ describe("Events Page", () => {
     render(<EventsPage />);
 
     // Should not crash
-    await waitFor(() => {
-      expect(screen.getByText("Events")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Events")).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
 
     global.window = originalWindow;
   });
@@ -921,15 +1057,20 @@ describe("Events Page", () => {
     render(<EventsPage />);
 
     // Should use default filters
-    await waitFor(() => {
-      expect(screen.getByText("Events")).toBeInTheDocument();
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Events")).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
 
     global.window = originalWindow;
   });
 
   it("should handle saveFiltersToStorage error gracefully", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const localStorageSpy = jest.spyOn(Storage.prototype, "setItem");
     let callCount = 0;
     localStorageSpy.mockImplementation((key) => {

@@ -465,10 +465,15 @@ describe("My Events Page", () => {
   });
 
   it("should fetch organizations and organized events for ORGANIZER role", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModule1 = await import("../../lib/organizations");
+    const eventsModule1 = await import("../../lib/events");
+    const { getMyOrganizations } = orgModule1;
+    const { getMyOrganizedEvents } = eventsModule1;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -517,9 +522,14 @@ describe("My Events Page", () => {
   });
 
   it("should handle organization fetch error gracefully", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const orgModule = await import("../../lib/organizations");
+    const { getMyOrganizations } = orgModule;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     const mockProfile = {
       id: 1,
@@ -536,7 +546,9 @@ describe("My Events Page", () => {
 
     mockIsAuthenticated.mockReturnValue(true);
     mockGetProfile.mockResolvedValue(mockProfile);
-    mockGetMyOrganizations.mockRejectedValue(new Error("Failed to fetch organizations"));
+    mockGetMyOrganizations.mockRejectedValue(
+      new Error("Failed to fetch organizations"),
+    );
     mockFetchWithAuth.mockResolvedValue({
       ok: true,
       json: async () => [],
@@ -552,10 +564,15 @@ describe("My Events Page", () => {
   });
 
   it("should auto-select organization when only one exists", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleAuto = await import("../../lib/organizations");
+    const eventsModuleAuto = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleAuto;
+    const { getMyOrganizedEvents } = eventsModuleAuto;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -592,10 +609,15 @@ describe("My Events Page", () => {
   });
 
   it("should group organized events by organization", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleGroup = await import("../../lib/organizations");
+    const eventsModuleGroup = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleGroup;
+    const { getMyOrganizedEvents } = eventsModuleGroup;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -668,7 +690,7 @@ describe("My Events Page", () => {
 
     mockIsAuthenticated.mockReturnValue(true);
     mockGetProfile.mockResolvedValue(mockProfile);
-    
+
     // Mock fetchWithAuth to return the participating event when fetching by ID
     // The page fetches events individually by ID from participating_events array
     mockFetchWithAuth.mockImplementation((url: string) => {
@@ -697,26 +719,39 @@ describe("My Events Page", () => {
       });
     });
 
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleRefresh = await import("../../lib/organizations");
+    const eventsModuleRefresh = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleRefresh;
+    const { getMyOrganizedEvents } = eventsModuleRefresh;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
     mockGetMyOrganizations.mockResolvedValue({ owned: [], collaborated: [] });
     mockGetMyOrganizedEvents.mockResolvedValue([]);
 
     render(<MyEventsPage />);
 
     // Wait for the page to load and show participating events
-    await waitFor(() => {
-      expect(screen.getByText("Participating Event")).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Participating Event")).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("should filter organized events by selected organization", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleFilter = await import("../../lib/organizations");
+    const eventsModuleFilter = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleFilter;
+    const { getMyOrganizedEvents } = eventsModuleFilter;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -781,8 +816,11 @@ describe("My Events Page", () => {
   });
 
   it("should handle event cancellation", async () => {
-    const { cancelEvent } = require("../../lib/events");
-    const mockCancelEvent = cancelEvent as jest.MockedFunction<typeof cancelEvent>;
+    const eventsModuleCancel = await import("../../lib/events");
+    const { cancelEvent } = eventsModuleCancel;
+    const mockCancelEvent = cancelEvent as jest.MockedFunction<
+      typeof cancelEvent
+    >;
 
     const mockProfile = {
       id: 1,
@@ -815,10 +853,16 @@ describe("My Events Page", () => {
 
     mockIsAuthenticated.mockReturnValue(true);
     mockGetProfile.mockResolvedValue(mockProfile);
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    (getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>).mockResolvedValue(mockOrgs);
-    (getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>).mockResolvedValue(mockOrganizedEvents);
+    const orgModuleActive = await import("../../lib/organizations");
+    const eventsModuleActive = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleActive;
+    const { getMyOrganizedEvents } = eventsModuleActive;
+    (
+      getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>
+    ).mockResolvedValue(mockOrgs);
+    (
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>
+    ).mockResolvedValue(mockOrganizedEvents);
     mockCancelEvent.mockResolvedValue(undefined);
     mockFetchWithAuth.mockResolvedValue({
       ok: true,
@@ -837,10 +881,15 @@ describe("My Events Page", () => {
   });
 
   it("should show create event form for organizers", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleCreate = await import("../../lib/organizations");
+    const eventsModuleCreate = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleCreate;
+    const { getMyOrganizedEvents } = eventsModuleCreate;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -882,10 +931,15 @@ describe("My Events Page", () => {
   });
 
   it("should validate event form and show errors", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleValidate = await import("../../lib/organizations");
+    const eventsModuleValidate = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleValidate;
+    const { getMyOrganizedEvents } = eventsModuleValidate;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -937,10 +991,15 @@ describe("My Events Page", () => {
   });
 
   it("should create event successfully", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleSuccess = await import("../../lib/organizations");
+    const eventsModuleSuccess = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleSuccess;
+    const { getMyOrganizedEvents } = eventsModuleSuccess;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -964,7 +1023,7 @@ describe("My Events Page", () => {
     mockGetProfile.mockResolvedValue(mockProfile);
     mockGetMyOrganizations.mockResolvedValue(mockOrgs);
     mockGetMyOrganizedEvents.mockResolvedValue([]);
-    
+
     // Mock successful event creation
     mockFetchWithAuth.mockImplementation((url: string) => {
       if (url.includes("/events/create/")) {
@@ -994,37 +1053,41 @@ describe("My Events Page", () => {
     // There might be multiple comboboxes (organization select and category select)
     // Find the organization select specifically
     const orgSelects = screen.getAllByRole("combobox");
-    const orgSelect = orgSelects.find(select => {
-      // The organization select should be near the "Organization" label
-      const orgLabel = screen.getByText(/Organization/i);
-      return orgLabel.closest("div")?.contains(select);
-    }) || orgSelects[0];
-    
+    const orgSelect =
+      orgSelects.find((select) => {
+        // The organization select should be near the "Organization" label
+        const orgLabel = screen.getByText(/Organization/i);
+        return orgLabel.closest("div")?.contains(select);
+      }) || orgSelects[0];
+
     // Open the select dropdown - use keyDown to trigger Radix UI Select
     fireEvent.keyDown(orgSelect, { key: "Enter", code: "Enter" });
     fireEvent.keyDown(orgSelect, { key: " ", code: "Space" });
-    
+
     // Also try mouse events
     fireEvent.pointerDown(orgSelect);
     fireEvent.click(orgSelect);
-    
+
     // Wait for the select content to appear in the portal
     // The option might appear in a portal, so we need to wait
-    await waitFor(() => {
-      // Try to find the option in the portal
-      const portal = document.querySelector('[data-slot="select-content"]');
-      expect(portal).toBeInTheDocument();
-    }, { timeout: 3000 });
-    
+    await waitFor(
+      () => {
+        // Try to find the option in the portal
+        const portal = document.querySelector('[data-slot="select-content"]');
+        expect(portal).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
     // Find the option in the portal
     const portal = document.querySelector('[data-slot="select-content"]');
     if (portal) {
       // Find the select item that contains "Org 1"
       const orgItems = portal.querySelectorAll('[data-slot="select-item"]');
-      const orgItem = Array.from(orgItems).find(item => 
-        item.textContent?.includes("Org 1")
+      const orgItem = Array.from(orgItems).find((item) =>
+        item.textContent?.includes("Org 1"),
       );
-      
+
       if (orgItem) {
         fireEvent.pointerDown(orgItem);
         fireEvent.click(orgItem);
@@ -1032,8 +1095,8 @@ describe("My Events Page", () => {
         // Fallback: try to find by text in portal
         const orgOptions = screen.queryAllByText("Org 1");
         // Filter to find the one in the portal
-        const portalOption = orgOptions.find(opt => 
-          opt.closest('[data-slot="select-content"]') !== null
+        const portalOption = orgOptions.find(
+          (opt) => opt.closest('[data-slot="select-content"]') !== null,
         );
         if (portalOption) {
           fireEvent.pointerDown(portalOption);
@@ -1041,87 +1104,105 @@ describe("My Events Page", () => {
         }
       }
     }
-    
+
     // Wait a bit for organization selection to complete
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Find inputs by their associated labels
     // The Field component uses FieldLabel which should be associated with the input
     // Use getAllByText to handle multiple matches
     const nameLabels = screen.getAllByText(/^Name/i);
     const nameLabel = nameLabels[0];
-    const nameInput = nameLabel?.closest("div")?.querySelector("input") || 
-                     document.querySelector('input[type="text"]');
-    
+    const nameInput =
+      nameLabel?.closest("div")?.querySelector("input") ||
+      document.querySelector('input[type="text"]');
+
     const dateLabels = screen.getAllByText(/Date and Time/i);
     const dateLabel = dateLabels[0];
-    const dateInput = dateLabel?.closest("div")?.querySelector("input[type='datetime-local']") ||
-                     document.querySelector('input[type="datetime-local"]');
-    
+    const dateInput =
+      dateLabel
+        ?.closest("div")
+        ?.querySelector("input[type='datetime-local']") ||
+      document.querySelector('input[type="datetime-local"]');
+
     const locationLabels = screen.getAllByText(/Location/i);
     const locationLabel = locationLabels[0];
-    const locationInput = locationLabel?.closest("div")?.querySelector("input") ||
-                         document.querySelector('input[placeholder*="location" i]');
-    
+    const locationInput =
+      locationLabel?.closest("div")?.querySelector("input") ||
+      document.querySelector('input[placeholder*="location" i]');
+
     const descriptionLabels = screen.getAllByText(/Description/i);
     const descriptionLabel = descriptionLabels[0];
-    const descriptionInput = descriptionLabel?.closest("div")?.querySelector("textarea") ||
-                            document.querySelector("textarea");
+    const descriptionInput =
+      descriptionLabel?.closest("div")?.querySelector("textarea") ||
+      document.querySelector("textarea");
 
     // Fill in the form - wait a bit after selecting organization
     // (already waited above)
-    
+
     // Fill in all required fields
     if (nameInput) {
       fireEvent.change(nameInput, { target: { value: "New Event" } });
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
     if (dateInput) {
       fireEvent.change(dateInput, { target: { value: "2025-12-31T12:00" } });
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
     if (locationInput) {
       fireEvent.change(locationInput, { target: { value: "Test Location" } });
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
     if (descriptionInput) {
-      fireEvent.change(descriptionInput, { target: { value: "Test Description" } });
-      await new Promise(resolve => setTimeout(resolve, 50));
+      fireEvent.change(descriptionInput, {
+        target: { value: "Test Description" },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
-    
+
     // Also need to select category if it's required
     // Wait a bit before trying to select category
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
     // Find category select (it's another combobox)
     const categorySelects = screen.queryAllByRole("combobox");
-    const categorySelect = categorySelects.find(select => {
+    const categorySelect = categorySelects.find((select) => {
       const categoryLabels = screen.queryAllByText(/Category/i);
       const categoryLabel = categoryLabels[0];
-      return categoryLabel && categoryLabel.closest("div")?.contains(select) && select !== orgSelect;
+      return (
+        categoryLabel &&
+        categoryLabel.closest("div")?.contains(select) &&
+        select !== orgSelect
+      );
     });
-    
+
     if (categorySelect) {
       fireEvent.pointerDown(categorySelect);
       fireEvent.click(categorySelect);
-      
-      await waitFor(() => {
-        const portal = document.querySelector('[data-slot="select-content"]');
-        expect(portal).toBeInTheDocument();
-      }, { timeout: 2000 });
-      
+
+      await waitFor(
+        () => {
+          const portal = document.querySelector('[data-slot="select-content"]');
+          expect(portal).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
       const portal = document.querySelector('[data-slot="select-content"]');
       if (portal) {
         // Find "Social" category option
-        const categoryItems = portal.querySelectorAll('[data-slot="select-item"]');
-        const socialItem = Array.from(categoryItems).find(item => 
-          item.textContent?.includes("Social")
-        ) || categoryItems[0];
-        
+        const categoryItems = portal.querySelectorAll(
+          '[data-slot="select-item"]',
+        );
+        const socialItem =
+          Array.from(categoryItems).find((item) =>
+            item.textContent?.includes("Social"),
+          ) || categoryItems[0];
+
         if (socialItem) {
           fireEvent.pointerDown(socialItem);
           fireEvent.click(socialItem);
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
     }
@@ -1131,18 +1212,19 @@ describe("My Events Page", () => {
       const submitButtons = screen.queryAllByText("Create Event");
       expect(submitButtons.length).toBeGreaterThan(0);
     });
-    
+
     const submitButtons = screen.getAllByText("Create Event");
     // The submit button should be the one in the form (not the toggle button)
-    const submitButton = submitButtons.find(btn => {
-      const form = btn.closest("form");
-      return form !== null;
-    }) || submitButtons[submitButtons.length - 1];
-    
+    const submitButton =
+      submitButtons.find((btn) => {
+        const form = btn.closest("form");
+        return form !== null;
+      }) || submitButtons[submitButtons.length - 1];
+
     // Find the form
     const form = submitButton.closest("form");
     expect(form).toBeInTheDocument();
-    
+
     // Submit the form directly (more reliable than clicking button)
     if (form) {
       fireEvent.submit(form);
@@ -1153,24 +1235,33 @@ describe("My Events Page", () => {
 
     // Wait for the form submission
     // The form should call fetchWithAuth with the create endpoint
-    await waitFor(() => {
-      // Check if fetchWithAuth was called with the create endpoint
-      const calls = mockFetchWithAuth.mock.calls;
-      const createCall = calls.find(call => 
-        typeof call[0] === 'string' && call[0].includes("/events/create/")
-      );
-      expect(createCall).toBeDefined();
-      if (createCall) {
-        expect(createCall[1]).toMatchObject({ method: "POST" });
-      }
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        // Check if fetchWithAuth was called with the create endpoint
+        const calls = mockFetchWithAuth.mock.calls;
+        const createCall = calls.find(
+          (call) =>
+            typeof call[0] === "string" && call[0].includes("/events/create/"),
+        );
+        expect(createCall).toBeDefined();
+        if (createCall) {
+          expect(createCall[1]).toMatchObject({ method: "POST" });
+        }
+      },
+      { timeout: 5000 },
+    );
   });
 
   it("should handle validateEventForm with negative capacity", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleNegative = await import("../../lib/organizations");
+    const eventsModuleNegative = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleNegative;
+    const { getMyOrganizedEvents } = eventsModuleNegative;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -1212,11 +1303,15 @@ describe("My Events Page", () => {
 
     // Fill form with negative capacity - find by placeholder or label
     const capacityInputs = document.querySelectorAll('input[type="number"]');
-    const capacityInput = Array.from(capacityInputs).find(input => {
-      const label = input.closest('div')?.querySelector('label');
-      return label?.textContent?.includes('Capacity') || (input as HTMLInputElement).placeholder?.includes('Unlimited');
-    }) as HTMLInputElement || capacityInputs[0] as HTMLInputElement;
-    
+    const capacityInput =
+      (Array.from(capacityInputs).find((input) => {
+        const label = input.closest("div")?.querySelector("label");
+        return (
+          label?.textContent?.includes("Capacity") ||
+          (input as HTMLInputElement).placeholder?.includes("Unlimited")
+        );
+      }) as HTMLInputElement) || (capacityInputs[0] as HTMLInputElement);
+
     if (capacityInput) {
       fireEvent.change(capacityInput, { target: { value: "-5" } });
     }
@@ -1229,33 +1324,44 @@ describe("My Events Page", () => {
     }
 
     // Fill required fields
-    const nameInput = document.querySelector('input[type="text"]') as HTMLInputElement;
+    const nameInput = document.querySelector(
+      'input[type="text"]',
+    ) as HTMLInputElement;
     if (nameInput) {
       fireEvent.change(nameInput, { target: { value: "Test Event" } });
     }
 
     const submitButtons = screen.getAllByText("Create Event");
-    const formSubmitButton = submitButtons.find(btn => {
-      const form = btn.closest("form");
-      return form !== null;
-    }) || submitButtons[submitButtons.length - 1];
+    const formSubmitButton =
+      submitButtons.find((btn) => {
+        const form = btn.closest("form");
+        return form !== null;
+      }) || submitButtons[submitButtons.length - 1];
 
     if (formSubmitButton) {
       fireEvent.click(formSubmitButton);
     }
 
     // Should show validation error for negative capacity
-    await waitFor(() => {
-      const errorMessages = screen.queryAllByText(/cannot be negative/i);
-      expect(errorMessages.length).toBeGreaterThan(0);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const errorMessages = screen.queryAllByText(/cannot be negative/i);
+        expect(errorMessages.length).toBeGreaterThan(0);
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("should handle refreshEvents for organizer", async () => {
-    const { getMyOrganizations } = require("../../lib/organizations");
-    const { getMyOrganizedEvents } = require("../../lib/events");
-    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<typeof getMyOrganizations>;
-    const mockGetMyOrganizedEvents = getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
+    const orgModuleRefresh2 = await import("../../lib/organizations");
+    const eventsModuleRefresh2 = await import("../../lib/events");
+    const { getMyOrganizations } = orgModuleRefresh2;
+    const { getMyOrganizedEvents } = eventsModuleRefresh2;
+    const mockGetMyOrganizations = getMyOrganizations as jest.MockedFunction<
+      typeof getMyOrganizations
+    >;
+    const mockGetMyOrganizedEvents =
+      getMyOrganizedEvents as jest.MockedFunction<typeof getMyOrganizedEvents>;
 
     const mockProfile = {
       id: 1,
@@ -1371,9 +1477,12 @@ describe("My Events Page", () => {
     fireEvent.click(closeButton);
 
     // Should handle error gracefully
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(consoleErrorSpy).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
 
     consoleErrorSpy.mockRestore();
   });
