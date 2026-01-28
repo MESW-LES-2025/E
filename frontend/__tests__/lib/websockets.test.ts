@@ -10,10 +10,9 @@ jest.mock("sonner", () => ({
 }));
 
 // Mock notifications module
-const mockNotifications = {
-  onNotificationReceivedCallback: null as (() => void) | null,
-};
-jest.mock("@/lib/notifications", () => mockNotifications);
+jest.mock("@/lib/notifications", () => ({
+  onNotificationReceivedCallback: null,
+}));
 
 interface MockWebSocket {
   send: jest.Mock;
@@ -641,7 +640,8 @@ describe("WebSocket Notifications", () => {
   it("should call notification callback when message received", () => {
     const mockCallback = jest.fn();
     // Set the callback on the mocked module
-    mockNotifications.onNotificationReceivedCallback = mockCallback;
+    const notificationsModule = jest.requireMock("@/lib/notifications");
+    notificationsModule.onNotificationReceivedCallback = mockCallback;
 
     connectWebSocket("123");
     (window.localStorage.getItem as jest.Mock).mockReturnValue(null);
@@ -661,7 +661,7 @@ describe("WebSocket Notifications", () => {
     expect(mockCallback).toHaveBeenCalled();
 
     // Cleanup
-    mockNotifications.onNotificationReceivedCallback = null;
+    notificationsModule.onNotificationReceivedCallback = null;
   });
 
   it("should handle null/undefined messages gracefully", () => {
