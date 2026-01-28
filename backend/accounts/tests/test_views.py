@@ -854,3 +854,734 @@ class OrganizationViewSetExceptionTest(APITestCase):
             # This should handle the exception and return PublicOrganizationSerializer
             serializer_class = viewset.get_serializer_class()
             self.assertEqual(serializer_class, PublicOrganizationSerializer)
+
+    def test_get_permissions_for_manage_follow_action(self):
+        """Test get_permissions returns IsAuthenticated for manage_follow action"""
+        viewset = OrganizationViewSet()
+        viewset.action = "manage_follow"
+        viewset.request = Mock()
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+
+        permissions = viewset.get_permissions()
+        from rest_framework.permissions import IsAuthenticated
+
+        self.assertEqual(len(permissions), 1)
+        self.assertIsInstance(permissions[0], IsAuthenticated)
+
+    def test_get_permissions_for_followed_action(self):
+        """Test get_permissions returns IsAuthenticated for followed action"""
+        viewset = OrganizationViewSet()
+        viewset.action = "followed"
+        viewset.request = Mock()
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+
+        permissions = viewset.get_permissions()
+        from rest_framework.permissions import IsAuthenticated
+
+        self.assertEqual(len(permissions), 1)
+        self.assertIsInstance(permissions[0], IsAuthenticated)
+
+    def test_get_permissions_for_follow_path(self):
+        """Test get_permissions returns IsAuthenticated when path contains /follow"""
+        viewset = OrganizationViewSet()
+        viewset.action = None
+        viewset.request = Mock()
+        viewset.request.path = "/api/organizations/1/follow/"
+        viewset.request.method = "POST"
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+
+        permissions = viewset.get_permissions()
+        from rest_framework.permissions import IsAuthenticated
+
+        self.assertEqual(len(permissions), 1)
+        self.assertIsInstance(permissions[0], IsAuthenticated)
+
+    def test_get_permissions_for_followed_path(self):
+        """Test get_permissions returns IsAuthenticated
+        when path ends with /followed/"""
+        viewset = OrganizationViewSet()
+        viewset.action = None
+        viewset.request = Mock()
+        viewset.request.path = "/api/organizations/followed/"
+        viewset.request.method = "GET"
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+
+        permissions = viewset.get_permissions()
+        from rest_framework.permissions import IsAuthenticated
+
+        self.assertEqual(len(permissions), 1)
+        self.assertIsInstance(permissions[0], IsAuthenticated)
+
+    def test_get_serializer_class_for_collaborator(self):
+        """Test get_serializer_class returns
+        CollaboratorOrganizationSerializer for collaborator"""
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        org.collaborators.add(collaborator)
+
+        viewset = OrganizationViewSet()
+        viewset.action = "retrieve"
+        viewset.request = Mock()
+        mock_user = Mock()
+        mock_user.pk = collaborator.pk
+        mock_user.is_authenticated = True
+        viewset.request.user = mock_user
+        viewset.kwargs = {"pk": org.id}
+
+        # Mock get_object to return the organization
+        with patch.object(viewset, "get_object", return_value=org):
+            from accounts.serializers import CollaboratorOrganizationSerializer
+
+            serializer_class = viewset.get_serializer_class()
+            self.assertEqual(serializer_class, CollaboratorOrganizationSerializer)
+
+    def test_get_queryset_with_organization_type_filter(self):
+        """Test get_queryset filters by organization_type"""
+        org1 = Organization.objects.create(
+            name="Company Org",
+            owner=self.user,
+            organization_type=Organization.OrganizationType.COMPANY,
+        )
+        org2 = Organization.objects.create(
+            name="Non-Profit Org",
+            owner=self.user,
+            organization_type=Organization.OrganizationType.NON_PROFIT,
+        )
+
+        viewset = OrganizationViewSet()
+        viewset.request = Mock()
+        viewset.request.query_params = Mock()
+        viewset.request.query_params.getlist = Mock(return_value=["COMPANY"])
+        viewset.request.query_params.get = Mock(return_value=None)
+
+        queryset = viewset.get_queryset()
+        self.assertIn(org1, queryset)
+        self.assertNotIn(org2, queryset)
+
+    def test_get_queryset_with_search_filter(self):
+        """Test get_queryset filters by search query"""
+        org1 = Organization.objects.create(
+            name="Porto Events",
+            city="Porto",
+            owner=self.user,
+        )
+        org2 = Organization.objects.create(
+            name="Lisbon Events",
+            city="Lisbon",
+            owner=self.user,
+        )
+
+        viewset = OrganizationViewSet()
+        viewset.request = Mock()
+        viewset.request.query_params = Mock()
+        viewset.request.query_params.getlist = Mock(return_value=[])
+        viewset.request.query_params.get = Mock(return_value="Porto")
+
+        queryset = viewset.get_queryset()
+        self.assertIn(org1, queryset)
+        self.assertNotIn(org2, queryset)
+
+    def test_events_action_for_owner(self):
+        """Test events action returns all events for owner"""
+        from events.models import Event
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        Event.objects.create(
+            name="Active Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=org,
+            status="Active",
+        )
+        Event.objects.create(
+            name="Cancelled Event",
+            date=timezone.now() + timedelta(days=2),
+            organizer=self.user,
+            organization=org,
+            status="Cancelled",
+        )
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse("organizations-events", kwargs={"pk": org.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+
+    def test_events_action_for_collaborator(self):
+        """Test events action returns all events for collaborator"""
+        from events.models import Event
+
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        org.collaborators.add(collaborator)
+
+        Event.objects.create(
+            name="Active Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=org,
+            status="Active",
+        )
+        Event.objects.create(
+            name="Cancelled Event",
+            date=timezone.now() + timedelta(days=2),
+            organizer=self.user,
+            organization=org,
+            status="Cancelled",
+        )
+
+        self.client.force_authenticate(user=collaborator)
+        url = reverse("organizations-events", kwargs={"pk": org.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+
+    def test_events_action_for_public_user(self):
+        """Test events action returns only active events for public user"""
+        from events.models import Event
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        Event.objects.create(
+            name="Active Event",
+            date=timezone.now() + timedelta(days=1),
+            organizer=self.user,
+            organization=org,
+            status="Active",
+        )
+        Event.objects.create(
+            name="Cancelled Event",
+            date=timezone.now() + timedelta(days=2),
+            organizer=self.user,
+            organization=org,
+            status="Cancelled",
+        )
+
+        url = reverse("organizations-events", kwargs={"pk": org.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "Active Event")
+
+    def test_manage_follow_post(self):
+        """Test POST to manage_follow follows organization"""
+        attendee = User.objects.create_user(
+            username="attendee",
+            email="attendee@example.com",
+            password="testpass123",
+        )
+        attendee.profile.role = Profile.Role.ATTENDEE
+        attendee.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=attendee)
+        url = reverse("organizations-manage-follow", kwargs={"pk": org.id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(org.followers.filter(pk=attendee.pk).exists())
+
+    def test_manage_follow_post_already_following(self):
+        """Test POST to manage_follow when already following"""
+        attendee = User.objects.create_user(
+            username="attendee",
+            email="attendee@example.com",
+            password="testpass123",
+        )
+        attendee.profile.role = Profile.Role.ATTENDEE
+        attendee.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        org.followers.add(attendee)
+
+        self.client.force_authenticate(user=attendee)
+        url = reverse("organizations-manage-follow", kwargs={"pk": org.id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_manage_follow_delete(self):
+        """Test DELETE to manage_follow unfollows organization"""
+        attendee = User.objects.create_user(
+            username="attendee",
+            email="attendee@example.com",
+            password="testpass123",
+        )
+        attendee.profile.role = Profile.Role.ATTENDEE
+        attendee.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        org.followers.add(attendee)
+
+        self.client.force_authenticate(user=attendee)
+        url = reverse("organizations-manage-follow", kwargs={"pk": org.id})
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(org.followers.filter(pk=attendee.pk).exists())
+
+    def test_manage_follow_delete_not_following(self):
+        """Test DELETE to manage_follow when not following"""
+        attendee = User.objects.create_user(
+            username="attendee",
+            email="attendee@example.com",
+            password="testpass123",
+        )
+        attendee.profile.role = Profile.Role.ATTENDEE
+        attendee.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=attendee)
+        url = reverse("organizations-manage-follow", kwargs={"pk": org.id})
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_manage_follow_organizer_not_allowed(self):
+        """Test that organizers cannot follow organizations"""
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse("organizations-manage-follow", kwargs={"pk": org.id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_followed_action(self):
+        """Test followed action returns organizations user is following"""
+        attendee = User.objects.create_user(
+            username="attendee",
+            email="attendee@example.com",
+            password="testpass123",
+        )
+        attendee.profile.role = Profile.Role.ATTENDEE
+        attendee.profile.save()
+
+        org1 = Organization.objects.create(name="Org 1", owner=self.user)
+        Organization.objects.create(name="Org 2", owner=self.user)
+        org1.followers.add(attendee)
+
+        self.client.force_authenticate(user=attendee)
+        url = reverse("organizations-followed")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "Org 1")
+
+    def test_followed_action_organizer_not_allowed(self):
+        """Test that organizers cannot view followed organizations"""
+        self.client.force_authenticate(user=self.user)
+        url = reverse("organizations-followed")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_search_users(self):
+        """Test search_users action"""
+        organizer1 = User.objects.create_user(
+            username="organizer1",
+            email="org1@example.com",
+            password="testpass123",
+            first_name="Organizer",
+            last_name="One",
+        )
+        organizer1.profile.role = Profile.Role.ORGANIZER
+        organizer1.profile.save()
+
+        organizer2 = User.objects.create_user(
+            username="organizer2",
+            email="org2@example.com",
+            password="testpass123",
+            first_name="Organizer",
+            last_name="Two",
+        )
+        organizer2.profile.role = Profile.Role.ORGANIZER
+        organizer2.profile.save()
+
+        attendee = User.objects.create_user(
+            username="attendee",
+            email="attendee@example.com",
+            password="testpass123",
+        )
+        attendee.profile.role = Profile.Role.ATTENDEE
+        attendee.profile.save()
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse("organizations-search-users")
+        response = self.client.get(url, {"q": "organizer"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+
+    def test_search_users_query_too_short(self):
+        """Test search_users with query less than 2 characters"""
+        self.client.force_authenticate(user=self.user)
+        url = reverse("organizations-search-users")
+        response = self.client.get(url, {"q": "a"})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_search_users_empty_query(self):
+        """Test search_users with empty query"""
+        self.client.force_authenticate(user=self.user)
+        url = reverse("organizations-search-users")
+        response = self.client.get(url, {"q": ""})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_manage_collaborator_post(self):
+        """Test POST to manage_collaborator adds collaborator"""
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse(
+            "organizations-manage-collaborator",
+            kwargs={"pk": org.id, "user_id": collaborator.id},
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(org.collaborators.filter(pk=collaborator.pk).exists())
+
+    def test_manage_collaborator_post_already_collaborator(self):
+        """Test POST to manage_collaborator when user is already collaborator"""
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        org.collaborators.add(collaborator)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse(
+            "organizations-manage-collaborator",
+            kwargs={"pk": org.id, "user_id": collaborator.id},
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_manage_collaborator_delete(self):
+        """Test DELETE to manage_collaborator removes collaborator"""
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        org.collaborators.add(collaborator)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse(
+            "organizations-manage-collaborator",
+            kwargs={"pk": org.id, "user_id": collaborator.id},
+        )
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(org.collaborators.filter(pk=collaborator.pk).exists())
+
+    def test_manage_collaborator_delete_not_collaborator(self):
+        """Test DELETE to manage_collaborator when user is not collaborator"""
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse(
+            "organizations-manage-collaborator",
+            kwargs={"pk": org.id, "user_id": collaborator.id},
+        )
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_manage_collaborator_non_owner(self):
+        """Test that non-owner cannot manage collaborators"""
+        other_user = User.objects.create_user(
+            username="other",
+            email="other@example.com",
+            password="testpass123",
+        )
+        other_user.profile.role = Profile.Role.ORGANIZER
+        other_user.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=other_user)
+        url = reverse(
+            "organizations-manage-collaborator",
+            kwargs={"pk": org.id, "user_id": other_user.id},
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_manage_collaborator_user_not_found(self):
+        """Test manage_collaborator with non-existent user"""
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse(
+            "organizations-manage-collaborator",
+            kwargs={"pk": org.id, "user_id": 99999},
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_manage_collaborator_non_organizer(self):
+        """Test that non-organizer cannot be added as collaborator"""
+        attendee = User.objects.create_user(
+            username="attendee",
+            email="attendee@example.com",
+            password="testpass123",
+        )
+        attendee.profile.role = Profile.Role.ATTENDEE
+        attendee.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse(
+            "organizations-manage-collaborator",
+            kwargs={"pk": org.id, "user_id": attendee.id},
+        )
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_list_collaborators(self):
+        """Test list_collaborators action"""
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+        org.collaborators.add(collaborator)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse("organizations-list-collaborators", kwargs={"pk": org.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["username"], "collaborator")
+
+    def test_list_collaborators_non_owner(self):
+        """Test that non-owner cannot list collaborators"""
+        other_user = User.objects.create_user(
+            username="other",
+            email="other@example.com",
+            password="testpass123",
+        )
+        other_user.profile.role = Profile.Role.ORGANIZER
+        other_user.profile.save()
+
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        self.client.force_authenticate(user=other_user)
+        url = reverse("organizations-list-collaborators", kwargs={"pk": org.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_me_action_with_collaborated_organizations(self):
+        """Test me action returns both owned and collaborated organizations"""
+        collaborator = User.objects.create_user(
+            username="collaborator",
+            email="collab@example.com",
+            password="testpass123",
+        )
+        collaborator.profile.role = Profile.Role.ORGANIZER
+        collaborator.profile.save()
+
+        Organization.objects.create(name="Owned Org", owner=collaborator)
+        collaborated_org = Organization.objects.create(
+            name="Collaborated Org", owner=self.user
+        )
+        collaborated_org.collaborators.add(collaborator)
+
+        self.client.force_authenticate(user=collaborator)
+        url = reverse("organizations-me")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data["owned"]), 1)
+        self.assertEqual(len(data["collaborated"]), 1)
+        self.assertEqual(data["owned"][0]["name"], "Owned Org")
+        self.assertEqual(data["collaborated"][0]["name"], "Collaborated Org")
+
+    def test_me_action_unauthenticated(self):
+        """Test me action requires authentication"""
+        url = reverse("organizations-me")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_permissions_for_follow_path_with_post_delete(self):
+        """Test get_permissions returns IsAuthenticated
+        when path contains /follow/ with POST/DELETE"""
+        viewset = OrganizationViewSet()
+        viewset.action = None
+        viewset.request = Mock()
+        viewset.request.path = "/api/organizations/1/follow/"
+        viewset.request.method = "DELETE"
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+
+        permissions = viewset.get_permissions()
+        from rest_framework.permissions import IsAuthenticated
+
+        self.assertEqual(len(permissions), 1)
+        self.assertIsInstance(permissions[0], IsAuthenticated)
+
+    def test_get_permissions_when_no_request(self):
+        """Test get_permissions when request is not available"""
+        viewset = OrganizationViewSet()
+        viewset.action = None
+        viewset.request = None
+
+        permissions = viewset.get_permissions()
+        from accounts.permissions import IsOrganizerOrReadOnly
+
+        self.assertEqual(len(permissions), 1)
+        self.assertIsInstance(permissions[0], IsOrganizerOrReadOnly)
+
+    def test_get_permissions_when_path_is_empty(self):
+        """Test get_permissions when path is empty string"""
+        viewset = OrganizationViewSet()
+        viewset.action = None
+        viewset.request = Mock()
+        viewset.request.path = ""
+        viewset.request.method = "GET"
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+
+        permissions = viewset.get_permissions()
+        from accounts.permissions import IsOrganizerOrReadOnly
+
+        self.assertEqual(len(permissions), 1)
+        self.assertIsInstance(permissions[0], IsOrganizerOrReadOnly)
+
+    def test_get_serializer_class_for_list_authenticated(self):
+        """Test get_serializer_class returns
+        PublicOrganizationSerializer for list when authenticated"""
+        viewset = OrganizationViewSet()
+        viewset.action = "list"
+        viewset.request = Mock()
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = True
+
+        from accounts.serializers import PublicOrganizationSerializer
+
+        serializer_class = viewset.get_serializer_class()
+        self.assertEqual(serializer_class, PublicOrganizationSerializer)
+
+    def test_get_serializer_class_for_list_unauthenticated(self):
+        """Test get_serializer_class returns
+        PublicOrganizationSerializer for list when unauthenticated"""
+        viewset = OrganizationViewSet()
+        viewset.action = "list"
+        viewset.request = Mock()
+        viewset.request.user = Mock()
+        viewset.request.user.is_authenticated = False
+
+        from accounts.serializers import PublicOrganizationSerializer
+
+        serializer_class = viewset.get_serializer_class()
+        self.assertEqual(serializer_class, PublicOrganizationSerializer)
+
+    def test_get_serializer_class_for_create(self):
+        """Test get_serializer_class returns OrganizationSerializer for create"""
+        viewset = OrganizationViewSet()
+        viewset.action = "create"
+        viewset.request = Mock()
+
+        from accounts.serializers import OrganizationSerializer
+
+        serializer_class = viewset.get_serializer_class()
+        self.assertEqual(serializer_class, OrganizationSerializer)
+
+    def test_get_serializer_class_for_update(self):
+        """Test get_serializer_class returns OrganizationSerializer for update"""
+        viewset = OrganizationViewSet()
+        viewset.action = "update"
+        viewset.request = Mock()
+
+        from accounts.serializers import OrganizationSerializer
+
+        serializer_class = viewset.get_serializer_class()
+        self.assertEqual(serializer_class, OrganizationSerializer)
+
+    def test_get_serializer_class_for_retrieve_owner(self):
+        """Test get_serializer_class returns
+        OrganizationSerializer for owner on retrieve"""
+        org = Organization.objects.create(name="Test Org", owner=self.user)
+
+        viewset = OrganizationViewSet()
+        viewset.action = "retrieve"
+        viewset.request = Mock()
+        viewset.request.user = self.user
+        viewset.kwargs = {"pk": org.id}
+
+        with patch.object(viewset, "get_object", return_value=org):
+            from accounts.serializers import OrganizationSerializer
+
+            serializer_class = viewset.get_serializer_class()
+            self.assertEqual(serializer_class, OrganizationSerializer)

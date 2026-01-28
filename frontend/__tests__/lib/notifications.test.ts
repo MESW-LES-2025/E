@@ -1,10 +1,13 @@
 import { fetchWithAuth } from "../../lib/auth";
 import {
   getUnreadCount,
+  getFilteredUnreadCount,
   listNotifications,
   markAllAsRead,
   markAsRead,
   markAsUnread,
+  registerNotificationRefreshCallback,
+  runNotificationRefreshCallbacks,
 } from "../../lib/notifications";
 
 // Mock fetchWithAuth
@@ -180,6 +183,139 @@ describe("Notification Library", () => {
       expect(mockedFetch).toHaveBeenCalledWith("/notifications/unread-count/", {
         method: "GET",
       });
+    });
+  });
+
+  describe("registerNotificationRefreshCallback", () => {
+    it("should register a callback function", () => {
+      const callback = jest.fn();
+      registerNotificationRefreshCallback(callback);
+      runNotificationRefreshCallbacks();
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it("should replace existing callback when called again", () => {
+      const callback1 = jest.fn();
+      const callback2 = jest.fn();
+      registerNotificationRefreshCallback(callback1);
+      registerNotificationRefreshCallback(callback2);
+      runNotificationRefreshCallbacks();
+      expect(callback1).not.toHaveBeenCalled();
+      expect(callback2).toHaveBeenCalled();
+    });
+  });
+
+  describe("runNotificationRefreshCallbacks", () => {
+    it("should call registered callback", () => {
+      const callback = jest.fn();
+      registerNotificationRefreshCallback(callback);
+      runNotificationRefreshCallbacks();
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not throw when no callback is registered", () => {
+      registerNotificationRefreshCallback(null as unknown as () => void);
+      expect(() => runNotificationRefreshCallbacks()).not.toThrow();
+    });
+  });
+
+  describe("getFilteredUnreadCount", () => {
+    it("should return unread count when reminders are enabled", async () => {
+      const mockNotifications = [
+        {
+          id: 1,
+          title: "Event Reminder",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 2,
+          title: "Other Notification",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 3,
+          title: "Read Notification",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
+      ];
+      mockFetchWithAuth.mockResolvedValue({
+        ok: true,
+        json: async () => mockNotifications,
+      });
+      const count = await getFilteredUnreadCount(true);
+      expect(count).toBe(2);
+    });
+
+    it("should filter out reminders when reminders are disabled", async () => {
+      const mockNotifications = [
+        {
+          id: 1,
+          title: "Event Reminder",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 2,
+          title: "Other Notification",
+          is_read: false,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 3,
+          title: "Event Reminder",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
+      ];
+      mockFetchWithAuth.mockResolvedValue({
+        ok: true,
+        json: async () => mockNotifications,
+      });
+      const count = await getFilteredUnreadCount(false);
+      expect(count).toBe(1); // Only "Other Notification" is unread and not a reminder
+    });
+
+    it("should return 0 when all notifications are read", async () => {
+      const mockNotifications = [
+        {
+          id: 1,
+          title: "Event Reminder",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
+        {
+          id: 2,
+          title: "Other Notification",
+          is_read: true,
+          message: "",
+          created_at: "",
+        },
+      ];
+      mockFetchWithAuth.mockResolvedValue({
+        ok: true,
+        json: async () => mockNotifications,
+      });
+      const count = await getFilteredUnreadCount(true);
+      expect(count).toBe(0);
+    });
+
+    it("should handle empty notifications list", async () => {
+      mockFetchWithAuth.mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      });
+      const count = await getFilteredUnreadCount(true);
+      expect(count).toBe(0);
     });
   });
 });

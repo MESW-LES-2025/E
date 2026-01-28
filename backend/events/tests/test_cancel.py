@@ -52,7 +52,7 @@ class EventCancelUncancelTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.event.refresh_from_db()
-        self.assertEqual(self.event.status, "Canceled")
+        self.assertEqual(self.event.status, "Cancelled")
 
     def test_non_organizer_cannot_cancel_event(self):
         self.client.force_authenticate(user=self.other_user)
