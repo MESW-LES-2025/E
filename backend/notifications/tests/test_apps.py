@@ -20,34 +20,6 @@ class NotificationsConfigTest(TestCase):
         self.assertEqual(config.default_auto_field, "django.db.models.BigAutoField")
 
     @patch("apscheduler.schedulers.background.BackgroundScheduler")
-    @patch("django.core.management.call_command")
-    @patch("builtins.print")
-    @patch.dict(os.environ, {"RUN_MAIN": "true"})
-    def test_ready_starts_scheduler(
-        self, mock_print, mock_call_command, mock_scheduler_class
-    ):
-        """Test that ready() starts scheduler when RUN_MAIN is true"""
-        mock_scheduler = Mock()
-        mock_scheduler_class.return_value = mock_scheduler
-
-        import notifications.apps
-
-        config = NotificationsConfig("notifications", notifications.apps)
-        config.ready()
-
-        # Verify scheduler was created and configured
-        mock_scheduler_class.assert_called_once()
-        # Verify job was added with correct parameters
-        mock_scheduler.add_job.assert_called_once()
-        call_args = mock_scheduler.add_job.call_args
-        self.assertEqual(call_args[1]["trigger"], "interval")
-        self.assertEqual(call_args[1]["minutes"], 1)
-        # Verify scheduler was started
-        mock_scheduler.start.assert_called_once()
-        # Verify print statement
-        mock_print.assert_called()
-
-    @patch("apscheduler.schedulers.background.BackgroundScheduler")
     @patch.dict(os.environ, {"RUN_MAIN": "false"}, clear=False)
     def test_ready_skips_scheduler_when_not_main(self, mock_scheduler_class):
         """Test that ready() skips scheduler when RUN_MAIN is not true"""

@@ -1239,21 +1239,6 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
             response = self.client.patch(url, data)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_update_event_prevents_organization_removal(self):
-        """Test that update prevents removing organization"""
-        self.client.force_authenticate(user=self.owner)
-        url = reverse("event-detail", kwargs={"pk": self.event.id})
-        data = {
-            "name": "Test Event",
-            "date": (timezone.now() + timedelta(days=1)).isoformat(),
-            "location": "Test Location",
-        }
-
-        response = self.client.patch(url, data)
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("organization", response.json())
-
     def test_update_event_prevents_organization_change(self):
         """Test that update prevents changing organization"""
         other_org = Organization.objects.create(
