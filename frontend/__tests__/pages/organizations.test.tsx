@@ -476,12 +476,15 @@ describe("Organizations Page", () => {
     render(<OrganizationsPage />);
 
     // Wait for component to mount and try to load categories
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Failed to load categories from storage:",
-        expect.any(Error),
-      );
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "Failed to load categories from storage:",
+          expect.any(Error),
+        );
+      },
+      { timeout: 2000 },
+    );
 
     localStorageSpy.mockRestore();
   });
@@ -604,13 +607,19 @@ describe("Organizations Page", () => {
 
     // Click on a category badge to toggle it - use getAllByText since there might be multiple
     const companyBadges = screen.getAllByText("Company");
-    const companyBadge = companyBadges.find(badge => badge.closest('[class*="Badge"]') || badge.closest('span')) || companyBadges[0];
+    const companyBadge =
+      companyBadges.find(
+        (badge) => badge.closest('[class*="Badge"]') || badge.closest("span"),
+      ) || companyBadges[0];
     fireEvent.click(companyBadge);
 
     // Should filter organizations (debounced, so wait a bit)
-    await waitFor(() => {
-      expect(mockListOrganizations).toHaveBeenCalledTimes(2);
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(mockListOrganizations).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 1000 },
+    );
   });
 
   it("should handle clear all filters", async () => {
@@ -650,19 +659,25 @@ describe("Organizations Page", () => {
     const companyBadges = screen.getAllByText("Company");
     if (companyBadges.length > 0) {
       fireEvent.click(companyBadges[0]);
-      await waitFor(() => {
-        // Wait for filter to be applied and clear all button to appear
-        const clearAllButton = screen.queryByText("Clear all");
-        if (clearAllButton) {
-          fireEvent.click(clearAllButton);
-        }
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          // Wait for filter to be applied and clear all button to appear
+          const clearAllButton = screen.queryByText("Clear all");
+          if (clearAllButton) {
+            fireEvent.click(clearAllButton);
+          }
+        },
+        { timeout: 1000 },
+      );
     }
 
     // Should clear filters and refetch (debounced)
-    await waitFor(() => {
-      expect(mockListOrganizations).toHaveBeenCalled();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(mockListOrganizations).toHaveBeenCalled();
+      },
+      { timeout: 2000 },
+    );
   });
 
   it("should handle loadSearchFromStorage when window is undefined", () => {

@@ -431,7 +431,9 @@ describe("NotificationsPage", () => {
     // Find and toggle the reminder switch
     const reminderToggle = screen
       .getAllByRole("checkbox")
-      .find((cb) => (cb as HTMLElement).getAttribute("aria-label")?.includes("Reminder"));
+      .find((cb) =>
+        (cb as HTMLElement).getAttribute("aria-label")?.includes("Reminder"),
+      );
 
     if (reminderToggle) {
       fireEvent.click(reminderToggle);
@@ -457,7 +459,11 @@ describe("NotificationsPage", () => {
     // Find and toggle the event changes switch
     const eventChangesToggle = screen
       .getAllByRole("checkbox")
-      .find((cb) => (cb as HTMLElement).getAttribute("aria-label")?.includes("Event Changes"));
+      .find((cb) =>
+        (cb as HTMLElement)
+          .getAttribute("aria-label")
+          ?.includes("Event Changes"),
+      );
 
     if (eventChangesToggle) {
       fireEvent.click(eventChangesToggle);
