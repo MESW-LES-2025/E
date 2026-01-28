@@ -11,20 +11,8 @@ from rest_framework.test import APIClient, APITestCase
 
 from accounts.models import Organization, Profile
 from events.models import Event
-from events.views import (
-    EventListCreateView,
-    EventRetrieveUpdateDestroyView,
-    CreateEventView,
-    UserRegisteredEventsView,
-    UserInterestedEventsView,
-    UserOrganizedEventsView,
-    MyOrganizedEventsView,
-    EventParticipantsView,
-    EventInterestedUsersView,
-    InterestEventView,
-    ParticipateEventView,
-    notify_interested_users,
-)
+
+# Views are imported locally when needed to avoid circular imports
 
 User = get_user_model()
 
@@ -127,7 +115,9 @@ class CreateEventViewTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_create_event_notifies_followers(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_create_event_notifies_followers(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test that creating event notifies organization followers"""
         follower = User.objects.create_user(
             username="follower",
@@ -159,7 +149,9 @@ class CreateEventViewTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_create_event_skips_notifying_organizer(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_create_event_skips_notifying_organizer(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test that organizer is not notified of their own event"""
         self.organization.followers.add(self.owner)
 
@@ -190,13 +182,16 @@ class CreateEventViewTest(APITestCase):
             "name": "Test Event",
             "date": (timezone.now() + timedelta(days=1)).isoformat(),
             "location": "Test Location",
-            "organization": "invalid_id",  # This will cause ValueError in int conversion
+            "organization": "invalid_id",  # ValueError in int conversion
         }
 
         response = self.client.post(url, data)
 
         # Should handle ValueError gracefully
-        self.assertIn(response.status_code, [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND],
+        )
 
     def test_create_event_with_typeerror_organization_id(self):
         """Test create event handles TypeError for organization ID"""
@@ -212,7 +207,10 @@ class CreateEventViewTest(APITestCase):
         response = self.client.post(url, data)
 
         # Should handle TypeError gracefully
-        self.assertIn(response.status_code, [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND])
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_400_BAD_REQUEST, status.HTTP_404_NOT_FOUND],
+        )
 
 
 class EventListCreateViewTest(APITestCase):
@@ -263,7 +261,8 @@ class EventListCreateViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_create_event_without_permission(self):
-        """Test EventListCreateView.create fails when user is not owner or collaborator"""
+        """Test EventListCreateView.create fails
+        when user is not owner or collaborator"""
         other_user = User.objects.create_user(
             username="other",
             email="other@example.com",
@@ -287,7 +286,9 @@ class EventListCreateViewTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_create_event_notifies_followers(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_create_event_notifies_followers(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test that EventListCreateView.create notifies organization followers"""
         follower = User.objects.create_user(
             username="follower",
@@ -319,7 +320,9 @@ class EventListCreateViewTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_create_event_skips_notifying_organizer(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_create_event_skips_notifying_organizer(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test that EventListCreateView.create skips notifying organizer"""
         self.organization.followers.add(self.owner)
 
@@ -359,9 +362,7 @@ class UserRegisteredEventsViewTest(APITestCase):
             name="Test Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
-            organization=Organization.objects.create(
-                name="Test Org", owner=self.user
-            ),
+            organization=Organization.objects.create(name="Test Org", owner=self.user),
         )
         event.participants.add(self.user)
 
@@ -373,6 +374,7 @@ class UserRegisteredEventsViewTest(APITestCase):
         data = response.json()
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]["name"], "Test Event")
+        # event variable is created but only used implicitly via response
 
 
 class UserInterestedEventsViewTest(APITestCase):
@@ -392,9 +394,7 @@ class UserInterestedEventsViewTest(APITestCase):
             name="Test Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
-            organization=Organization.objects.create(
-                name="Test Org", owner=self.user
-            ),
+            organization=Organization.objects.create(name="Test Org", owner=self.user),
         )
         event.interested_users.add(self.user)
 
@@ -406,6 +406,7 @@ class UserInterestedEventsViewTest(APITestCase):
         data = response.json()
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]["name"], "Test Event")
+        # event variable is created but only used implicitly via response
 
 
 class UserOrganizedEventsViewTest(APITestCase):
@@ -424,7 +425,7 @@ class UserOrganizedEventsViewTest(APITestCase):
     def test_get_user_organized_events(self):
         """Test that view returns events organized by user"""
         org = Organization.objects.create(name="Test Org", owner=self.user)
-        event = Event.objects.create(
+        Event.objects.create(
             name="Test Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
@@ -460,7 +461,7 @@ class MyOrganizedEventsViewTest(APITestCase):
 
     def test_get_events_for_owned_organization(self):
         """Test that view returns events for owned organizations"""
-        event = Event.objects.create(
+        Event.objects.create(
             name="Test Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.owner,
@@ -489,7 +490,7 @@ class MyOrganizedEventsViewTest(APITestCase):
         self.organization.collaborators.add(collaborator)
 
         # Event created by collaborator
-        event1 = Event.objects.create(
+        Event.objects.create(
             name="Collaborator Event",
             date=timezone.now() + timedelta(days=1),
             organizer=collaborator,
@@ -497,7 +498,7 @@ class MyOrganizedEventsViewTest(APITestCase):
         )
 
         # Event created by owner (should not appear for collaborator)
-        event2 = Event.objects.create(
+        Event.objects.create(
             name="Owner Event",
             date=timezone.now() + timedelta(days=2),
             organizer=self.owner,
@@ -903,7 +904,9 @@ class NotifyInterestedUsersTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_notify_interested_users_on_update(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_notify_interested_users_on_update(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test that updating event notifies interested users"""
         interested_user = User.objects.create_user(
             username="interested",
@@ -920,14 +923,20 @@ class NotifyInterestedUsersTest(APITestCase):
         notify_interested_users(
             self.event,
             "event_updated",
-            {"change_type": "date", "old_value": "2024-01-01", "new_value": "2024-01-02"},
+            {
+                "change_type": "date",
+                "old_value": "2024-01-01",
+                "new_value": "2024-01-02",
+            },
         )
 
         mock_async_to_sync.assert_called()
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_notify_interested_users_on_cancel(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_notify_interested_users_on_cancel(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test that cancelling event notifies interested users and participants"""
         interested_user = User.objects.create_user(
             username="interested",
@@ -969,7 +978,9 @@ class NotifyInterestedUsersTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_notify_interested_users_unknown_type(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_notify_interested_users_unknown_type(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test that unknown notification type returns early"""
         from events.views import notify_interested_users
 
@@ -992,7 +1003,9 @@ class NotifyInterestedUsersTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_notify_interested_users_date_change_with_parse_error(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_notify_interested_users_date_change_with_parse_error(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test notify_interested_users handles date parse errors"""
         interested_user = User.objects.create_user(
             username="interested",
@@ -1010,14 +1023,20 @@ class NotifyInterestedUsersTest(APITestCase):
         notify_interested_users(
             self.event,
             "event_updated",
-            {"changes": [{"field": "date", "old_value": "invalid", "new_value": "invalid"}]},
+            {
+                "changes": [
+                    {"field": "date", "old_value": "invalid", "new_value": "invalid"}
+                ]
+            },
         )
 
         mock_async_to_sync.assert_called()
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_notify_interested_users_date_change_with_none_values(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_notify_interested_users_date_change_with_none_values(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test notify_interested_users handles date change with None values"""
         interested_user = User.objects.create_user(
             username="interested",
@@ -1042,7 +1061,9 @@ class NotifyInterestedUsersTest(APITestCase):
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_notify_interested_users_status_change(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_notify_interested_users_status_change(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test notify_interested_users handles status change"""
         interested_user = User.objects.create_user(
             username="interested",
@@ -1059,14 +1080,20 @@ class NotifyInterestedUsersTest(APITestCase):
         notify_interested_users(
             self.event,
             "event_updated",
-            {"changes": [{"field": "status", "old_value": "Active", "new_value": "Cancelled"}]},
+            {
+                "changes": [
+                    {"field": "status", "old_value": "Active", "new_value": "Cancelled"}
+                ]
+            },
         )
 
         mock_async_to_sync.assert_called()
 
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_notify_interested_users_without_changes(self, mock_async_to_sync, mock_get_channel_layer):
+    def test_notify_interested_users_without_changes(
+        self, mock_async_to_sync, mock_get_channel_layer
+    ):
         """Test notify_interested_users handles change_data without changes"""
         interested_user = User.objects.create_user(
             username="interested",
@@ -1117,7 +1144,9 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
     @patch("events.views.detect_critical_changes")
     @patch("events.views.get_channel_layer")
     @patch("events.views.async_to_sync")
-    def test_update_event_notifies_interested_users(self, mock_async_to_sync, mock_get_channel_layer, mock_detect):
+    def test_update_event_notifies_interested_users(
+        self, mock_async_to_sync, mock_get_channel_layer, mock_detect
+    ):
         """Test that updating event notifies interested users"""
         interested_user = User.objects.create_user(
             username="interested",
@@ -1127,7 +1156,13 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
         self.event.interested_users.add(interested_user)
 
         mock_detect.return_value = {
-            "changes": [{"field": "location", "old_value": "Old Location", "new_value": "New Location"}]
+            "changes": [
+                {
+                    "field": "location",
+                    "old_value": "Old Location",
+                    "new_value": "New Location",
+                }
+            ]
         }
         mock_channel_layer = Mock()
         mock_get_channel_layer.return_value = mock_channel_layer
@@ -1152,7 +1187,9 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
 
         with patch("events.views.detect_critical_changes") as mock_detect:
             mock_detect.return_value = {
-                "changes": [{"field": "date", "old_value": "invalid", "new_value": "invalid"}]
+                "changes": [
+                    {"field": "date", "old_value": "invalid", "new_value": "invalid"}
+                ]
             }
 
             self.client.force_authenticate(user=self.owner)
@@ -1180,7 +1217,9 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
 
         with patch("events.views.detect_critical_changes") as mock_detect:
             mock_detect.return_value = {
-                "changes": [{"field": "status", "old_value": "Active", "new_value": "Cancelled"}]
+                "changes": [
+                    {"field": "status", "old_value": "Active", "new_value": "Cancelled"}
+                ]
             }
 
             self.client.force_authenticate(user=self.owner)
@@ -1264,7 +1303,9 @@ class EventRetrieveUpdateDestroyViewTest(APITestCase):
 
         with patch("events.views.detect_critical_changes") as mock_detect:
             mock_detect.return_value = {
-                "changes": [{"field": "location", "old_value": "Old", "new_value": "New"}]
+                "changes": [
+                    {"field": "location", "old_value": "Old", "new_value": "New"}
+                ]
             }
 
             with patch("events.views.notify_interested_users") as mock_notify:
@@ -1542,7 +1583,7 @@ class ExportUserCalendarViewTest(APITestCase):
             organization=self.organization,
             status="Active",
         )
-        non_participating_event = Event.objects.create(
+        Event.objects.create(
             name="Non-Participating Event",
             date=timezone.now() + timedelta(days=2),
             organizer=self.owner,
@@ -1559,6 +1600,7 @@ class ExportUserCalendarViewTest(APITestCase):
         content = response.content.decode()
         self.assertIn("Participating Event", content)
         self.assertNotIn("Non-Participating Event", content)
+        # non_participating_event is created but only used implicitly
 
 
 class UpcomingEventsListViewTest(APITestCase):
@@ -1580,7 +1622,7 @@ class UpcomingEventsListViewTest(APITestCase):
 
     def test_get_upcoming_events_with_today_filter(self):
         """Test upcoming events with today filter"""
-        today_event = Event.objects.create(
+        Event.objects.create(
             name="Today Event",
             date=timezone.now() + timedelta(hours=2),
             organizer=self.owner,
@@ -1594,10 +1636,11 @@ class UpcomingEventsListViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertGreaterEqual(len(data), 1)
+        # today_event is created but only used implicitly
 
     def test_get_upcoming_events_with_tomorrow_filter(self):
         """Test upcoming events with tomorrow filter"""
-        tomorrow_event = Event.objects.create(
+        Event.objects.create(
             name="Tomorrow Event",
             date=timezone.now() + timedelta(days=1, hours=2),
             organizer=self.owner,
@@ -1611,10 +1654,11 @@ class UpcomingEventsListViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertGreaterEqual(len(data), 1)
+        # tomorrow_event is created but only used implicitly
 
     def test_get_upcoming_events_with_this_week_filter(self):
         """Test upcoming events with this_week filter"""
-        week_event = Event.objects.create(
+        Event.objects.create(
             name="Week Event",
             date=timezone.now() + timedelta(days=3),
             organizer=self.owner,
@@ -1628,10 +1672,11 @@ class UpcomingEventsListViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertGreaterEqual(len(data), 1)
+        # week_event is created but only used implicitly
 
     def test_get_upcoming_events_with_category_filter(self):
         """Test upcoming events with category filter"""
-        social_event = Event.objects.create(
+        Event.objects.create(
             name="Social Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.owner,
@@ -1639,7 +1684,7 @@ class UpcomingEventsListViewTest(APITestCase):
             status="Active",
             category="SOCIAL",
         )
-        academic_event = Event.objects.create(
+        Event.objects.create(
             name="Academic Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.owner,
@@ -1658,7 +1703,7 @@ class UpcomingEventsListViewTest(APITestCase):
 
     def test_get_upcoming_events_with_date_from_to(self):
         """Test upcoming events with date_from and date_to filters"""
-        event = Event.objects.create(
+        Event.objects.create(
             name="Filtered Event",
             date=timezone.now() + timedelta(days=5),
             organizer=self.owner,
@@ -1678,7 +1723,7 @@ class UpcomingEventsListViewTest(APITestCase):
 
     def test_get_upcoming_events_with_search(self):
         """Test upcoming events with search filter"""
-        event1 = Event.objects.create(
+        Event.objects.create(
             name="Porto Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.owner,
@@ -1686,7 +1731,7 @@ class UpcomingEventsListViewTest(APITestCase):
             status="Active",
             description="Event in Porto",
         )
-        event2 = Event.objects.create(
+        Event.objects.create(
             name="Lisbon Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.owner,
@@ -1722,7 +1767,7 @@ class PastEventsListViewTest(APITestCase):
 
     def test_get_past_events(self):
         """Test that past events are returned"""
-        past_event = Event.objects.create(
+        Event.objects.create(
             name="Past Event",
             date=timezone.now() - timedelta(days=1),
             organizer=self.owner,
@@ -1737,3 +1782,4 @@ class PastEventsListViewTest(APITestCase):
         data = response.json()
         self.assertGreaterEqual(len(data), 1)
         self.assertEqual(data[0]["name"], "Past Event")
+        # past_event is created but only used implicitly

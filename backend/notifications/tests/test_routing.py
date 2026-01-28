@@ -1,6 +1,7 @@
 """Tests for notifications routing"""
 
 from django.test import TestCase
+
 from notifications.routing import websocket_urlpatterns
 
 
@@ -29,9 +30,10 @@ class NotificationsRoutingTest(TestCase):
 
     def test_websocket_url_pattern_consumer(self):
         """Test that URL pattern uses NotificationConsumer"""
-        from notifications.consumers import NotificationConsumer
 
         pattern = websocket_urlpatterns[0]
         # The callback should be NotificationConsumer.as_asgi()
         # We can't directly check the callback, but we can verify it's callable
-        self.assertTrue(hasattr(pattern.callback, "__call__") or hasattr(pattern, "callback"))
+        self.assertTrue(
+            hasattr(pattern.callback, "__call__") or hasattr(pattern, "callback")
+        )

@@ -1,9 +1,10 @@
 """Tests for notifications app configuration"""
 
 import os
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
-from django.test import TestCase, override_settings
+from django.test import TestCase
+
 from notifications.apps import NotificationsConfig
 
 
@@ -20,7 +21,9 @@ class NotificationsConfigTest(TestCase):
     @patch("django.core.management.call_command")
     @patch("builtins.print")
     @patch.dict(os.environ, {"RUN_MAIN": "true"})
-    def test_ready_starts_scheduler(self, mock_print, mock_call_command, mock_scheduler_class):
+    def test_ready_starts_scheduler(
+        self, mock_print, mock_call_command, mock_scheduler_class
+    ):
         """Test that ready() starts scheduler when RUN_MAIN is true"""
         mock_scheduler = Mock()
         mock_scheduler_class.return_value = mock_scheduler
@@ -53,7 +56,9 @@ class NotificationsConfigTest(TestCase):
     @patch("notifications.apps.BackgroundScheduler")
     @patch("django.core.management.call_command")
     @patch.dict(os.environ, {"RUN_MAIN": "true"})
-    def test_ready_handles_scheduler_error(self, mock_call_command, mock_scheduler_class):
+    def test_ready_handles_scheduler_error(
+        self, mock_call_command, mock_scheduler_class
+    ):
         """Test that ready() handles scheduler errors gracefully"""
         mock_scheduler = Mock()
         mock_scheduler_class.return_value = mock_scheduler
@@ -90,7 +95,9 @@ class NotificationsConfigTest(TestCase):
     @patch("django.core.management.call_command")
     @patch("builtins.print")
     @patch.dict(os.environ, {"RUN_MAIN": "true"})
-    def test_scheduler_job_handles_exception(self, mock_print, mock_call_command, mock_scheduler_class):
+    def test_scheduler_job_handles_exception(
+        self, mock_print, mock_call_command, mock_scheduler_class
+    ):
         """Test that scheduler job handles exceptions"""
         mock_scheduler = Mock()
         mock_scheduler_class.return_value = mock_scheduler
@@ -113,5 +120,7 @@ class NotificationsConfigTest(TestCase):
         mock_print.assert_called()
         # Verify the error message format
         print_calls = [str(call) for call in mock_print.call_args_list]
-        error_printed = any("Error sending reminders" in str(call) for call in print_calls)
+        error_printed = any(
+            "Error sending reminders" in str(call) for call in print_calls
+        )
         self.assertTrue(error_printed, "Error message should be printed")

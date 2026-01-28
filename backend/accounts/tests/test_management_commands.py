@@ -3,9 +3,9 @@
 from io import StringIO
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
-from django.contrib.auth import get_user_model
 
 from accounts.models import Organization, Profile
 from events.models import Event
@@ -51,19 +51,26 @@ class SeedDataCommandTest(TestCase):
         self.assertGreater(Event.objects.count(), initial_count)
 
     def test_command_creates_relationships(self):
-        """Test that command creates relationships (followers, interests, participations)"""
+        """Test that command creates relationships
+        (followers, interests, participations)"""
         call_command("seed_data", verbosity=0)
 
         # Should have organizations with followers
-        orgs_with_followers = Organization.objects.filter(followers__isnull=False).distinct()
+        orgs_with_followers = Organization.objects.filter(
+            followers__isnull=False
+        ).distinct()
         self.assertGreater(orgs_with_followers.count(), 0)
 
         # Should have events with interested users
-        events_with_interested = Event.objects.filter(interested_users__isnull=False).distinct()
+        events_with_interested = Event.objects.filter(
+            interested_users__isnull=False
+        ).distinct()
         self.assertGreater(events_with_interested.count(), 0)
 
         # Should have events with participants
-        events_with_participants = Event.objects.filter(participants__isnull=False).distinct()
+        events_with_participants = Event.objects.filter(
+            participants__isnull=False
+        ).distinct()
         self.assertGreater(events_with_participants.count(), 0)
 
     def test_command_creates_notifications(self):
@@ -76,7 +83,9 @@ class SeedDataCommandTest(TestCase):
 
     def test_command_handles_transaction_rollback(self):
         """Test that command handles transaction errors gracefully"""
-        with patch("accounts.management.commands.seed_data.Organization.objects.create") as mock_create:
+        with patch(
+            "accounts.management.commands.seed_data.Organization.objects.create"
+        ) as mock_create:
             mock_create.side_effect = Exception("Database error")
 
             # Command should handle the error

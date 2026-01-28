@@ -900,7 +900,8 @@ class OrganizationViewSetExceptionTest(APITestCase):
         self.assertIsInstance(permissions[0], IsAuthenticated)
 
     def test_get_permissions_for_followed_path(self):
-        """Test get_permissions returns IsAuthenticated when path ends with /followed/"""
+        """Test get_permissions returns IsAuthenticated
+        when path ends with /followed/"""
         viewset = OrganizationViewSet()
         viewset.action = None
         viewset.request = Mock()
@@ -916,7 +917,8 @@ class OrganizationViewSetExceptionTest(APITestCase):
         self.assertIsInstance(permissions[0], IsAuthenticated)
 
     def test_get_serializer_class_for_collaborator(self):
-        """Test get_serializer_class returns CollaboratorOrganizationSerializer for collaborator"""
+        """Test get_serializer_class returns
+        CollaboratorOrganizationSerializer for collaborator"""
         collaborator = User.objects.create_user(
             username="collaborator",
             email="collab@example.com",
@@ -993,14 +995,14 @@ class OrganizationViewSetExceptionTest(APITestCase):
         from events.models import Event
 
         org = Organization.objects.create(name="Test Org", owner=self.user)
-        event1 = Event.objects.create(
+        Event.objects.create(
             name="Active Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
             organization=org,
             status="Active",
         )
-        event2 = Event.objects.create(
+        Event.objects.create(
             name="Cancelled Event",
             date=timezone.now() + timedelta(days=2),
             organizer=self.user,
@@ -1031,14 +1033,14 @@ class OrganizationViewSetExceptionTest(APITestCase):
         org = Organization.objects.create(name="Test Org", owner=self.user)
         org.collaborators.add(collaborator)
 
-        event1 = Event.objects.create(
+        Event.objects.create(
             name="Active Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
             organization=org,
             status="Active",
         )
-        event2 = Event.objects.create(
+        Event.objects.create(
             name="Cancelled Event",
             date=timezone.now() + timedelta(days=2),
             organizer=self.user,
@@ -1059,14 +1061,14 @@ class OrganizationViewSetExceptionTest(APITestCase):
         from events.models import Event
 
         org = Organization.objects.create(name="Test Org", owner=self.user)
-        event1 = Event.objects.create(
+        Event.objects.create(
             name="Active Event",
             date=timezone.now() + timedelta(days=1),
             organizer=self.user,
             organization=org,
             status="Active",
         )
-        event2 = Event.objects.create(
+        Event.objects.create(
             name="Cancelled Event",
             date=timezone.now() + timedelta(days=2),
             organizer=self.user,
@@ -1179,7 +1181,7 @@ class OrganizationViewSetExceptionTest(APITestCase):
         attendee.profile.save()
 
         org1 = Organization.objects.create(name="Org 1", owner=self.user)
-        org2 = Organization.objects.create(name="Org 2", owner=self.user)
+        Organization.objects.create(name="Org 2", owner=self.user)
         org1.followers.add(attendee)
 
         self.client.force_authenticate(user=attendee)
@@ -1446,9 +1448,7 @@ class OrganizationViewSetExceptionTest(APITestCase):
         collaborator.profile.role = Profile.Role.ORGANIZER
         collaborator.profile.save()
 
-        owned_org = Organization.objects.create(
-            name="Owned Org", owner=collaborator
-        )
+        Organization.objects.create(name="Owned Org", owner=collaborator)
         collaborated_org = Organization.objects.create(
             name="Collaborated Org", owner=self.user
         )
@@ -1473,7 +1473,8 @@ class OrganizationViewSetExceptionTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_get_permissions_for_follow_path_with_post_delete(self):
-        """Test get_permissions returns IsAuthenticated when path contains /follow/ with POST/DELETE"""
+        """Test get_permissions returns IsAuthenticated
+        when path contains /follow/ with POST/DELETE"""
         viewset = OrganizationViewSet()
         viewset.action = None
         viewset.request = Mock()
@@ -1517,7 +1518,8 @@ class OrganizationViewSetExceptionTest(APITestCase):
         self.assertIsInstance(permissions[0], IsOrganizerOrReadOnly)
 
     def test_get_serializer_class_for_list_authenticated(self):
-        """Test get_serializer_class returns PublicOrganizationSerializer for list when authenticated"""
+        """Test get_serializer_class returns
+        PublicOrganizationSerializer for list when authenticated"""
         viewset = OrganizationViewSet()
         viewset.action = "list"
         viewset.request = Mock()
@@ -1530,7 +1532,8 @@ class OrganizationViewSetExceptionTest(APITestCase):
         self.assertEqual(serializer_class, PublicOrganizationSerializer)
 
     def test_get_serializer_class_for_list_unauthenticated(self):
-        """Test get_serializer_class returns PublicOrganizationSerializer for list when unauthenticated"""
+        """Test get_serializer_class returns
+        PublicOrganizationSerializer for list when unauthenticated"""
         viewset = OrganizationViewSet()
         viewset.action = "list"
         viewset.request = Mock()
@@ -1565,7 +1568,8 @@ class OrganizationViewSetExceptionTest(APITestCase):
         self.assertEqual(serializer_class, OrganizationSerializer)
 
     def test_get_serializer_class_for_retrieve_owner(self):
-        """Test get_serializer_class returns OrganizationSerializer for owner on retrieve"""
+        """Test get_serializer_class returns
+        OrganizationSerializer for owner on retrieve"""
         org = Organization.objects.create(name="Test Org", owner=self.user)
 
         viewset = OrganizationViewSet()

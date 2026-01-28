@@ -1,12 +1,10 @@
 """Tests for notifications consumers"""
 
-from unittest.mock import AsyncMock, patch, MagicMock
-from channels.testing import WebsocketCommunicator
+from asgiref.sync import async_to_sync
 from channels.layers import InMemoryChannelLayer
-from django.test import TestCase, override_settings
+from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
-from asgiref.sync import sync_to_async, async_to_sync
-import json
+from django.test import TestCase, override_settings
 
 from notifications.consumers import NotificationConsumer
 
@@ -38,66 +36,84 @@ class NotificationConsumerTest(TestCase):
         )
         self.channel_layer = InMemoryChannelLayer()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_connect(self):
         """Test WebSocket connection"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             connected, subprotocol = await communicator.connect()
             self.assertTrue(connected)
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_connect_sets_user_id_and_group_name(self):
         """Test that connect sets user_id and group_name correctly"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
             connected, subprotocol = await communicator.connect()
             self.assertTrue(connected)
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_connect_adds_to_group(self):
         """Test that connect adds user to notification group"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
             connected, subprotocol = await communicator.connect()
             self.assertTrue(connected)
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_disconnect(self):
         """Test WebSocket disconnection"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
             await communicator.connect()
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_disconnect_removes_from_group(self):
         """Test that disconnect removes user from group"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
             await communicator.connect()
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_receive_message(self):
         """Test receiving message from WebSocket"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
@@ -113,12 +129,15 @@ class NotificationConsumerTest(TestCase):
             self.assertEqual(response["message"], "Hello World")
 
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_receive_sends_to_group(self):
         """Test that receive sends message to room group"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
@@ -133,12 +152,15 @@ class NotificationConsumerTest(TestCase):
             self.assertIn("message", response)
 
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_chat_message_handler(self):
         """Test chat_message handler"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
@@ -152,7 +174,7 @@ class NotificationConsumerTest(TestCase):
                 {
                     "type": "chat.message",
                     "message": "Test chat message",
-                }
+                },
             )
 
             # Should receive the message
@@ -161,12 +183,15 @@ class NotificationConsumerTest(TestCase):
             self.assertEqual(response["message"], "Test chat message")
 
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_send_notification_handler(self):
         """Test send_notification handler"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
@@ -179,14 +204,14 @@ class NotificationConsumerTest(TestCase):
                 "event_name": "Test Event",
                 "time_left": "1 hour",
             }
-            
+
             channel_layer = InMemoryChannelLayer()
             await channel_layer.group_send(
                 f"notifications_{self.user.id}",
                 {
                     "type": "send_notification",
                     "message": notification_data,
-                }
+                },
             )
 
             # Should receive the notification message
@@ -195,12 +220,15 @@ class NotificationConsumerTest(TestCase):
             self.assertEqual(response["event_name"], "Test Event")
 
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_send_notification_with_full_message(self):
         """Test send_notification with complete message structure"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
@@ -213,14 +241,14 @@ class NotificationConsumerTest(TestCase):
                 "message": "Event starting soon",
                 "created_at": "2026-01-27T12:00:00Z",
             }
-            
+
             channel_layer = InMemoryChannelLayer()
             await channel_layer.group_send(
                 f"notifications_{self.user.id}",
                 {
                     "type": "send_notification",
                     "message": notification_message,
-                }
+                },
             )
 
             # Should receive the complete notification message
@@ -229,12 +257,15 @@ class NotificationConsumerTest(TestCase):
             self.assertEqual(response["type"], "event_reminder")
 
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_receive_invalid_json(self):
         """Test handling of invalid JSON in receive"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
@@ -248,12 +279,15 @@ class NotificationConsumerTest(TestCase):
                 pass
 
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
 
-    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @override_settings(
+        CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+    )
     def test_receive_with_missing_message_key(self):
         """Test receive with JSON missing message key"""
+
         async def _test():
             communicator = create_communicator_with_scope(self.user.id)
             # communicator = create_communicator_with_scope(self.user.id)
@@ -267,5 +301,5 @@ class NotificationConsumerTest(TestCase):
                 pass
 
             await communicator.disconnect()
-        
+
         async_to_sync(_test)()
