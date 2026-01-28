@@ -1,6 +1,7 @@
 """Test for OrganizationViewSet.me unauthenticated branch"""
 
 from unittest.mock import Mock
+
 from django.test import TestCase
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.test import APIRequestFactory

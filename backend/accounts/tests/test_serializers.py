@@ -239,6 +239,7 @@ class OrganizationSerializerTest(TestCase):
     def test_get_is_collaborator_authenticated_collaborator(self):
         """Test get_is_collaborator returns True when user is collaborator"""
         from unittest.mock import Mock
+
         from accounts.serializers import CollaboratorOrganizationSerializer
 
         collaborator = User.objects.create_user(
@@ -261,6 +262,7 @@ class OrganizationSerializerTest(TestCase):
     def test_get_is_collaborator_authenticated_not_collaborator(self):
         """Test get_is_collaborator returns False when user is not collaborator"""
         from unittest.mock import Mock
+
         from accounts.serializers import CollaboratorOrganizationSerializer
 
         user = User.objects.create_user(

@@ -1,11 +1,12 @@
 """Tests for events.utils module"""
 
 from datetime import timedelta
+
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
 from accounts.models import Organization, Profile
-from django.contrib.auth import get_user_model
 
 from ..models import Event
 from ..utils import detect_critical_changes
@@ -228,7 +229,8 @@ class DetectCriticalChangesTest(TestCase):
         # The function should try to parse it
         # parse_datetime will return None for invalid strings
         # The check is `if new_date and old_event.date != new_date`
-        # So if new_date is None (from invalid parse), condition fails and no change detected
+        # So if new_date is None (from invalid parse),
+        # condition fails and no change detected
         result = detect_critical_changes(self.event, new_data)
         # Invalid string parses to None, so no change is detected (expected behavior)
         # This is correct - invalid input shouldn't trigger a change notification
